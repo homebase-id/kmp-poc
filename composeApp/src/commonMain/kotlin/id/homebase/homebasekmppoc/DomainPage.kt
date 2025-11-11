@@ -8,24 +8,35 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun DomainPage() {
     var odinIdentity by remember { mutableStateOf("frodo.baggins.demo.rocks") }
+    var isAuthenticating by remember { mutableStateOf(false) }
+
+    // Reset authentication state after 30 seconds (in case auth gets stuck)
+    LaunchedEffect(isAuthenticating) {
+        if (isAuthenticating) {
+            delay(30000) // 30 seconds timeout
+            isAuthenticating = false
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -47,19 +58,31 @@ fun DomainPage() {
             value = odinIdentity,
             onValueChange = { odinIdentity = it },
             label = { Text("Odin Identity") },
-            modifier = Modifier.padding(horizontal = 16.dp)
+            modifier = Modifier.padding(horizontal = 16.dp),
+            enabled = !isAuthenticating
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(
-            onClick = {
-                val url = "https://$odinIdentity/api/v1/kmp/auth"
-                launchCustomTabs(url)
-            },
-            modifier = Modifier.padding(horizontal = 16.dp)
-        ) {
-            Text("Log in")
+        if (isAuthenticating) {
+            CircularProgressIndicator()
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Authenticating...",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        } else {
+            Button(
+                onClick = {
+                    isAuthenticating = true
+                    val url = "https://$odinIdentity/api/v1/kmp/auth"
+                    launchCustomTabs(url)
+                },
+                modifier = Modifier.padding(horizontal = 16.dp)
+            ) {
+                Text("Log in")
+            }
         }
     }
 }
