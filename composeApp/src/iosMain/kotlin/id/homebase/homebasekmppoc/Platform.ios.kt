@@ -38,3 +38,25 @@ actual fun launchCustomTabs(url: String) {
     session.setPresentationContextProvider(AuthPresentationContextProvider())
     session.start()
 }
+
+actual fun showAuthDialog(title: String, message: String) {
+    val alertController = platform.UIKit.UIAlertController.alertControllerWithTitle(
+        title = title,
+        message = message,
+        preferredStyle = platform.UIKit.UIAlertControllerStyleAlert
+    )
+
+    val okAction = platform.UIKit.UIAlertAction.actionWithTitle(
+        title = "OK",
+        style = platform.UIKit.UIAlertActionStyleDefault,
+        handler = null
+    )
+
+    alertController.addAction(okAction)
+
+    platform.UIKit.UIApplication.sharedApplication.keyWindow?.rootViewController?.presentViewController(
+        alertController,
+        animated = true,
+        completion = null
+    )
+}

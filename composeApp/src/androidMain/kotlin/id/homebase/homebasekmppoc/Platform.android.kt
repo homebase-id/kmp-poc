@@ -16,3 +16,11 @@ actual fun launchCustomTabs(url: String) {
     val customTabsIntent = CustomTabsIntent.Builder().build()
     customTabsIntent.launchUrl(MainActivity.instance, Uri.parse(url))
 }
+
+actual fun showAuthDialog(title: String, message: String) {
+    val builder = android.app.AlertDialog.Builder(MainActivity.instance)
+    builder.setTitle(title)
+        .setMessage(message)
+        .setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
+        .show()
+}
