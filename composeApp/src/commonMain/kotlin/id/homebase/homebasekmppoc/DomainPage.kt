@@ -76,8 +76,9 @@ fun DomainPage() {
             Button(
                 onClick = {
                     isAuthenticating = true
-                    val url = "https://$odinIdentity/api/v1/kmp/auth"
-                    launchCustomTabs(url)
+                    // val url = "https://$odinIdentity/api/v1/kmp/auth"
+                    val authorizeUrl = "https://$odinIdentity/api/owner/v1/youauth/authorize"
+                    launchCustomTabs(authorizeUrl)
                 },
                 modifier = Modifier.padding(horizontal = 16.dp)
             ) {
