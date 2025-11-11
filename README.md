@@ -34,5 +34,42 @@ in your IDE’s toolbar or open the [/iosApp](./iosApp) directory in Xcode and r
 
 Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
 
-## YouAuth
+## YouAuth Authentication
+
+This app implements a YouAuth authentication flow using OAuth2-like browser-based authentication with deeplinks.
+
+### Features
+
+- **Cross-platform authentication**: Works on both Android and iOS
+- **In-app browser experience**: Uses Custom Tabs on Android and ASWebAuthenticationSession on iOS
+- **Deeplink handling**: Handles `youauth://callback?code={authCode}` URLs
+- **Backend integration**: Includes a simple ASP.NET Core API that serves the auth redirect
+
+### How it works
+
+1. User enters their Odin Identity domain
+2. App launches in-app browser to `https://{domain}/api/v1/kmp/auth`
+3. Backend serves HTML that redirects to `youauth://callback?code={randomCode}`
+4. App receives the deeplink and processes the auth code
+
+### Running the Backend
+
+```bash
+cd backend/OdinAuthApi
+dotnet run
+```
+
+The API will be available at `https://localhost:5001`
+
+### Testing
+
+- Android: Uses Custom Tabs for seamless in-app browsing
+- iOS: Uses ASWebAuthenticationSession for secure in-app authentication
+- Both platforms handle deeplinks to complete the auth flow
+
+### Configuration
+
+- Deeplinks are configured for `youauth://` scheme
+- Android manifest includes intent filters for deeplinks
+- iOS Info.plist includes URL scheme configuration
 

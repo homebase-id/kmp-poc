@@ -18,15 +18,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalUriHandler
+
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun DomainPage() {
-    var odinIdentity by remember { mutableStateOf("frodo.dotyou.cloud") }
-    val uriHandler = LocalUriHandler.current
+    var odinIdentity by remember { mutableStateOf("frodo.baggins.demo.rocks") }
 
     Column(
         modifier = Modifier
@@ -56,7 +55,7 @@ fun DomainPage() {
         Button(
             onClick = {
                 val url = "https://$odinIdentity/api/v1/kmp/auth"
-                uriHandler.openUri(url)
+                launchCustomTabs(url)
             },
             modifier = Modifier.padding(horizontal = 16.dp)
         ) {

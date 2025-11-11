@@ -1,5 +1,7 @@
 package id.homebase.homebasekmppoc
 
+import platform.AuthenticationServices.ASWebAuthenticationSession
+import platform.Foundation.NSURL
 import platform.UIKit.UIDevice
 
 class IOSPlatform: Platform {
@@ -7,3 +9,32 @@ class IOSPlatform: Platform {
 }
 
 actual fun getPlatform(): Platform = IOSPlatform()
+
+actual fun isAndroid(): Boolean = false
+
+actual fun launchCustomTabs(url: String) {
+    val session = ASWebAuthenticationSession(
+        uRL = NSURL.URLWithString(url)!!,
+        callbackURLScheme = "youauth",
+        completionHandler = { callbackURL: NSURL?, error: platform.Foundation.NSError? ->
+            if (callbackURL != null) {
+                val urlString = callbackURL.absoluteString!!
+                if (urlString.startsWith("youauth://callback?")) {
+                    val query = urlString.substringAfter("?")
+                    val params = query.split("&").associate {
+                        val parts = it.split("=")
+                        parts[0] to (parts.getOrNull(1) ?: "")
+                    }
+                    val code = params["code"]
+                    if (code != null && code.isNotEmpty()) {
+                        handleAuthCallback(code)
+                    }
+                }
+            } else if (error != null) {
+                println("Auth error: $error")
+            }
+        }
+    )
+    session.setPresentationContextProvider(AuthPresentationContextProvider())
+    session.start()
+}

@@ -29,6 +29,7 @@ kotlin {
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
+            implementation("androidx.browser:browser:1.8.0")
         }
         commonMain.dependencies {
             implementation(compose.runtime)

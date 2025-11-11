@@ -1,5 +1,6 @@
 package id.homebase.homebasekmppoc
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -17,8 +18,25 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         instance = this
 
+        handleIntent(intent)
+
         setContent {
             App()
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent) {
+        val data = intent.data
+        if (data != null && data.scheme == "youauth" && data.host == "callback") {
+            val code = data.getQueryParameter("code")
+            if (code != null) {
+                handleAuthCallback(code)
+            }
         }
     }
 }
