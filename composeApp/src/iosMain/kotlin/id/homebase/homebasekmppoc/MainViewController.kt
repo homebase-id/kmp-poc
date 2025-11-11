@@ -1,5 +1,14 @@
 package id.homebase.homebasekmppoc
 
 import androidx.compose.ui.window.ComposeUIViewController
+import platform.UIKit.UIViewController
 
-fun MainViewController() = ComposeUIViewController { App() }
+object MainViewControllerRef {
+    lateinit var instance: UIViewController
+}
+
+fun MainViewController(): UIViewController {
+    val controller = ComposeUIViewController { App() }
+    MainViewControllerRef.instance = controller
+    return controller
+}
