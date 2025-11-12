@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    kotlin("plugin.serialization") version "2.0.20"
 }
 
 kotlin {
@@ -14,7 +15,7 @@ kotlin {
             jvmTarget.set(JvmTarget.JVM_11)
         }
     }
-    
+
     listOf(
         iosArm64(),
         iosSimulatorArm64()
@@ -28,6 +29,10 @@ kotlin {
     sourceSets {
         androidMain.dependencies {
             implementation(compose.preview)
+            implementation(compose.foundation)
+            implementation(compose.ui)
+            implementation(compose.components.resources)
+            implementation(compose.components.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
             implementation("androidx.browser:browser:1.8.0")
         }
@@ -40,6 +45,9 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
+            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+            implementation("dev.whyoleg.cryptography:cryptography-core:0.5.0")
+            implementation("dev.whyoleg.cryptography:cryptography-provider-optimal:0.5.0")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -57,6 +65,10 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
+    }
+
+    lint {
+        baseline = file("lint-baseline.xml")
     }
     packaging {
         resources {

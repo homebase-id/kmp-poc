@@ -22,12 +22,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import id.homebase.homebasekmppoc.youauth.buildAuthorizeUrl
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun DomainPage() {
-    var odinIdentity by remember { mutableStateOf("frodo.baggins.demo.rocks") }
+    // var odinIdentity by remember { mutableStateOf("frodo.baggins.demo.rocks") }
+    var odinIdentity by remember { mutableStateOf("frodo.dotyou.cloud") }
     var isAuthenticating by remember { mutableStateOf(false) }
 
     // Reset authentication state after 30 seconds (in case auth gets stuck)
@@ -77,7 +79,10 @@ fun DomainPage() {
                 onClick = {
                     isAuthenticating = true
                     // val url = "https://$odinIdentity/api/v1/kmp/auth"
-                    val authorizeUrl = "https://$odinIdentity/api/owner/v1/youauth/authorize"
+                    // val authorizeUrl = "https://$odinIdentity/api/owner/v1/youauth/authorize"
+                    val authorizeUrl = buildAuthorizeUrl(odinIdentity)
+
+                    // showMessage("uri", authorizeUrl)
                     launchCustomTabs(authorizeUrl)
                 },
                 modifier = Modifier.padding(horizontal = 16.dp)

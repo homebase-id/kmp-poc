@@ -1,9 +1,11 @@
 package id.homebase.homebasekmppoc.youauth
 
-data class State(
-    val identity: String,
-    val privateKey: ByteArray?
-)
+//import id.homebase.homebasekmppoc.crypto.EccFullKeyData
+//import id.homebase.homebasekmppoc.crypto.SensitiveByteArray
+//
+//data class State(
+//    val identity: String,
+//    val privateKey: SensitiveByteArray?,
+//    var keyPair: EccFullKeyData?
+//)
 
-// Global storage for states (not thread-safe in multiplatform context)
-val globalStates: MutableMap<String, State> = mutableMapOf()

@@ -12,11 +12,11 @@ expect fun isAndroid(): Boolean
 
 expect fun launchCustomTabs(url: String)
 
-expect fun showAuthDialog(title: String, message: String)
+expect fun showMessage(title: String, message: String)
 
 fun handleAuthCallback(code: String) {
     println("Auth code: $code")
-    showAuthDialog("Authentication Successful", "Received auth code: $code")
+    showMessage("Authentication Successful", "Received auth code: $code")
     // TODO: Process the auth code (validate, store token, etc.)
 }
 
@@ -41,3 +41,7 @@ fun encodeUrl(value: String): String {
 // Generate a random UUID as byte array
 @OptIn(kotlin.uuid.ExperimentalUuidApi::class)
 fun generateUuidBytes(): ByteArray = Uuid.random().toByteArray()
+
+// Generate a random UUID as byte array
+@OptIn(kotlin.uuid.ExperimentalUuidApi::class)
+fun generateUuidString(): String = Uuid.random().toString()

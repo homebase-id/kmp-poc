@@ -36,7 +36,7 @@ actual fun launchCustomTabs(url: String) {
     customTabsIntent.launchUrl(MainActivity.instance, Uri.parse(url))
 }
 
-actual fun showAuthDialog(title: String, message: String) {
+actual fun showMessage(title: String, message: String) {
     val builder = android.app.AlertDialog.Builder(MainActivity.instance)
     builder.setTitle(title)
         .setMessage(message)

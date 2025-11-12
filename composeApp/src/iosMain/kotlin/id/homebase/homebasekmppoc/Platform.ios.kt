@@ -39,7 +39,7 @@ actual fun launchCustomTabs(url: String) {
     session.start()
 }
 
-actual fun showAuthDialog(title: String, message: String) {
+actual fun showMessage(title: String, message: String) {
     val alertController = platform.UIKit.UIAlertController.alertControllerWithTitle(
         title = title,
         message = message,

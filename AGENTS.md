@@ -51,3 +51,6 @@
 - Place tests in `commonTest` for shared logic
 - Use descriptive test names that explain the behavior being tested</content>
 <parameter name="filePath">/Users/seb/code/odin/kmp/odin-kmp/AGENTS.md
+
+### Crypto
+- Make sure the classes in 'c-sharp-crypto.md' are converted to KMP.
