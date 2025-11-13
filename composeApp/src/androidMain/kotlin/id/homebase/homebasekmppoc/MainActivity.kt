@@ -7,7 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
-import id.homebase.homebasekmppoc.youauth.handleAuthCallback
+import id.homebase.homebasekmppoc.youauth.handleAuthorizeCallback
 
 class MainActivity : ComponentActivity() {
     companion object {
@@ -38,7 +38,7 @@ class MainActivity : ComponentActivity() {
             // Convert Uri to full URL string including scheme, host, path, and query params
             val callbackURL = data.toString()
             //showMessage("Auth Callback", "Received URL: $callbackURL")
-            handleAuthCallback(callbackURL)
+            handleAuthorizeCallback(callbackURL)
         }
     }
 }

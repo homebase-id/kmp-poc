@@ -59,9 +59,17 @@ suspend fun buildAuthorizeUrl(identity: String): String {
 /**
  * Called when the app receives a deeplink redirect after authorization
  */
-fun handleAuthCallback(url: String) {
-    showMessage("Auth Callback", "Received: $url")
+fun handleAuthorizeCallback(url: String) {
+    //showMessage("Auth Callback", url)
     Logger.i("YouAuth") { "Callback: $url" }
+
+    try {
+        authorizeFromCallback(url)
+        showMessage("Very nice", "Very nice")
+    } catch (e: Exception) {
+        Logger.e("YouAuth") { "Error: ${e.message}" }
+        showMessage("Error", "e.message")
+    }
 
     // Parse the callback URL to extract parameters
     // Expected format: youauth://thirdparty.dotyou.cloud/authorization-code-callback?code=...&state=...
@@ -91,3 +99,46 @@ fun handleAuthCallback(url: String) {
 //        }
 //    }
 }
+
+fun authorizeFromCallback(url: String) {
+
+    if (!url.contains("/authorization-code-callback")) {
+        throw Exception("Missing /authorization-code-callback")
+    }
+
+    val query = url.substringAfter("?", "")
+    if (query.isEmpty()) {
+        throw Exception("Missing query params")
+    }
+
+    val params = query.split("&").associate {
+        val parts = it.split("=", limit = 2)
+        parts[0] to (parts.getOrNull(1) ?: "")
+    }
+
+    val identity = params["identity"]
+    if (identity == "") {
+        throw Exception("Missing query param: identity")
+    }
+
+    val publicKey = params["public_key"]
+    if (publicKey == "") {
+        throw Exception("Missing query param: public_key")
+    }
+
+    val salt = params["salt"]
+    if (salt == "") {
+        throw Exception("Missing query param: salt")
+    }
+
+    val state = params["state"]
+    if (state == "") {
+        throw Exception("Missing query param: state")
+    }
+
+    // val remoteSalt = salt.decodeBase64ToByteString().toByteArray()
+
+}
+
+//
+

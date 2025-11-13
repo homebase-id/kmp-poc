@@ -1,6 +1,6 @@
 package id.homebase.homebasekmppoc
 
-import id.homebase.homebasekmppoc.youauth.handleAuthCallback
+import id.homebase.homebasekmppoc.youauth.handleAuthorizeCallback
 import platform.AuthenticationServices.ASWebAuthenticationSession
 import platform.Foundation.NSURL
 import platform.UIKit.UIDevice
@@ -20,7 +20,7 @@ actual fun launchCustomTabs(url: String) {
         completionHandler = { callbackURL: NSURL?, error: platform.Foundation.NSError? ->
             if (callbackURL != null) {
                 val urlString = callbackURL.absoluteString!!
-                handleAuthCallback(urlString)
+                handleAuthorizeCallback(urlString)
             } else if (error != null) {
                 println("Auth error: $error")
             }

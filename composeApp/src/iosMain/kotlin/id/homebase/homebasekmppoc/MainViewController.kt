@@ -1,7 +1,7 @@
 package id.homebase.homebasekmppoc
 
 import androidx.compose.ui.window.ComposeUIViewController
-import id.homebase.homebasekmppoc.youauth.handleAuthCallback
+import id.homebase.homebasekmppoc.youauth.handleAuthorizeCallback
 import platform.UIKit.UIViewController
 import platform.darwin.NSObject
 
@@ -22,5 +22,5 @@ fun MainViewController(): UIViewController {
 }
 
 fun handleAuthCode(code: String) {
-    handleAuthCallback(code)
+    handleAuthorizeCallback(code)
 }
