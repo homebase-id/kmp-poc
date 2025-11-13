@@ -34,8 +34,8 @@ kotlin {
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
-            implementation("androidx.browser:browser:1.8.0")
-            implementation("dev.whyoleg.cryptography:cryptography-provider-jdk:0.3.1")
+            implementation("androidx.browser:browser:1.9.0")
+            implementation("dev.whyoleg.cryptography:cryptography-provider-jdk:0.5.0")
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -46,14 +46,14 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
-            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
-            implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
-            implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.3.1")
-            implementation("dev.whyoleg.cryptography:cryptography-core:0.3.1")
+            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
+            implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
+            implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.8.0")
+            implementation("dev.whyoleg.cryptography:cryptography-core:0.5.0")
             implementation("co.touchlab:kermit:2.0.8") //Add latest version
         }
         iosMain.dependencies {
-            implementation("dev.whyoleg.cryptography:cryptography-provider-apple:0.3.1")
+            implementation("dev.whyoleg.cryptography:cryptography-provider-apple:0.5.0")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
