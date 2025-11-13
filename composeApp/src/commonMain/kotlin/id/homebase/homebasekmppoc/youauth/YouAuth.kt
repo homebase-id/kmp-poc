@@ -4,11 +4,12 @@ import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.crypto.EccFullKeyData
 import id.homebase.homebasekmppoc.crypto.EccKeySize
 import id.homebase.homebasekmppoc.crypto.SensitiveByteArray
+import id.homebase.homebasekmppoc.decodeUrl
 import id.homebase.homebasekmppoc.generateUuidBytes
 import id.homebase.homebasekmppoc.generateUuidString
 import id.homebase.homebasekmppoc.showMessage
-import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
+import kotlin.io.encoding.Base64
+import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 // Global storage for states (not thread-safe in multiplatform context)
@@ -18,9 +19,6 @@ val globalStates: MutableMap<String, State> = mutableMapOf()
 //
 
 suspend fun buildAuthorizeUrl(identity: String): String {
-
-    //    @OptIn(ExperimentalTime::class)
-    //    val currentTimeMillis = Clock.System.now().toEpochMilliseconds()
 
     //
     // YouAuth [010]
@@ -68,38 +66,13 @@ fun handleAuthorizeCallback(url: String) {
         showMessage("Very nice", "Very nice")
     } catch (e: Exception) {
         Logger.e("YouAuth") { "Error: ${e.message}" }
-        showMessage("Error", "e.message")
+        showMessage("Error", "${e.message}")
     }
-
-    // Parse the callback URL to extract parameters
-    // Expected format: youauth://thirdparty.dotyou.cloud/authorization-code-callback?code=...&state=...
-////    if (url.contains("/authorization-code-callback")) {
-////        val query = url.substringAfter("?", "")
-////        if (query.isNotEmpty()) {
-////            val params = query.split("&").associate {
-////                val parts = it.split("=", limit = 2)
-////                parts[0] to (parts.getOrNull(1) ?: "")
-////            }
-////
-////            val code = params["code"]
-////            val state = params["state"]
-////
-////            if (code != null && code.isNotEmpty() && state != null && state.isNotEmpty()) {
-////                // Look up the stored state
-////                val storedState = globalStates[state]
-////                if (storedState != null) {
-////                    showMessage("Success", "Authorization code received!\nCode: ${code.take(10)}...\nState: $state")
-////                    // TODO: Continue with token exchange using the code and storedState.keyPair
-////                } else {
-////                    showMessage("Error", "Invalid state parameter - state not found in storage")
-////                }
-////            } else {
-////                showMessage("Error", "Missing code or state parameter in callback")
-////            }
-//        }
-//    }
 }
 
+//
+
+@OptIn(ExperimentalUuidApi::class)
 fun authorizeFromCallback(url: String) {
 
     if (!url.contains("/authorization-code-callback")) {
@@ -116,27 +89,29 @@ fun authorizeFromCallback(url: String) {
         parts[0] to (parts.getOrNull(1) ?: "")
     }
 
-    val identity = params["identity"]
+    val identity = decodeUrl(params["identity"] ?: "")
     if (identity == "") {
         throw Exception("Missing query param: identity")
     }
 
-    val publicKey = params["public_key"]
+    val publicKey = decodeUrl(params["public_key"] ?: "")
     if (publicKey == "") {
         throw Exception("Missing query param: public_key")
     }
 
-    val salt = params["salt"]
+    val salt = decodeUrl(params["salt"] ?: "")
     if (salt == "") {
         throw Exception("Missing query param: salt")
     }
+    Logger.i("YouAuth") { "Salt: $salt" }
+    val saltyBytes = Base64.Default.decode(salt)
 
-    val state = params["state"]
-    if (state == "") {
+    val stateKey = decodeUrl(params["state"]  ?: "")
+    if (stateKey == "") {
         throw Exception("Missing query param: state")
     }
-
-    // val remoteSalt = salt.decodeBase64ToByteString().toByteArray()
+    val stateUuid = Uuid.parse(stateKey!!)
+    val state = globalStates[stateKey] ?: throw Exception("State not found in map")
 
 }
 

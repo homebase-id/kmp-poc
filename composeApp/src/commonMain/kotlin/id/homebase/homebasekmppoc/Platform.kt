@@ -32,6 +32,35 @@ fun encodeUrl(value: String): String {
     return sb.toString()
 }
 
+// URL decoder compatible with UTF-8 encoding
+fun decodeUrl(value: String): String {
+    val bytes = mutableListOf<Byte>()
+    var i = 0
+    while (i < value.length) {
+        val c = value[i]
+        if (c == '%') {
+            if (i + 2 >= value.length) {
+                throw IllegalArgumentException("Invalid URL encoding: incomplete percent sequence at position $i")
+            }
+            val hex = value.substring(i + 1, i + 3)
+            try {
+                val b = hex.toInt(16).toByte()
+                bytes.add(b)
+                i += 3
+            } catch (e: NumberFormatException) {
+                throw IllegalArgumentException("Invalid URL encoding: invalid hex sequence '$hex' at position $i", e)
+            }
+        } else if (c == '+') {
+            bytes.add(' '.code.toByte())
+            i++
+        } else {
+            bytes.add(c.code.toByte())
+            i++
+        }
+    }
+    return bytes.toByteArray().decodeToString()
+}
+
 // Generate a random UUID as byte array
 @OptIn(kotlin.uuid.ExperimentalUuidApi::class)
 fun generateUuidBytes(): ByteArray = Uuid.random().toByteArray()

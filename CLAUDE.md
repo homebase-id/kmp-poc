@@ -94,29 +94,45 @@ Main UI entry point: `App.kt` with `PrimaryTabRow` for navigation.
 
 ### Cryptography Implementation
 
-The project is transitioning C# cryptography classes to KMP. See `c-sharp-crypto.md` for reference implementations that need to be converted.
+The project uses [cryptography-kotlin](https://github.com/whyoleg/cryptography-kotlin) v0.5.0 for cross-platform cryptographic operations.
 
 **Current Status:**
-- `Crc32c.kt` - Implemented in `crypto/` folder
-- Other crypto classes (SensitiveByteArray, UnixTimeUtc, AesCbc, HashUtil, etc.) - Need to be implemented
+All cryptography is implemented in common code using cryptography-kotlin:
+- `Crc32c.kt` - CRC32C checksum calculation
+- `SensitiveByteArray.kt` - Secure memory handling for sensitive data
+- `UnixTimeUtc.kt` - Unix timestamp utilities
+- `AesCbc.kt` - AES-CBC encryption/decryption
+- `HashUtil.kt` - SHA-256 hashing and HKDF key derivation
+- `EccKeyData.kt` - ECC key generation, ECDH key agreement, JWK/DER conversions
+- `ByteArrayUtil.kt` - Byte array utilities and Base64 encoding
+- `Base64UrlEncoder.kt` - Base64 URL-safe encoding/decoding
 
-**Implementation Guidelines:**
-- Place new crypto classes in `composeApp/src/commonMain/kotlin/id/homebase/homebasekmppoc/crypto/`
-- Prefer using [cryptography-kotlin](https://github.com/whyoleg/cryptography-kotlin) library when possible
-- Fall back to platform-specific APIs (Android/iOS native crypto) if needed
-- Reference .NET 9 crypto APIs and BouncyCastle for C# equivalents
-- **Do NOT leave TODOs or placeholders** - fully implement all functionality
-- **Ask for clarification** rather than guessing implementation details
+**Cryptography Provider:**
+- Uses `cryptography-provider-optimal` which automatically selects the best provider per platform:
+  - **Android**: JDK provider
+  - **iOS**: CryptoKit provider (with Apple CommonCrypto fallback)
+
+**Key Implementation Notes:**
+- All crypto operations are `suspend` functions (async)
+- ECC operations support P-256 and P-384 curves
+- Keys can be encoded/decoded in DER, RAW (uncompressed EC points) formats
+- JWK format is handled manually as CryptoKit doesn't support it natively
+- HKDF uses SHA-256 for key derivation
+- No platform-specific native code required
 
 ## Dependencies
 
-Key dependencies (defined in `gradle/libs.versions.toml`):
+Key dependencies (defined in `gradle/libs.versions.toml` and `build.gradle.kts`):
 - Kotlin 2.2.20
 - Compose Multiplatform 1.9.1
 - Android minSdk: 27, targetSdk: 36
 - AndroidX Browser (for Custom Tabs)
-- kotlinx-serialization-json 1.6.3
+- kotlinx-serialization-json 1.9.0
+- kotlinx-datetime 0.7.1
+- kotlinx-io-core 0.8.0
 - AndroidX Lifecycle (ViewModel, Runtime Compose)
+- cryptography-kotlin 0.5.0 (core + optimal provider)
+- Kermit 2.0.8 (logging)
 
 ## Code Style
 
@@ -164,6 +180,12 @@ Key dependencies (defined in `gradle/libs.versions.toml`):
 
 - The backend API server (ASP.NET Core) runs on `https://localhost:5001` (see README)
 - The app is a proof-of-concept for YouAuth authentication integration
-- Crypto implementation is incomplete and actively being developed
+- All cryptography is fully implemented using cryptography-kotlin in common code
 - Do not use emojis unless explicitly requested
 - Follow existing code patterns and architecture when adding new features
+
+## Known Issues & Considerations
+
+- iOS console may show harmless warnings about duplicate Objective-C classes from system frameworks
+- CryptoKit provider on iOS doesn't support JWK format natively - we use RAW uncompressed EC point format instead
+- All crypto operations are async (suspend functions) due to cryptography-kotlin API design
