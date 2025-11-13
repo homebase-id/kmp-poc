@@ -46,8 +46,7 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
-            implementation("dev.whyoleg.cryptography:cryptography-core:0.5.0")
-            implementation("dev.whyoleg.cryptography:cryptography-provider-optimal:0.5.0")
+
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

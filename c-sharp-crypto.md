@@ -1,9 +1,13 @@
 Here are the custom helper and crypto classes from the C# project.
 These must be converted to their KMP equivalents and placed in the crypto folder (next to Crc32c)
 
-These classes internally use dotnet v9 crypo APIs and BouncyCastle APIs, so reference these when in doubt.
+These classes internally use dotnet v9 crypto APIs and BouncyCastle APIs, so reference these when in doubt.
 For crypto specific code prefer using already installed library from cryptography-kotlin https://github.com/whyoleg/cryptography-kotlin
 If "cryptography-kotlin" doesn't cover it, call Kotlin APIs or native Android/iOS APIs.
+
+Make sure everything is fully implemented. Do not leave and TODOs (unless they are in an already existing comment) and do not leave any place holders.
+
+Ask if in doubt, don't guess!
 
 ## SensitiveByteArray
 ```
