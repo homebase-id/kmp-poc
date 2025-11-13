@@ -2,7 +2,7 @@ package id.homebase.homebasekmppoc.crypto
 
 import dev.whyoleg.cryptography.CryptographyProvider
 import dev.whyoleg.cryptography.DelicateCryptographyApi
-import dev.whyoleg.cryptography.algorithms.symmetric.AES
+import dev.whyoleg.cryptography.algorithms.AES
 
 /**
  * AES-CBC encryption/decryption utilities using cryptography-kotlin
@@ -29,9 +29,9 @@ object AesCbc {
         require(key.isNotEmpty()) { "Key cannot be empty" }
         require(iv.size == 16) { "IV must be 16 bytes" }
 
-        val aesKey = aes.keyDecoder().decodeFrom(AES.Key.Format.RAW, key)
+        val aesKey = aes.keyDecoder().decodeFromByteArray(AES.Key.Format.RAW, key)
         val cipher = aesKey.cipher()
-        return cipher.encrypt(iv, data)
+        return cipher.encryptWithIv(iv, data)
     }
 
     /**
@@ -62,8 +62,8 @@ object AesCbc {
         require(key.isNotEmpty()) { "Key cannot be empty" }
         require(iv.size == 16) { "IV must be 16 bytes" }
 
-        val aesKey = aes.keyDecoder().decodeFrom(AES.Key.Format.RAW, key)
+        val aesKey = aes.keyDecoder().decodeFromByteArray(AES.Key.Format.RAW, key)
         val cipher = aesKey.cipher()
-        return cipher.decrypt(iv, cipherText)
+        return cipher.decryptWithIv(iv, cipherText)
     }
 }
