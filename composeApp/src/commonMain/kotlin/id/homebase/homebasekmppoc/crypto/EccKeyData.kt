@@ -1,5 +1,9 @@
 package id.homebase.homebasekmppoc.crypto
 
+import dev.whyoleg.cryptography.CryptographyProvider
+import dev.whyoleg.cryptography.DelicateCryptographyApi
+import dev.whyoleg.cryptography.algorithms.EC
+import dev.whyoleg.cryptography.algorithms.ECDH
 import kotlinx.serialization.json.Json
 
 /**
@@ -26,7 +30,7 @@ open class EccPublicKeyData(
         /**
          * Create EccPublicKeyData from JWK (JSON Web Key) format
          */
-        fun fromJwkPublicKey(jwk: String, hours: Int = 1): EccPublicKeyData {
+        suspend fun fromJwkPublicKey(jwk: String, hours: Int = 1): EccPublicKeyData {
             val jwkMap = Json.decodeFromString<Map<String, String>>(jwk)
 
             require(jwkMap["kty"] == "EC") { "Invalid key type, kty must be EC" }
@@ -52,7 +56,7 @@ open class EccPublicKeyData(
         /**
          * Create EccPublicKeyData from base64url-encoded JWK
          */
-        fun fromJwkBase64UrlPublicKey(jwkBase64Url: String, hours: Int = 1): EccPublicKeyData {
+        suspend fun fromJwkBase64UrlPublicKey(jwkBase64Url: String, hours: Int = 1): EccPublicKeyData {
             return fromJwkPublicKey(Base64UrlEncoder.decodeString(jwkBase64Url), hours)
         }
 
@@ -67,14 +71,14 @@ open class EccPublicKeyData(
     /**
      * Get the curve type from the public key
      */
-    protected fun getCurveEnum(): EccKeySize {
+    protected suspend fun getCurveEnum(): EccKeySize {
         return platformGetCurveFromKey(publicKey)
     }
 
     /**
      * Convert public key to JWK format
      */
-    fun publicKeyJwk(): String {
+    suspend fun publicKeyJwk(): String {
         val (x, y) = platformDerToJwkCoordinates(publicKey)
         val curveSize = getCurveEnum()
 
@@ -99,7 +103,7 @@ open class EccPublicKeyData(
     /**
      * Convert public key to base64url-encoded JWK
      */
-    fun publicKeyJwkBase64Url(): String {
+    suspend fun publicKeyJwkBase64Url(): String {
         return Base64UrlEncoder.encode(publicKeyJwk())
     }
 
@@ -206,28 +210,141 @@ class EccFullKeyData private constructor() : EccPublicKeyData() {
 }
 
 /**
- * Platform-specific function to convert JWK coordinates to DER-encoded public key
+ * Convert JWK coordinates to DER-encoded public key using cryptography-kotlin
  */
-internal expect fun platformJwkToDer(x: ByteArray, y: ByteArray, keySize: EccKeySize): ByteArray
+@OptIn(DelicateCryptographyApi::class)
+internal suspend fun platformJwkToDer(x: ByteArray, y: ByteArray, keySize: EccKeySize): ByteArray {
+    val crypto = CryptographyProvider.Default
+    val ecdh = crypto.get(ECDH)
+
+    val curve = when (keySize) {
+        EccKeySize.P256 -> EC.Curve.P256
+        EccKeySize.P384 -> EC.Curve.P384
+    }
+
+    // Create uncompressed point format: 0x04 || x || y
+    val uncompressedPoint = ByteArray(1 + x.size + y.size)
+    uncompressedPoint[0] = 0x04.toByte()
+    x.copyInto(uncompressedPoint, 1)
+    y.copyInto(uncompressedPoint, 1 + x.size)
+
+    // Decode from RAW (uncompressed) format
+    val publicKey = ecdh.publicKeyDecoder(curve).decodeFromByteArray(EC.PublicKey.Format.RAW.Uncompressed, uncompressedPoint)
+
+    // Encode to DER format (SPKI)
+    return publicKey.encodeToByteArray(EC.PublicKey.Format.DER)
+}
 
 /**
- * Platform-specific function to extract JWK coordinates from DER-encoded public key
+ * Extract JWK coordinates from DER-encoded public key using cryptography-kotlin
  */
-internal expect fun platformDerToJwkCoordinates(derKey: ByteArray): Pair<ByteArray, ByteArray>
+@OptIn(DelicateCryptographyApi::class)
+internal suspend fun platformDerToJwkCoordinates(derKey: ByteArray): Pair<ByteArray, ByteArray> {
+    val crypto = CryptographyProvider.Default
+    val ecdh = crypto.get(ECDH)
+
+    // First, detect the curve by trying both P-256 and P-384
+    val curve = try {
+        ecdh.publicKeyDecoder(EC.Curve.P256).decodeFromByteArray(EC.PublicKey.Format.DER, derKey)
+        EC.Curve.P256
+    } catch (e: Exception) {
+        try {
+            ecdh.publicKeyDecoder(EC.Curve.P384).decodeFromByteArray(EC.PublicKey.Format.DER, derKey)
+            EC.Curve.P384
+        } catch (e: Exception) {
+            throw IllegalArgumentException("Unsupported ECC curve")
+        }
+    }
+
+    // Decode from DER
+    val publicKey = ecdh.publicKeyDecoder(curve).decodeFromByteArray(EC.PublicKey.Format.DER, derKey)
+
+    // Encode to RAW uncompressed format: 0x04 || x || y
+    val uncompressedPoint = publicKey.encodeToByteArray(EC.PublicKey.Format.RAW.Uncompressed)
+
+    // Uncompressed format is: 0x04 || x || y
+    require(uncompressedPoint[0] == 0x04.toByte()) { "Invalid uncompressed point format" }
+
+    val coordinateSize = (uncompressedPoint.size - 1) / 2
+    val x = uncompressedPoint.copyOfRange(1, 1 + coordinateSize)
+    val y = uncompressedPoint.copyOfRange(1 + coordinateSize, uncompressedPoint.size)
+
+    return Pair(x, y)
+}
 
 /**
- * Platform-specific function to get the curve type from a DER-encoded key
+ * Get the curve type from a DER-encoded key using cryptography-kotlin
  */
-internal expect fun platformGetCurveFromKey(derKey: ByteArray): EccKeySize
+@OptIn(DelicateCryptographyApi::class)
+internal suspend fun platformGetCurveFromKey(derKey: ByteArray): EccKeySize {
+    val crypto = CryptographyProvider.Default
+    val ecdh = crypto.get(ECDH)
+
+    // Try P-256 first
+    return try {
+        ecdh.publicKeyDecoder(EC.Curve.P256).decodeFromByteArray(EC.PublicKey.Format.DER, derKey)
+        EccKeySize.P256
+    } catch (e: Exception) {
+        try {
+            ecdh.publicKeyDecoder(EC.Curve.P384).decodeFromByteArray(EC.PublicKey.Format.DER, derKey)
+            EccKeySize.P384
+        } catch (e: Exception) {
+            throw IllegalArgumentException("Unsupported ECC key size")
+        }
+    }
+}
 
 /**
- * Platform-specific function to generate an ECC key pair
+ * Generate an ECC key pair using cryptography-kotlin
  * Returns (privateKeyDer, publicKeyDer)
  */
-internal expect fun platformGenerateEccKeyPair(keySize: EccKeySize): Pair<ByteArray, ByteArray>
+@OptIn(DelicateCryptographyApi::class)
+internal suspend fun platformGenerateEccKeyPair(keySize: EccKeySize): Pair<ByteArray, ByteArray> {
+    val crypto = CryptographyProvider.Default
+    val ecdh = crypto.get(ECDH)
+
+    val curve = when (keySize) {
+        EccKeySize.P256 -> EC.Curve.P256
+        EccKeySize.P384 -> EC.Curve.P384
+    }
+
+    // Generate key pair
+    val keyPair = ecdh.keyPairGenerator(curve).generateKey()
+
+    // Encode both keys to DER format
+    val privateKeyDer = keyPair.privateKey.encodeToByteArray(EC.PrivateKey.Format.DER.Generic)
+    val publicKeyDer = keyPair.publicKey.encodeToByteArray(EC.PublicKey.Format.DER)
+
+    return Pair(privateKeyDer, publicKeyDer)
+}
 
 /**
- * Platform-specific function to perform ECDH key agreement
+ * Perform ECDH key agreement using cryptography-kotlin
  * Returns the raw shared secret (before HKDF)
  */
-internal expect fun platformEcdhKeyAgreement(privateKeyDer: ByteArray, publicKeyDer: ByteArray): ByteArray
+@OptIn(DelicateCryptographyApi::class)
+internal suspend fun platformEcdhKeyAgreement(privateKeyDer: ByteArray, publicKeyDer: ByteArray): ByteArray {
+    val crypto = CryptographyProvider.Default
+    val ecdh = crypto.get(ECDH)
+
+    // First, detect the curve from the public key
+    val curve = try {
+        ecdh.publicKeyDecoder(EC.Curve.P256).decodeFromByteArray(EC.PublicKey.Format.DER, publicKeyDer)
+        EC.Curve.P256
+    } catch (e: Exception) {
+        try {
+            ecdh.publicKeyDecoder(EC.Curve.P384).decodeFromByteArray(EC.PublicKey.Format.DER, publicKeyDer)
+            EC.Curve.P384
+        } catch (e: Exception) {
+            throw IllegalArgumentException("Unsupported ECC curve")
+        }
+    }
+
+    // Decode keys
+    val privateKey = ecdh.privateKeyDecoder(curve).decodeFromByteArray(EC.PrivateKey.Format.DER.Generic, privateKeyDer)
+    val publicKey = ecdh.publicKeyDecoder(curve).decodeFromByteArray(EC.PublicKey.Format.DER, publicKeyDer)
+
+    // Perform ECDH
+    val sharedSecretGenerator = privateKey.sharedSecretGenerator()
+    return sharedSecretGenerator.generateSharedSecretToByteArray(publicKey)
+}

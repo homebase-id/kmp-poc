@@ -1,6 +1,8 @@
 package id.homebase.homebasekmppoc.crypto
 
+import dev.whyoleg.cryptography.BinarySize.Companion.bytes
 import dev.whyoleg.cryptography.CryptographyProvider
+import dev.whyoleg.cryptography.algorithms.HKDF
 import dev.whyoleg.cryptography.algorithms.SHA256
 import kotlinx.io.Source
 import kotlinx.io.readByteArray
@@ -13,6 +15,7 @@ object HashUtil {
 
     private val crypto = CryptographyProvider.Default
     private val sha256Algo = crypto.get(SHA256)
+    private val hkdfAlgo = crypto.get(HKDF)
 
     /**
      * Compute SHA-256 hash of input
@@ -50,13 +53,14 @@ object HashUtil {
     suspend fun hkdf(sharedEccSecret: ByteArray, salt: ByteArray, outputKeySize: Int): ByteArray {
         require(outputKeySize >= 16) { "Output key size cannot be less than 16" }
 
-        // For HKDF, we'll use platform-specific implementations since HMAC in cryptography-kotlin
-        // doesn't have the right API structure for our use case
-        return platformHkdf(sharedEccSecret, salt, outputKeySize)
+        // Use cryptography-kotlin HKDF with SHA-256
+        val derivation = hkdfAlgo.secretDerivation(
+            digest = SHA256,
+            outputSize = outputKeySize.bytes,
+            salt = salt,
+            info = null  // No additional info in our use case
+        )
+
+        return derivation.deriveSecretToByteArray(sharedEccSecret)
     }
 }
-
-/**
- * Platform-specific HKDF implementation (cryptography-kotlin doesn't have ideal HKDF support)
- */
-internal expect fun platformHkdf(sharedEccSecret: ByteArray, salt: ByteArray, outputKeySize: Int): ByteArray
