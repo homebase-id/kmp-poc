@@ -1,5 +1,6 @@
 package id.homebase.homebasekmppoc.youauth
 
+import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.crypto.EccFullKeyData
 import id.homebase.homebasekmppoc.crypto.EccKeySize
 import id.homebase.homebasekmppoc.crypto.SensitiveByteArray
@@ -53,4 +54,40 @@ suspend fun buildAuthorizeUrl(identity: String): String {
         .toString()
 
     return uri;
+}
+
+/**
+ * Called when the app receives a deeplink redirect after authorization
+ */
+fun handleAuthCallback(url: String) {
+    showMessage("Auth Callback", "Received: $url")
+    Logger.i("YouAuth") { "Callback: $url" }
+
+    // Parse the callback URL to extract parameters
+    // Expected format: youauth://thirdparty.dotyou.cloud/authorization-code-callback?code=...&state=...
+////    if (url.contains("/authorization-code-callback")) {
+////        val query = url.substringAfter("?", "")
+////        if (query.isNotEmpty()) {
+////            val params = query.split("&").associate {
+////                val parts = it.split("=", limit = 2)
+////                parts[0] to (parts.getOrNull(1) ?: "")
+////            }
+////
+////            val code = params["code"]
+////            val state = params["state"]
+////
+////            if (code != null && code.isNotEmpty() && state != null && state.isNotEmpty()) {
+////                // Look up the stored state
+////                val storedState = globalStates[state]
+////                if (storedState != null) {
+////                    showMessage("Success", "Authorization code received!\nCode: ${code.take(10)}...\nState: $state")
+////                    // TODO: Continue with token exchange using the code and storedState.keyPair
+////                } else {
+////                    showMessage("Error", "Invalid state parameter - state not found in storage")
+////                }
+////            } else {
+////                showMessage("Error", "Missing code or state parameter in callback")
+////            }
+//        }
+//    }
 }

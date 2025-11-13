@@ -50,7 +50,7 @@ kotlin {
             implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
             implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.3.1")
             implementation("dev.whyoleg.cryptography:cryptography-core:0.3.1")
-
+            implementation("co.touchlab:kermit:2.0.8") //Add latest version
         }
         iosMain.dependencies {
             implementation("dev.whyoleg.cryptography:cryptography-provider-apple:0.3.1")

@@ -14,23 +14,6 @@ expect fun launchCustomTabs(url: String)
 
 expect fun showMessage(title: String, message: String)
 
-fun handleAuthCallback(url: String) {
-    showMessage("callback", url)
-
-//    if (urlString.startsWith("youauth://callback?") && urlString.contains("/authorization-code-callback?")) {
-//        val query = urlString.substringAfter("?")
-//        val params = query.split("&").associate {
-//            val parts = it.split("=")
-//            parts[0] to (parts.getOrNull(1) ?: "")
-//        }
-//        val code = params["code"]
-//        if (code != null && code.isNotEmpty()) {
-//            handleAuthCallback(code)
-//        }
-//    }
-
-}
-
 // URL encoder compatible with UTF-8 encoding
 fun encodeUrl(value: String): String {
     val bytes = value.encodeToByteArray()
