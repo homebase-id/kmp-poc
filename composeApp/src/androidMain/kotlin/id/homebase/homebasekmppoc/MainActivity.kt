@@ -27,16 +27,17 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        setIntent(intent) // Update the activity's intent
         handleIntent(intent)
     }
 
     private fun handleIntent(intent: Intent) {
         val data = intent.data
-        if (data != null && data.scheme == "youauth" && data.host == "callback") {
-            val code = data.getQueryParameter("code")
-            if (code != null) {
-                handleAuthCallback(code)
-            }
+        if (data != null && data.scheme == "youauth") {
+            // Convert Uri to full URL string including scheme, host, path, and query params
+            val callbackURL = data.toString()
+            //showMessage("Auth Callback", "Received URL: $callbackURL")
+            handleAuthCallback(callbackURL)
         }
     }
 }
