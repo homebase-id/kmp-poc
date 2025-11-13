@@ -24,13 +24,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import id.homebase.homebasekmppoc.youauth.buildAuthorizeUrl
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 @Composable
 fun DomainPage() {
     // var odinIdentity by remember { mutableStateOf("frodo.baggins.demo.rocks") }
     var odinIdentity by remember { mutableStateOf("frodo.dotyou.cloud") }
     var isAuthenticating by remember { mutableStateOf(false) }
+    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
 
     // Reset authentication state after 30 seconds (in case auth gets stuck)
     LaunchedEffect(isAuthenticating) {
@@ -78,12 +82,14 @@ fun DomainPage() {
             Button(
                 onClick = {
                     isAuthenticating = true
-                    // val url = "https://$odinIdentity/api/v1/kmp/auth"
-                    // val authorizeUrl = "https://$odinIdentity/api/owner/v1/youauth/authorize"
-                    val authorizeUrl = buildAuthorizeUrl(odinIdentity)
+                    coroutineScope.launch {
+                        // val url = "https://$odinIdentity/api/v1/kmp/auth"
+                        // val authorizeUrl = "https://$odinIdentity/api/owner/v1/youauth/authorize"
+                        val authorizeUrl = buildAuthorizeUrl(odinIdentity)
 
-                    // showMessage("uri", authorizeUrl)
-                    launchCustomTabs(authorizeUrl)
+                        // showMessage("uri", authorizeUrl)
+                        launchCustomTabs(authorizeUrl)
+                    }
                 },
                 modifier = Modifier.padding(horizontal = 16.dp)
             ) {

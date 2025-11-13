@@ -28,7 +28,7 @@ class PlatformTest {
     }
 
     @Test
-    fun testBuildAuthorizeUrl() {
+    fun testBuildAuthorizeUrl() = kotlinx.coroutines.test.runTest {
         val identity = "test.example.com"
         val url = buildAuthorizeUrl(identity)
 

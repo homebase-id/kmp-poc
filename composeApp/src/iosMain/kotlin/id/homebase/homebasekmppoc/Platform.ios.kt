@@ -19,7 +19,8 @@ actual fun launchCustomTabs(url: String) {
         completionHandler = { callbackURL: NSURL?, error: platform.Foundation.NSError? ->
             if (callbackURL != null) {
                 val urlString = callbackURL.absoluteString!!
-                if (urlString.startsWith("youauth://callback?")) {
+                showMessage("callback", urlString)
+                if (urlString.startsWith("youauth://callback?") && urlString.contains("/authorization-code-callback?")) {
                     val query = urlString.substringAfter("?")
                     val params = query.split("&").associate {
                         val parts = it.split("=")
