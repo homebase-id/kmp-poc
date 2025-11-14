@@ -5,7 +5,7 @@ import id.homebase.homebasekmppoc.crypto.SensitiveByteArray
 
 data class State(
     val identity: String,
-    val privateKey: SensitiveByteArray?,
-    var keyPair: EccFullKeyData?
+    val privateKey: SensitiveByteArray,
+    var keyPair: EccFullKeyData
 )
 

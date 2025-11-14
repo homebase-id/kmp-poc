@@ -1,6 +1,7 @@
 package id.homebase.homebasekmppoc
 
 import kotlinx.coroutines.CoroutineScope
+import kotlin.io.encoding.Base64
 import kotlin.uuid.Uuid
 
 interface Platform {
@@ -69,3 +70,7 @@ fun generateUuidBytes(): ByteArray = Uuid.random().toByteArray()
 // Generate a random UUID as byte array
 @OptIn(kotlin.uuid.ExperimentalUuidApi::class)
 fun generateUuidString(): String = Uuid.random().toString()
+
+fun ByteArray.toBase64(): String {
+    return Base64.encode(this)
+}

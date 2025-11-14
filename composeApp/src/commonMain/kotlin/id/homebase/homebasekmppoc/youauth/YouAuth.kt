@@ -1,14 +1,19 @@
 package id.homebase.homebasekmppoc.youauth
 
 import co.touchlab.kermit.Logger
+import dev.whyoleg.cryptography.CryptographyProvider
+import dev.whyoleg.cryptography.algorithms.SHA256
+import id.homebase.homebasekmppoc.crypto.Base64UrlEncoder
 import id.homebase.homebasekmppoc.crypto.EccFullKeyData
 import id.homebase.homebasekmppoc.crypto.EccKeySize
 import id.homebase.homebasekmppoc.crypto.EccPublicKeyData
+import id.homebase.homebasekmppoc.crypto.HashUtil
 import id.homebase.homebasekmppoc.crypto.SensitiveByteArray
 import id.homebase.homebasekmppoc.decodeUrl
 import id.homebase.homebasekmppoc.generateUuidBytes
 import id.homebase.homebasekmppoc.generateUuidString
 import id.homebase.homebasekmppoc.showMessage
+import id.homebase.homebasekmppoc.toBase64
 import kotlin.io.encoding.Base64
 
 // Global storage for states (not thread-safe in multiplatform context)
@@ -32,14 +37,13 @@ suspend fun buildAuthorizeUrl(identity: String): String {
     val state = generateUuidString()
     stateMap[state] = State(identity, privateKey, keyPair)
 
-    var clientId = "thirdparty.dotyou.cloud"
+    val clientId = "thirdparty.dotyou.cloud"
     val payload = YouAuthAuthorizeRequest (
         clientId = clientId,
         clientInfo = "",
         clientType = ClientType.domain,
         permissionRequest = "",
         publicKey = keyPair.publicKeyJwkBase64Url(),
-//        redirectUri = "https://$identity/{controllerRoute}/authorization-code-callback",
         redirectUri = "youauth://$clientId/authorization-code-callback",
         state = state,
     )
@@ -115,9 +119,15 @@ suspend fun authorizeFromCallback(url: String) {
     val privateKey = state.privateKey
     val keyPair = state.keyPair
     val remotePublicKey = publicKey
-    val remoteSalt = Base64.Default.decode(salt)
+    val remoteSalt = Base64.decode(salt)
 
-    val remotePublicKeyJwk = EccPublicKeyData.fromJwkBase64UrlPublicKey(remotePublicKey);
+    val remotePublicKeyJwk = EccPublicKeyData.fromJwkBase64UrlPublicKey(remotePublicKey)
+    val exchangeSecret = keyPair.getEcdhSharedSecret(privateKey, remotePublicKeyJwk, remoteSalt)
+    val exchangeSecretDigest = HashUtil.sha256(exchangeSecret.getKey()).toBase64()
+
+    //
+    // YouAuth [100]
+    //
 
 
 }
