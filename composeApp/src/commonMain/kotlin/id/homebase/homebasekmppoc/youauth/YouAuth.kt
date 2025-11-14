@@ -3,6 +3,7 @@ package id.homebase.homebasekmppoc.youauth
 import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.crypto.EccFullKeyData
 import id.homebase.homebasekmppoc.crypto.EccKeySize
+import id.homebase.homebasekmppoc.crypto.EccPublicKeyData
 import id.homebase.homebasekmppoc.crypto.SensitiveByteArray
 import id.homebase.homebasekmppoc.decodeUrl
 import id.homebase.homebasekmppoc.generateUuidBytes
@@ -14,7 +15,7 @@ import kotlin.uuid.Uuid
 
 // Global storage for states (not thread-safe in multiplatform context)
 // This should really be ctor injected. In this POC it's just a global
-val globalStates: MutableMap<String, State> = mutableMapOf()
+val stateMap: MutableMap<String, State> = mutableMapOf()
 
 //
 
@@ -31,7 +32,7 @@ suspend fun buildAuthorizeUrl(identity: String): String {
     //
 
     val state = generateUuidString()
-    globalStates[state] = State(identity, privateKey, keyPair)
+    stateMap[state] = State(identity, privateKey, keyPair)
 
     var clientId = "thirdparty.dotyou.cloud"
     val payload = YouAuthAuthorizeRequest (
@@ -72,7 +73,6 @@ fun handleAuthorizeCallback(url: String) {
 
 //
 
-@OptIn(ExperimentalUuidApi::class)
 fun authorizeFromCallback(url: String) {
 
     if (!url.contains("/authorization-code-callback")) {
@@ -103,15 +103,24 @@ fun authorizeFromCallback(url: String) {
     if (salt == "") {
         throw Exception("Missing query param: salt")
     }
-    Logger.i("YouAuth") { "Salt: $salt" }
-    val saltyBytes = Base64.Default.decode(salt)
 
     val stateKey = decodeUrl(params["state"]  ?: "")
     if (stateKey == "") {
         throw Exception("Missing query param: state")
     }
-    val stateUuid = Uuid.parse(stateKey!!)
-    val state = globalStates[stateKey] ?: throw Exception("State not found in map")
+    val state = stateMap[stateKey] ?: throw Exception("State not found in map")
+
+    //
+    // YouAuth [090]
+    //
+
+    val privateKey = state.privateKey
+    val keyPair = state.keyPair
+    val remotePublicKey = publicKey
+    val remoteSalt = Base64.Default.decode(salt)
+
+    val remotePublicKeyJwk = EccPublicKeyData.fromJwkBase64UrlPublicKey(remotePublicKey);
+
 
 }
 
