@@ -50,9 +50,26 @@ kotlin {
             implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.8.0")
             implementation("dev.whyoleg.cryptography:cryptography-core:0.5.0")
             implementation("dev.whyoleg.cryptography:cryptography-provider-optimal:0.5.0")
-            implementation("co.touchlab:kermit:2.0.8") //Add latest version
+            implementation("co.touchlab:kermit:2.0.8")
+            // Ktor HTTP client
+            implementation("io.ktor:ktor-client-core:3.3.2")
+            implementation("io.ktor:ktor-client-content-negotiation:3.3.2")
+            implementation("io.ktor:ktor-serialization-kotlinx-json:3.3.2")
+        }
+        androidMain.dependencies {
+            implementation(compose.preview)
+            implementation(compose.foundation)
+            implementation(compose.ui)
+            implementation(compose.components.resources)
+            implementation(compose.components.uiToolingPreview)
+            implementation(libs.androidx.activity.compose)
+            implementation("androidx.browser:browser:1.9.0")
+            // Ktor Android engine
+            implementation("io.ktor:ktor-client-okhttp:3.3.2")
         }
         iosMain.dependencies {
+            // Ktor iOS engine
+            implementation("io.ktor:ktor-client-darwin:3.3.2")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
