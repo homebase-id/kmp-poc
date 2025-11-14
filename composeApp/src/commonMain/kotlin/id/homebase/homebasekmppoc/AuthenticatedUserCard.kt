@@ -38,31 +38,33 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 /**
  * A card component that displays authenticated user information with data from backend.
  *
- * @param authenticatedState The authenticated state containing identity and tokens
+ * @param authenticatedState The authenticated state containing identity and tokens (optional)
  * @param modifier Optional modifier for the card
  */
 @Composable
 fun AuthenticatedUserCard(
-    authenticatedState: YouAuthState.Authenticated,
+    authenticatedState: YouAuthState.Authenticated?,
     modifier: Modifier = Modifier
 ) {
     var verifytokenReponse by remember { mutableStateOf<String?>(null) }
     var isAuthenticatedResponse by remember { mutableStateOf<String?>(null) }
     var pingResponse by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
+    var isLoading by remember { mutableStateOf(authenticatedState != null) }
 
     // Fetch data from backend when component loads
     LaunchedEffect(authenticatedState) {
-        try {
-            val client = OdinHttpClient(authenticatedState)
-            verifytokenReponse = client.verifyToken()
-            isAuthenticatedResponse = client.isAuthenticated()
-            pingResponse = client.getString("/api/guest/v1/builtin/home/auth/ping?text=helloworld")
-            isLoading = false
-        } catch (e: Exception) {
-            errorMessage = e.message ?: "Unknown error"
-            isLoading = false
+        if (authenticatedState != null) {
+            try {
+                val client = OdinHttpClient(authenticatedState)
+                verifytokenReponse = client.verifyToken()
+                isAuthenticatedResponse = client.isAuthenticated()
+                pingResponse = client.getString("/api/guest/v1/builtin/home/auth/ping?text=helloworld")
+                isLoading = false
+            } catch (e: Exception) {
+                errorMessage = e.message ?: "Unknown error"
+                isLoading = false
+            }
         }
     }
 
@@ -96,7 +98,7 @@ fun AuthenticatedUserCard(
 
             // User identity
             Text(
-                text = authenticatedState.identity,
+                text = authenticatedState?.identity ?: "Not authenticated",
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center
@@ -192,7 +194,7 @@ fun AuthenticatedUserCard(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "Ping",
+                            text = "Encrypted Guest Ping",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.primary,
                             textAlign = TextAlign.Center

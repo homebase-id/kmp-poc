@@ -156,7 +156,7 @@ class OdinHttpClient(
         val client = createHttpClient()
         val response = client.get(encryptedUri) {
             headers {
-                append("Cookie", "XT32={$clientAuthToken}")
+                append("Cookie", "XT32=$clientAuthToken")
             }
         }
 

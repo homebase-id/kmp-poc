@@ -49,6 +49,14 @@ fun DomainPage() {
 
         Spacer(modifier = Modifier.height(32.dp))
 
+        // Always show the authenticated user card
+        AuthenticatedUserCard(
+            authenticatedState = if (authState is YouAuthState.Authenticated) authState as YouAuthState.Authenticated else null,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         // Show auth state information
         when (val state = authState) {
             is YouAuthState.Unauthenticated -> {
@@ -79,11 +87,6 @@ fun DomainPage() {
                 )
             }
             is YouAuthState.Authenticated -> {
-                AuthenticatedUserCard(
-                    authenticatedState = state,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
                 Button(
                     onClick = {
                         YouAuthManager.logout()
