@@ -169,6 +169,16 @@ suspend fun authorizeFromCallback(url: String) {
     val clientAuthTokenIv = Base64.decode(token.base64ClientAuthTokenIv)
     val clientAuthToken = AesCbc.decrypt(clientAuthTokenCipher, exchangeSecret.getKey(), clientAuthTokenIv)
 
+    //
+    // Post YouAuth [400]
+    // Store thirdparty cookies
+    //
+
+    val identityCookieValue = state.identity
+    val catCookieValue = Base64.encode(clientAuthToken)
+    val sharedSecretCookieValue = Base64.encode(sharedSecret)
+
+
 }
 
 //
