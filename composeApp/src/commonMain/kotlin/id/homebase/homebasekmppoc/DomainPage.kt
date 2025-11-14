@@ -79,10 +79,9 @@ fun DomainPage() {
                 )
             }
             is YouAuthState.Authenticated -> {
-                Text(
-                    text = "Logged in as: ${state.identity}",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                AuthenticatedUserCard(
+                    authenticatedState = state,
+                    modifier = Modifier.padding(horizontal = 16.dp)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(

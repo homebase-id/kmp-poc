@@ -189,3 +189,4 @@ Key dependencies (defined in `gradle/libs.versions.toml` and `build.gradle.kts`)
 - iOS console may show harmless warnings about duplicate Objective-C classes from system frameworks
 - CryptoKit provider on iOS doesn't support JWK format natively - we use RAW uncompressed EC point format instead
 - All crypto operations are async (suspend functions) due to cryptography-kotlin API design
+- always compile when you're done making changes
