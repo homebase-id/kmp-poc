@@ -13,7 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -22,27 +22,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import id.homebase.homebasekmppoc.youauth.buildAuthorizeUrl
-import kotlinx.coroutines.delay
+import id.homebase.homebasekmppoc.youauth.YouAuthState
+import id.homebase.homebasekmppoc.youauth.YouAuthManager
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
 
 @Composable
 fun DomainPage() {
-    // var odinIdentity by remember { mutableStateOf("frodo.baggins.demo.rocks") }
     var odinIdentity by remember { mutableStateOf("frodo.dotyou.cloud") }
-    var isAuthenticating by remember { mutableStateOf(false) }
+    val authState by YouAuthManager.youAuthState.collectAsState()
     val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
-
-    // Reset authentication state after 30 seconds (in case auth gets stuck)
-    LaunchedEffect(isAuthenticating) {
-        if (isAuthenticating) {
-            delay(30000) // 30 seconds timeout
-            isAuthenticating = false
-        }
-    }
 
     Column(
         modifier = Modifier
@@ -60,37 +49,75 @@ fun DomainPage() {
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        OutlinedTextField(
-            value = odinIdentity,
-            onValueChange = { odinIdentity = it },
-            label = { Text("Odin Identity") },
-            modifier = Modifier.padding(horizontal = 16.dp),
-            enabled = !isAuthenticating
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        if (isAuthenticating) {
-            CircularProgressIndicator()
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Authenticating...",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-        } else {
-            Button(
-                onClick = {
-                    isAuthenticating = true
-                    coroutineScope.launch {
-                        val authorizeUrl = buildAuthorizeUrl(odinIdentity)
-                        launchCustomTabs(authorizeUrl, coroutineScope) // pass the scope
-                    }
-                },
-                modifier = Modifier.padding(horizontal = 16.dp)
-            ) {
-
-                Text("Log in")
+        // Show auth state information
+        when (val state = authState) {
+            is YouAuthState.Unauthenticated -> {
+                OutlinedTextField(
+                    value = odinIdentity,
+                    onValueChange = { odinIdentity = it },
+                    label = { Text("Odin Identity") },
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            YouAuthManager.authorize(odinIdentity, coroutineScope)                        }
+                    },
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                ) {
+                    Text("Log in")
+                }
+            }
+            is YouAuthState.Authenticating -> {
+                CircularProgressIndicator()
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Authenticating...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+            is YouAuthState.Authenticated -> {
+                Text(
+                    text = "Logged in as: ${state.identity}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = {
+                        YouAuthManager.logout()
+                    },
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                ) {
+                    Text("Log out")
+                }
+            }
+            is YouAuthState.Error -> {
+                Text(
+                    text = "Error: ${state.message}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = odinIdentity,
+                    onValueChange = { odinIdentity = it },
+                    label = { Text("Odin Identity") },
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            YouAuthManager.authorize(odinIdentity, coroutineScope)
+                        }
+                    },
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                ) {
+                    Text("Try again")
+                }
             }
         }
     }

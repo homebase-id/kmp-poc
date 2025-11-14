@@ -8,7 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.lifecycleScope
-import id.homebase.homebasekmppoc.youauth.handleAuthorizeCallback
+import id.homebase.homebasekmppoc.youauth.YouAuthManager
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -40,7 +40,7 @@ class MainActivity : ComponentActivity() {
             val callbackURL = data.toString()
             //showMessage("Auth Callback", "Received URL: $callbackURL")
             lifecycleScope.launch {
-                handleAuthorizeCallback(callbackURL)
+                YouAuthManager.handleAuthorizeCallback(callbackURL)
             }
         }
     }

@@ -1,6 +1,5 @@
 package id.homebase.homebasekmppoc
 
-import id.homebase.homebasekmppoc.youauth.buildAuthorizeUrl
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
