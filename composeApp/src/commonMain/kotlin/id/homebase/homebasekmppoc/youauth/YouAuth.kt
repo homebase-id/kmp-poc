@@ -130,6 +130,42 @@ suspend fun authorizeFromCallback(url: String) {
     //
 
 
+//    var uri = new UriBuilder($"https://{state.Identity}/api/owner/v1/youauth/token");
+//    var tokenRequest = new YouAuthTokenRequest
+//            {
+//                SecretDigest = exchangeSecretDigest
+//            };
+//    var body = OdinSystemSerializer.Serialize(tokenRequest);
+//
+//    var request = new HttpRequestMessage(HttpMethod.Post, uri.ToString())
+//    {
+//        Content = new StringContent(body, Encoding.UTF8, "application/json")
+//    };
+//
+//    var client = _httpClientFactory.CreateClient(state.Identity);
+//    var response = await client.SendAsync(request);
+//
+//    if (response.StatusCode != HttpStatusCode.OK)
+//    {
+//        throw new Exception($"NO! It's a {(int)response.StatusCode}");
+//    }
+//
+//    //
+//    // YouAuth [150]
+//    //
+//
+//    var json = await response.Content.ReadAsStringAsync();
+//    var token = OdinSystemSerializer.Deserialize<YouAuthTokenResponse>(json);
+//
+//    var sharedSecretCipher = Convert.FromBase64String(token!.Base64SharedSecretCipher!);
+//    var sharedSecretIv = Convert.FromBase64String(token.Base64SharedSecretIv!);
+//    var sharedSecret = AesCbc.Decrypt(sharedSecretCipher, exchangeSecret, sharedSecretIv);
+//
+//    var clientAuthTokenCipher = Convert.FromBase64String(token.Base64ClientAuthTokenCipher!);
+//    var clientAuthTokenIv = Convert.FromBase64String(token.Base64ClientAuthTokenIv!);
+//    var clientAuthToken = AesCbc.Decrypt(clientAuthTokenCipher, exchangeSecret, clientAuthTokenIv);
+
+
 }
 
 //
