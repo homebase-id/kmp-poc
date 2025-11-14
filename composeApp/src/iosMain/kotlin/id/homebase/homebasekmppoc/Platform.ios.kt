@@ -1,6 +1,9 @@
 package id.homebase.homebasekmppoc
 
 import id.homebase.homebasekmppoc.youauth.handleAuthorizeCallback
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import platform.AuthenticationServices.ASWebAuthenticationSession
 import platform.Foundation.NSURL
 import platform.UIKit.UIDevice
@@ -13,14 +16,16 @@ actual fun getPlatform(): Platform = IOSPlatform()
 
 actual fun isAndroid(): Boolean = false
 
-actual fun launchCustomTabs(url: String) {
+actual fun launchCustomTabs(url: String, scope: CoroutineScope) {
     val session = ASWebAuthenticationSession(
         uRL = NSURL.URLWithString(url)!!,
         callbackURLScheme = "youauth",
         completionHandler = { callbackURL: NSURL?, error: platform.Foundation.NSError? ->
             if (callbackURL != null) {
                 val urlString = callbackURL.absoluteString!!
-                handleAuthorizeCallback(urlString)
+                scope.launch(Dispatchers.Main) {
+                    handleAuthorizeCallback(urlString)
+                }
             } else if (error != null) {
                 println("Auth error: $error")
             }

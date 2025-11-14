@@ -10,8 +10,6 @@ import id.homebase.homebasekmppoc.generateUuidBytes
 import id.homebase.homebasekmppoc.generateUuidString
 import id.homebase.homebasekmppoc.showMessage
 import kotlin.io.encoding.Base64
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 // Global storage for states (not thread-safe in multiplatform context)
 // This should really be ctor injected. In this POC it's just a global
@@ -58,7 +56,7 @@ suspend fun buildAuthorizeUrl(identity: String): String {
 /**
  * Called when the app receives a deeplink redirect after authorization
  */
-fun handleAuthorizeCallback(url: String) {
+suspend fun handleAuthorizeCallback(url: String) {
     //showMessage("Auth Callback", url)
     Logger.i("YouAuth") { "Callback: $url" }
 
@@ -73,7 +71,7 @@ fun handleAuthorizeCallback(url: String) {
 
 //
 
-fun authorizeFromCallback(url: String) {
+suspend fun authorizeFromCallback(url: String) {
 
     if (!url.contains("/authorization-code-callback")) {
         throw Exception("Missing /authorization-code-callback")

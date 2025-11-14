@@ -83,16 +83,13 @@ fun DomainPage() {
                 onClick = {
                     isAuthenticating = true
                     coroutineScope.launch {
-                        // val url = "https://$odinIdentity/api/v1/kmp/auth"
-                        // val authorizeUrl = "https://$odinIdentity/api/owner/v1/youauth/authorize"
                         val authorizeUrl = buildAuthorizeUrl(odinIdentity)
-
-                        // showMessage("uri", authorizeUrl)
-                        launchCustomTabs(authorizeUrl)
+                        launchCustomTabs(authorizeUrl, coroutineScope) // pass the scope
                     }
                 },
                 modifier = Modifier.padding(horizontal = 16.dp)
             ) {
+
                 Text("Log in")
             }
         }

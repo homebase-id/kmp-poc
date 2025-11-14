@@ -1,5 +1,6 @@
 package id.homebase.homebasekmppoc
 
+import kotlinx.coroutines.CoroutineScope
 import kotlin.uuid.Uuid
 
 interface Platform {
@@ -10,7 +11,7 @@ expect fun getPlatform(): Platform
 
 expect fun isAndroid(): Boolean
 
-expect fun launchCustomTabs(url: String)
+expect fun launchCustomTabs(url: String, scope: CoroutineScope)
 
 expect fun showMessage(title: String, message: String)
 

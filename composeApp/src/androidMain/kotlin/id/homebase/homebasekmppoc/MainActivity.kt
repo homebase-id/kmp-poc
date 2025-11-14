@@ -7,7 +7,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.lifecycleScope
 import id.homebase.homebasekmppoc.youauth.handleAuthorizeCallback
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     companion object {
@@ -35,10 +37,11 @@ class MainActivity : ComponentActivity() {
     private fun handleIntent(intent: Intent) {
         val data = intent.data
         if (data != null && data.scheme == "youauth") {
-            // Convert Uri to full URL string including scheme, host, path, and query params
             val callbackURL = data.toString()
             //showMessage("Auth Callback", "Received URL: $callbackURL")
-            handleAuthorizeCallback(callbackURL)
+            lifecycleScope.launch {
+                handleAuthorizeCallback(callbackURL)
+            }
         }
     }
 }
