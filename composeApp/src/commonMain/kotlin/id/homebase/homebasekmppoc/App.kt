@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc.pages.app
+package id.homebase.homebasekmppoc
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
@@ -10,9 +10,10 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import id.homebase.homebasekmppoc.pages.app.AppPage
 import id.homebase.homebasekmppoc.pages.owner.OwnerPage
-import id.homebase.homebasekmppoc.pages.AppPage
 import id.homebase.homebasekmppoc.pages.domain.DomainPage
+import id.homebase.homebasekmppoc.youauth.YouAuthManager
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
@@ -21,6 +22,10 @@ fun App() {
     MaterialTheme {
         var selectedTabIndex by remember { mutableStateOf(0) }
         val tabs = listOf("Owner", "Domain", "App")
+
+        // Hoist YouAuthManager to App level so it survives tab navigation
+        val domainYouAuthManager = remember { YouAuthManager() }
+        val appYouAuthManager = remember { YouAuthManager() }
 
         Column(
             modifier = Modifier
@@ -40,8 +45,8 @@ fun App() {
 
             when (selectedTabIndex) {
                 0 -> OwnerPage()
-                1 -> DomainPage()
-                2 -> AppPage()
+                1 -> DomainPage(domainYouAuthManager)
+                2 -> AppPage(appYouAuthManager)
             }
         }
     }

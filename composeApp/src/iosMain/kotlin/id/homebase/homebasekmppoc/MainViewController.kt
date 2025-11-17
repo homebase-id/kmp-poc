@@ -1,7 +1,6 @@
 package id.homebase.homebasekmppoc
 
 import androidx.compose.ui.window.ComposeUIViewController
-import id.homebase.homebasekmppoc.pages.app.App
 import platform.UIKit.UIViewController
 import platform.darwin.NSObject
 

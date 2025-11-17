@@ -1,14 +1,15 @@
-package id.homebase.homebasekmppoc.crypto
+package id.homebase.homebasekmppoc.datetime
 
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 /**
  * Represents a Unix timestamp in UTC with millisecond precision
  */
-@OptIn(kotlin.time.ExperimentalTime::class)
+@OptIn(ExperimentalTime::class)
 data class UnixTimeUtc(val milliseconds: Long) {
 
     constructor() : this(Clock.System.now().toEpochMilliseconds())
@@ -69,7 +70,7 @@ data class UnixTimeUtc(val milliseconds: Long) {
      * Convert to Instant
      */
     fun toInstant(): Instant {
-        return Instant.fromEpochMilliseconds(milliseconds)
+        return Instant.Companion.fromEpochMilliseconds(milliseconds)
     }
 
     /**

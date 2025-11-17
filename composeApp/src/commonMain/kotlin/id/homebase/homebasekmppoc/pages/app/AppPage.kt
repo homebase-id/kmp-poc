@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc.pages.domain
+package id.homebase.homebasekmppoc.pages.app
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -23,13 +23,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import id.homebase.homebasekmppoc.youauth.YouAuthState
+import id.homebase.homebasekmppoc.serialization.OdinSystemSerializer
+import id.homebase.homebasekmppoc.youauth.YouAuthAppParameters
+import id.homebase.homebasekmppoc.youauth.YouAuthDriveParameters
 import id.homebase.homebasekmppoc.youauth.YouAuthManager
+import id.homebase.homebasekmppoc.youauth.YouAuthState
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
-fun DomainPage(youAuthManager: YouAuthManager) {
+fun AppPage(youAuthManager: YouAuthManager) {
     var odinIdentity by remember { mutableStateOf("frodo.dotyou.cloud") }
 
     val authState by youAuthManager.youAuthState.collectAsState()
@@ -44,15 +47,15 @@ fun DomainPage(youAuthManager: YouAuthManager) {
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Domain",
+            text = "App",
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center
         )
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Always show the authenticated user card
-        AuthenticatedUserCard(
+        // Always show the authenticated app card
+        AuthenticatedAppCard(
             authenticatedState = if (authState is YouAuthState.Authenticated) authState as YouAuthState.Authenticated else null,
             modifier = Modifier.padding(horizontal = 16.dp)
         )
@@ -72,7 +75,8 @@ fun DomainPage(youAuthManager: YouAuthManager) {
                 Button(
                     onClick = {
                         coroutineScope.launch {
-                            youAuthManager.authorize(odinIdentity, coroutineScope)
+                            val appParams = getAppParams()
+                            youAuthManager.authorize(odinIdentity, coroutineScope, appParams)
                         }
                     },
                     modifier = Modifier.padding(horizontal = 16.dp)
@@ -130,8 +134,33 @@ fun DomainPage(youAuthManager: YouAuthManager) {
 
 @Preview
 @Composable
-fun DomainPagePreview() {
+fun AppPagePreview() {
     MaterialTheme {
-        DomainPage(YouAuthManager())
+        AppPage(YouAuthManager())
     }
+}
+
+//
+
+private fun getAppParams(): YouAuthAppParameters {
+    val driveParams = listOf(
+        YouAuthDriveParameters(
+            driveAlias = "11111111111111111111111111111111",
+            driveType = "22222222222222222222222222222222",
+            name = "Third Part Library",
+            description = "Place for your third parties",
+            permission = 3
+        )
+    )
+
+    val appParams = YouAuthAppParameters(
+        appName = "third party app",
+        appOrigin = "dev.dotyou.cloud:3005",
+        appId = "aaaaaaaa-bbbb-cccc-dddd-cccccccccccc",
+        clientFriendly = "KMP App",
+        drivesParam = OdinSystemSerializer.serialize(driveParams),
+        returnParam = "backend-will-decide"
+    )
+
+    return appParams
 }
