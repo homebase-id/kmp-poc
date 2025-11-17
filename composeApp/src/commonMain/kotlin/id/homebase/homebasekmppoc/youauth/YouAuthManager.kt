@@ -11,6 +11,7 @@ import id.homebase.homebasekmppoc.decodeUrl
 import id.homebase.homebasekmppoc.generateUuidBytes
 import id.homebase.homebasekmppoc.generateUuidString
 import id.homebase.homebasekmppoc.http.UriBuilder
+import id.homebase.homebasekmppoc.http.createHttpClient
 import id.homebase.homebasekmppoc.launchCustomTabs
 import id.homebase.homebasekmppoc.serialization.OdinSystemSerializer
 import id.homebase.homebasekmppoc.toBase64
@@ -59,13 +60,14 @@ private data class AuthCodeFlowState(
 )
 
 /**
- * Manages YouAuth authentication state and flow
+ * Manages YouAuth authentication state and flow.
+ * Create instances to manage independent authentication flows.
  */
-object YouAuthManager {
+class YouAuthManager {
     private val _youAuthState = MutableStateFlow<YouAuthState>(YouAuthState.Unauthenticated)
     val youAuthState: StateFlow<YouAuthState> = _youAuthState.asStateFlow()
 
-    private val authCodeFlowStateMap: MutableMap<String, AuthCodeFlowState> = mutableMapOf()
+    private var authCodeFlowState: AuthCodeFlowState? = null
 
     /**
      * Start the authentication flow
@@ -76,8 +78,13 @@ object YouAuthManager {
         scope: CoroutineScope,
         appParameters: YouAuthAppParameters? = null) {
 
-        _youAuthState.value = YouAuthState.Authenticating
+        // Sanity
+        if (_youAuthState.value == YouAuthState.Authenticating || _youAuthState.value is YouAuthState.Authenticated) {
+            Logger.e("YouAuthManager") { "Already authenticated" }
+            return
+        }
 
+        _youAuthState.value = YouAuthState.Authenticating
         try {
 
             //
@@ -92,7 +99,10 @@ object YouAuthManager {
             //
 
             val state = generateUuidString()
-            authCodeFlowStateMap[state] = AuthCodeFlowState(identity, privateKey, keyPair)
+            authCodeFlowState = AuthCodeFlowState(identity, privateKey, keyPair)
+
+            // Register this instance with the router to receive callbacks for this state
+            YouAuthCallbackRouter.register(state, this)
 
             // Domain or app specifics
             var clientId = "thirdparty.dotyou.cloud"
@@ -130,56 +140,41 @@ object YouAuthManager {
 
     //
 
-    suspend fun handleAuthorizeCallback(url: String) {
-        Logger.d("YouAuth") { "Callback: $url" }
-        completeAuth(url)
-    }
+    suspend fun completeAuth(url: String, state: String, queryParams: Map<String, String>) {
 
-    //
+        // Sanity
+        if (authCodeFlowState == null) {
+            Logger.e("YouAuthManager") { "No pending auth code flow state" }
+            _youAuthState.value = YouAuthState.Error("No pending auth code flow")
+            return
+        }
 
-    private suspend fun completeAuth(url: String) {
         try {
             if (!url.contains("/authorization-code-callback")) {
                 throw Exception("Missing /authorization-code-callback")
             }
 
-            val query = url.substringAfter("?", "")
-            if (query.isEmpty()) {
-                throw Exception("Missing query params")
-            }
-
-            val params = query.split("&").associate {
-                val parts = it.split("=", limit = 2)
-                parts[0] to (parts.getOrNull(1) ?: "")
-            }
-
-            val identity = decodeUrl(params["identity"] ?: "")
+            val identity = decodeUrl(queryParams["identity"] ?: "")
             if (identity == "") {
                 throw Exception("Missing query param: identity")
             }
 
-            val publicKey = decodeUrl(params["public_key"] ?: "")
+            val publicKey = decodeUrl(queryParams["public_key"] ?: "")
             if (publicKey == "") {
                 throw Exception("Missing query param: public_key")
             }
 
-            val salt = decodeUrl(params["salt"] ?: "")
+            val salt = decodeUrl(queryParams["salt"] ?: "")
             if (salt == "") {
                 throw Exception("Missing query param: salt")
             }
-
-            val stateKey = decodeUrl(params["state"] ?: "")
-            if (stateKey == "") {
-                throw Exception("Missing query param: state")
-            }
-            val authState = authCodeFlowStateMap[stateKey] ?: throw Exception("State not found in map")
 
             //
             // YouAuth [090]
             //
 
-            val privateKey = authState.privateKey
-            val keyPair = authState.keyPair
+            val privateKey = authCodeFlowState!!.privateKey
+            val keyPair = authCodeFlowState!!.keyPair
             val remotePublicKey = publicKey
             val remoteSalt = Base64.decode(salt)
 
@@ -195,7 +190,7 @@ object YouAuthManager {
             //
             Logger.d("YouAuth") { "exchangeSecretDigest: $exchangeSecretDigest" }
 
-            val uri = UriBuilder("https://${authState.identity}/api/owner/v1/youauth/token")
+            val uri = UriBuilder("https://${authCodeFlowState!!.identity}/api/owner/v1/youauth/token")
             val tokenRequest = YouAuthTokenRequest(exchangeSecretDigest)
 
             val client = createHttpClient()
@@ -227,7 +222,7 @@ object YouAuthManager {
             // Post YouAuth [400] - Store authentication state
             //
 
-            val identityValue = authState.identity
+            val identityValue = authCodeFlowState!!.identity
             val catValue = Base64.encode(clientAuthToken)
             val sharedSecretValue = Base64.encode(sharedSecret)
 
@@ -238,14 +233,14 @@ object YouAuthManager {
                 sharedSecret = sharedSecretValue
             )
 
-            // Clean up temporary state
-            authCodeFlowStateMap.remove(stateKey)
-
             Logger.i("YouAuthManager") { "Authentication completed successfully for $identityValue" }
 
         } catch (e: Exception) {
             Logger.e("YouAuthManager") { "Error completing auth: ${e.message}" }
             _youAuthState.value = YouAuthState.Error(e.message ?: "Unknown error")
+        } finally {
+            authCodeFlowState = null
+            YouAuthCallbackRouter.unregister(state)
         }
     }
 
@@ -261,12 +256,4 @@ object YouAuthManager {
 
     //
 
-    /**
-     * Create HTTP client with JSON serialization support
-     */
-    private fun createHttpClient() = HttpClient {
-        install(ContentNegotiation) {
-            json(OdinSystemSerializer.json)
-        }
-    }
 }

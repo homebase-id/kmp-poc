@@ -9,7 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.lifecycleScope
 import id.homebase.homebasekmppoc.pages.app.App
-import id.homebase.homebasekmppoc.youauth.YouAuthManager
+import id.homebase.homebasekmppoc.youauth.YouAuthCallbackRouter
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -41,7 +41,7 @@ class MainActivity : ComponentActivity() {
             val callbackURL = data.toString()
             //showMessage("Auth Callback", "Received URL: $callbackURL")
             lifecycleScope.launch {
-                YouAuthManager.handleAuthorizeCallback(callbackURL)
+                YouAuthCallbackRouter.handleCallback(callbackURL)
             }
         }
     }

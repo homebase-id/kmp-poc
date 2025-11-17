@@ -13,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,8 +32,18 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 @Composable
 fun DomainPage() {
     var odinIdentity by remember { mutableStateOf("frodo.dotyou.cloud") }
-    val authState by YouAuthManager.youAuthState.collectAsState()
+
+    // Create YouAuthManager instance that survives recomposition
+    val youAuthManager = remember { YouAuthManager() }
+    val authState by youAuthManager.youAuthState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
+
+    // Clean up when this composable leaves the composition
+    //    DisposableEffect(Unit) {
+    //        onDispose {
+    //            youAuthManager.logout()
+    //        }
+    //    }
 
     Column(
         modifier = Modifier
@@ -71,7 +82,8 @@ fun DomainPage() {
                 Button(
                     onClick = {
                         coroutineScope.launch {
-                            YouAuthManager.authorize(odinIdentity, coroutineScope)                        }
+                            youAuthManager.authorize(odinIdentity, coroutineScope)
+                        }
                     },
                     modifier = Modifier.padding(horizontal = 16.dp)
                 ) {
@@ -90,7 +102,7 @@ fun DomainPage() {
             is YouAuthState.Authenticated -> {
                 Button(
                     onClick = {
-                        YouAuthManager.logout()
+                        youAuthManager.logout()
                     },
                     modifier = Modifier.padding(horizontal = 16.dp)
                 ) {
@@ -114,7 +126,7 @@ fun DomainPage() {
                 Button(
                     onClick = {
                         coroutineScope.launch {
-                            YouAuthManager.authorize(odinIdentity, coroutineScope)
+                            youAuthManager.authorize(odinIdentity, coroutineScope)
                         }
                     },
                     modifier = Modifier.padding(horizontal = 16.dp)

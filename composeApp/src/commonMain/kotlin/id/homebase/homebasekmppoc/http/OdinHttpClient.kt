@@ -192,3 +192,12 @@ class OdinHttpClient(
         }
     }
 }
+
+/**
+ * Create HTTP client with JSON serialization support
+ */
+fun createHttpClient() = HttpClient {
+    install(ContentNegotiation) {
+        json(OdinSystemSerializer.json)
+    }
+}

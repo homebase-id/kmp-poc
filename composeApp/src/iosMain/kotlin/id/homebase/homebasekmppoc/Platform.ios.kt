@@ -1,6 +1,6 @@
 package id.homebase.homebasekmppoc
 
-import id.homebase.homebasekmppoc.youauth.YouAuthManager
+import id.homebase.homebasekmppoc.youauth.YouAuthCallbackRouter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -24,7 +24,7 @@ actual fun launchCustomTabs(url: String, scope: CoroutineScope) {
             if (callbackURL != null) {
                 val urlString = callbackURL.absoluteString!!
                 scope.launch(Dispatchers.Main) {
-                    YouAuthManager.handleAuthorizeCallback(urlString)
+                    YouAuthCallbackRouter.handleCallback(urlString)
                 }
             } else if (error != null) {
                 println("Auth error: $error")
