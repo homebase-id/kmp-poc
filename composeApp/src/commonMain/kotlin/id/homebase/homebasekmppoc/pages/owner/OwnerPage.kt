@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc
+package id.homebase.homebasekmppoc.pages.owner
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -13,7 +13,7 @@ import androidx.compose.ui.text.style.TextAlign
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
-fun AppPage() {
+fun OwnerPage() {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -22,7 +22,7 @@ fun AppPage() {
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "App",
+            text = "Owner",
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center
         )
@@ -31,8 +31,8 @@ fun AppPage() {
 
 @Preview
 @Composable
-fun AppPagePreview() {
+fun HomePagePreview() {
     MaterialTheme {
-        AppPage()
+        OwnerPage()
     }
 }

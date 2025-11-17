@@ -176,7 +176,7 @@ object YouAuthManager {
             //
             // YouAuth [100]
             //
-            // SEB:NOTE this will sometimes return 404. Investigate if exchangeSecretDigest
+            // SEB:TODO this will sometimes return 404. Investigate if exchangeSecretDigest
             // can sometimes have incompatible encoding across platforms.
             //
             Logger.d("YouAuth") { "exchangeSecretDigest: $exchangeSecretDigest" }

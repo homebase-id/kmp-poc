@@ -8,6 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.lifecycleScope
+import id.homebase.homebasekmppoc.pages.app.App
 import id.homebase.homebasekmppoc.youauth.YouAuthManager
 import kotlinx.coroutines.launch
 

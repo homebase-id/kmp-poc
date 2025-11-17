@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc
+package id.homebase.homebasekmppoc.pages.domain
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -17,6 +17,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,7 +32,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 fun DomainPage() {
     var odinIdentity by remember { mutableStateOf("frodo.dotyou.cloud") }
     val authState by YouAuthManager.youAuthState.collectAsState()
-    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
+    val coroutineScope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier

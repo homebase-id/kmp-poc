@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc
+package id.homebase.homebasekmppoc.pages
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -13,7 +13,7 @@ import androidx.compose.ui.text.style.TextAlign
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
-fun HomePage() {
+fun AppPage() {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -22,7 +22,7 @@ fun HomePage() {
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Home",
+            text = "App",
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center
         )
@@ -31,8 +31,8 @@ fun HomePage() {
 
 @Preview
 @Composable
-fun HomePagePreview() {
+fun AppPagePreview() {
     MaterialTheme {
-        HomePage()
+        AppPage()
     }
 }

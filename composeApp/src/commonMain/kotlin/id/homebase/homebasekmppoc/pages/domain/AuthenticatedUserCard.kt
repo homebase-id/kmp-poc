@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc
+package id.homebase.homebasekmppoc.pages.domain
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border

@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc
+package id.homebase.homebasekmppoc.pages.app
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
@@ -10,6 +10,9 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import id.homebase.homebasekmppoc.pages.owner.OwnerPage
+import id.homebase.homebasekmppoc.pages.AppPage
+import id.homebase.homebasekmppoc.pages.domain.DomainPage
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
@@ -17,7 +20,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 fun App() {
     MaterialTheme {
         var selectedTabIndex by remember { mutableStateOf(0) }
-        val tabs = listOf("Home", "Domain", "App")
+        val tabs = listOf("Owner", "Domain", "App")
 
         Column(
             modifier = Modifier
@@ -36,7 +39,7 @@ fun App() {
             }
 
             when (selectedTabIndex) {
-                0 -> HomePage()
+                0 -> OwnerPage()
                 1 -> DomainPage()
                 2 -> AppPage()
             }
