@@ -1,17 +1,39 @@
 package id.homebase.homebasekmppoc.youauth
 
 import id.homebase.homebasekmppoc.encodeUrl
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class YouAuthAppParameters(
+    @SerialName(AppIdName)
     val appId: String = "",
+
+    @SerialName(AppNameName)
     val appName: String = "",
+
+    @SerialName(AppOriginName)
     val appOrigin: String = "",
+
+    @SerialName(ClientFriendlyName)
     val clientFriendly: String = "",
+
+    @SerialName(DrivesParamName)
     val drivesParam: String = "",
+
+    @SerialName(CircleDrivesParamName)
     val circleDrivesParam: String = "",
+
+    @SerialName(CircleParamName)
     val circleParam: String = "",
+
+    @SerialName(PermissionParamName)
     val permissionParam: String = "",
+
+    @SerialName(ReturnName)
     val returnParam: String = "",
+
+    @SerialName(CancelName)
     val cancel: String = ""
 ) {
     fun toQueryString(): String {

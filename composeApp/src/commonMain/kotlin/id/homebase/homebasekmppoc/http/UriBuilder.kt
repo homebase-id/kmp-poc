@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc.youauth
+package id.homebase.homebasekmppoc.http
 
 class UriBuilder(private val baseUri: String) {
     var query: String = ""

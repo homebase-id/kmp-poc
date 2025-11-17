@@ -10,6 +10,7 @@ import id.homebase.homebasekmppoc.crypto.SensitiveByteArray
 import id.homebase.homebasekmppoc.decodeUrl
 import id.homebase.homebasekmppoc.generateUuidBytes
 import id.homebase.homebasekmppoc.generateUuidString
+import id.homebase.homebasekmppoc.http.UriBuilder
 import id.homebase.homebasekmppoc.launchCustomTabs
 import id.homebase.homebasekmppoc.serialization.OdinSystemSerializer
 import id.homebase.homebasekmppoc.toBase64
@@ -70,7 +71,11 @@ object YouAuthManager {
      * Start the authentication flow
      * Returns the authorization URL to open in browser
      */
-    suspend fun authorize(identity: String, scope: CoroutineScope) {
+    suspend fun authorize(
+        identity: String,
+        scope: CoroutineScope,
+        appParameters: YouAuthAppParameters? = null) {
+
         _youAuthState.value = YouAuthState.Authenticating
 
         try {
@@ -89,12 +94,21 @@ object YouAuthManager {
             val state = generateUuidString()
             authCodeFlowStateMap[state] = AuthCodeFlowState(identity, privateKey, keyPair)
 
-            val clientId = "thirdparty.dotyou.cloud"
+            // Domain or app specifics
+            var clientId = "thirdparty.dotyou.cloud"
+            var clientType = ClientType.domain
+            var permissionRequest = ""
+            if (appParameters != null) {
+                clientId =  appParameters.appId
+                clientType = ClientType.app
+                permissionRequest = OdinSystemSerializer.serialize(appParameters)
+            }
+
             val payload = YouAuthAuthorizeRequest(
                 clientId = clientId,
                 clientInfo = "",
-                clientType = ClientType.domain,
-                permissionRequest = "",
+                clientType = clientType,
+                permissionRequest = permissionRequest,
                 publicKey = keyPair.publicKeyJwkBase64Url(),
                 redirectUri = "youauth://$clientId/authorization-code-callback",
                 state = state,
