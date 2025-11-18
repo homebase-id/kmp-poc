@@ -1,5 +1,12 @@
-package id.homebase.homebasekmppoc.datetime
+package id.homebase.homebasekmppoc.core
 
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -9,6 +16,21 @@ import kotlin.time.Instant
 /**
  * Represents a Unix timestamp in UTC with millisecond precision
  */
+
+object UnixTimeUtcSerializer : KSerializer<UnixTimeUtc> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("UnixTimeUtc", PrimitiveKind.LONG)
+
+    override fun serialize(encoder: Encoder, value: UnixTimeUtc) {
+        encoder.encodeLong(value.milliseconds)
+    }
+
+    override fun deserialize(decoder: Decoder): UnixTimeUtc {
+        return UnixTimeUtc(decoder.decodeLong())
+    }
+}
+
+@Serializable(with = UnixTimeUtcSerializer::class)
 @OptIn(ExperimentalTime::class)
 data class UnixTimeUtc(val milliseconds: Long) {
 

@@ -3,6 +3,7 @@ package id.homebase.homebasekmppoc.http
 import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.crypto.AesCbc
 import id.homebase.homebasekmppoc.crypto.ByteArrayUtil
+import id.homebase.homebasekmppoc.crypto.CryptoHelper
 import id.homebase.homebasekmppoc.encodeUrl
 import id.homebase.homebasekmppoc.serialization.OdinSystemSerializer
 import id.homebase.homebasekmppoc.toBase64
@@ -25,7 +26,8 @@ class OdinHttpClient(
 ) {
     private val identity: String = authenticatedState.identity
     private val clientAuthToken: String = authenticatedState.clientAuthToken
-    private val sharedSecret: ByteArray = Base64.decode(authenticatedState.sharedSecret)
+    @PublishedApi
+    internal val sharedSecret: ByteArray = Base64.decode(authenticatedState.sharedSecret)
 
     /**
      * Builds a URI with encrypted query string
@@ -33,31 +35,7 @@ class OdinHttpClient(
      * @return URI with query string encrypted and replaced with ss parameter
      */
     private suspend fun buildUriWithEncryptedQueryString(uri: String): String {
-        val queryIndex = uri.indexOf('?')
-        if (queryIndex == -1 || queryIndex == uri.length - 1) {
-            return uri
-        }
-
-        val path = uri.substring(0, queryIndex)
-        val query = uri.substring(queryIndex + 1)
-
-        // Generate random IV
-        val iv = ByteArrayUtil.getRndByteArray(16)
-
-        // Encrypt query string
-        val encryptedBytes = AesCbc.encrypt(query.encodeToByteArray(), sharedSecret, iv)
-
-        // Build payload
-        val payload = SharedSecretEncryptedPayload(
-            iv = iv.toBase64(),
-            data = encryptedBytes.toBase64()
-        )
-
-        // Serialize and URL encode
-        val serializedPayload = OdinSystemSerializer.serialize(payload)
-        val encodedPayload = encodeUrl(serializedPayload)
-
-        return "$path?ss=$encodedPayload"
+        return CryptoHelper.uriWithEncryptedQueryString(uri, sharedSecret)
     }
 
     /**
@@ -99,19 +77,7 @@ class OdinHttpClient(
      * @return Decrypted string
      */
     private suspend fun decryptContentAsString(cipherJson: String): String {
-        // Deserialize the encrypted payload
-        val payload = OdinSystemSerializer.deserialize<SharedSecretEncryptedPayload>(cipherJson)
-
-        // Decrypt the data
-        val iv = Base64.decode(payload.iv)
-        val encryptedData = Base64.decode(payload.data)
-        val plainBytes = AesCbc.decrypt(encryptedData, sharedSecret, iv)
-
-        // Convert to string
-        val plainString = plainBytes.decodeToString()
-        Logger.d("OdinHttpClient") { "Decrypted response: $plainString" }
-
-        return plainString
+        return CryptoHelper.decryptContentAsString(cipherJson, sharedSecret)
     }
 
     /**
@@ -119,20 +85,8 @@ class OdinHttpClient(
      * @param cipherJson The encrypted JSON response
      * @return Decrypted and deserialized object of type T
      */
-    suspend fun <T> decryptContent(cipherJson: String, typeDeserializer: (String) -> T): T {
-        // Deserialize the encrypted payload
-        val payload = OdinSystemSerializer.deserialize<SharedSecretEncryptedPayload>(cipherJson)
-
-        // Decrypt the data
-        val iv = Base64.decode(payload.iv)
-        val encryptedData = Base64.decode(payload.data)
-        val plainBytes = AesCbc.decrypt(encryptedData, sharedSecret, iv)
-
-        // Convert to string and deserialize
-        val plainJson = plainBytes.decodeToString()
-        Logger.d("OdinHttpClient") { "Decrypted response: $plainJson" }
-
-        return typeDeserializer(plainJson)
+    suspend inline fun <reified T> decryptContent(cipherJson: String): T {
+        return CryptoHelper.decryptContent<T>(cipherJson, sharedSecret)
     }
 
     /**
@@ -142,9 +96,7 @@ class OdinHttpClient(
      */
     suspend inline fun <reified T> get(path: String): T {
         val cipherJson = performRequest(path)
-        return decryptContent(cipherJson) { plainJson ->
-            OdinSystemSerializer.deserialize<T>(plainJson)
-        }
+        return decryptContent<T>(cipherJson)
     }
 
     //

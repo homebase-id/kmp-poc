@@ -28,12 +28,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import co.touchlab.kermit.Logger
 import homebasekmppoc.composeapp.generated.resources.Res
 import homebasekmppoc.composeapp.generated.resources.compose_multiplatform
+import id.homebase.homebasekmppoc.drives.DriveQueryProvider
+import id.homebase.homebasekmppoc.drives.QueryBatchResponse
 import id.homebase.homebasekmppoc.http.OdinHttpClient
 import id.homebase.homebasekmppoc.youauth.YouAuthState
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
+
 
 /**
  * A card component that displays authenticated user information with data from backend.
@@ -46,9 +50,8 @@ fun AuthenticatedAppCard(
     authenticatedState: YouAuthState.Authenticated?,
     modifier: Modifier = Modifier
 ) {
-    var verifytokenReponse by remember { mutableStateOf<String?>(null) }
-    var isAuthenticatedResponse by remember { mutableStateOf<String?>(null) }
-    var pingResponse by remember { mutableStateOf<String?>(null) }
+    var queryBatchResponse by remember { mutableStateOf<QueryBatchResponse?>(null) }
+
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(authenticatedState != null) }
 
@@ -56,12 +59,16 @@ fun AuthenticatedAppCard(
     LaunchedEffect(authenticatedState) {
         if (authenticatedState != null) {
             try {
-                val client = OdinHttpClient(authenticatedState)
-//                verifytokenReponse = client.verifyToken()
-//                isAuthenticatedResponse = client.isAuthenticated()
-//                pingResponse = client.getString("/api/guest/v1/builtin/home/auth/ping?text=helloworld")
+                val dqr = DriveQueryProvider.create()
+                queryBatchResponse = dqr.queryBatch(
+                    authenticatedState.identity,
+                    authenticatedState.clientAuthToken,
+                    authenticatedState.sharedSecret,
+                    exampleDriveAlias,
+                    exampleDriveType)
                 isLoading = false
             } catch (e: Exception) {
+                Logger.e("Error fetching QueryBatch data", e)
                 errorMessage = e.message ?: "Unknown error"
                 isLoading = false
             }
@@ -127,7 +134,7 @@ fun AuthenticatedAppCard(
                     )
                 }
                 else -> {
-                    // Verify Token Response Section
+                    // QueryBatch Response Section
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -140,76 +147,19 @@ fun AuthenticatedAppCard(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "VerifyToken",
+                            text = "QueryBatch Response",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.primary,
                             textAlign = TextAlign.Center
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = verifytokenReponse ?: "No data",
+                            text = if (queryBatchResponse == null) "null" else "If you see this, QueryBatch to app drive ran successfully",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
                         )
                     }
-
-                    // IsAuthenticated Response Section
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .border(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.outline,
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                            .padding(12.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "IsAuthenticated",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = isAuthenticatedResponse ?: "No data",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-
-                    // Ping Response Section
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .border(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.outline,
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                            .padding(12.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "Encrypted Guest Ping",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = pingResponse ?: "No data",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
                 }
             }
         }

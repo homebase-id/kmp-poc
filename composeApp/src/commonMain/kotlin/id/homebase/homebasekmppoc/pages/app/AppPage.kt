@@ -23,9 +23,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import id.homebase.homebasekmppoc.serialization.OdinSystemSerializer
-import id.homebase.homebasekmppoc.youauth.YouAuthAppParameters
-import id.homebase.homebasekmppoc.youauth.YouAuthDriveParameters
 import id.homebase.homebasekmppoc.youauth.YouAuthManager
 import id.homebase.homebasekmppoc.youauth.YouAuthState
 import kotlinx.coroutines.launch
@@ -34,6 +31,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 @Composable
 fun AppPage(youAuthManager: YouAuthManager) {
     var odinIdentity by remember { mutableStateOf("frodo.dotyou.cloud") }
+    // var odinIdentity by remember { mutableStateOf("frodo.baggins.demo.rocks") }
 
     val authState by youAuthManager.youAuthState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
@@ -142,25 +140,3 @@ fun AppPagePreview() {
 
 //
 
-private fun getAppParams(): YouAuthAppParameters {
-    val driveParams = listOf(
-        YouAuthDriveParameters(
-            driveAlias = "11111111111111111111111111111111",
-            driveType = "22222222222222222222222222222222",
-            name = "Third Part Library",
-            description = "Place for your third parties",
-            permission = 3
-        )
-    )
-
-    val appParams = YouAuthAppParameters(
-        appName = "third party app",
-        appOrigin = "dev.dotyou.cloud:3005",
-        appId = "aaaaaaaa-bbbb-cccc-dddd-cccccccccccc",
-        clientFriendly = "KMP App",
-        drivesParam = OdinSystemSerializer.serialize(driveParams),
-        returnParam = "backend-will-decide"
-    )
-
-    return appParams
-}

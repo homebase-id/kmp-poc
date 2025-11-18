@@ -1,5 +1,6 @@
-package id.homebase.homebasekmppoc.crypto
+package id.homebase.homebasekmppoc.core
 
+import id.homebase.homebasekmppoc.crypto.ByteArrayUtil
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 

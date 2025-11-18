@@ -6,7 +6,7 @@ import id.homebase.homebasekmppoc.crypto.EccFullKeyData
 import id.homebase.homebasekmppoc.crypto.EccKeySize
 import id.homebase.homebasekmppoc.crypto.EccPublicKeyData
 import id.homebase.homebasekmppoc.crypto.HashUtil
-import id.homebase.homebasekmppoc.crypto.SensitiveByteArray
+import id.homebase.homebasekmppoc.core.SensitiveByteArray
 import id.homebase.homebasekmppoc.decodeUrl
 import id.homebase.homebasekmppoc.generateUuidBytes
 import id.homebase.homebasekmppoc.generateUuidString
@@ -15,14 +15,11 @@ import id.homebase.homebasekmppoc.http.createHttpClient
 import id.homebase.homebasekmppoc.launchCustomTabs
 import id.homebase.homebasekmppoc.serialization.OdinSystemSerializer
 import id.homebase.homebasekmppoc.toBase64
-import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
-import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

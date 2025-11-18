@@ -1,0 +1,95 @@
+package id.homebase.homebasekmppoc.crypto
+
+import id.homebase.homebasekmppoc.core.SensitiveByteArray
+import kotlinx.io.Buffer
+
+/**
+ * Represents a cryptographic key header containing an IV and AES key
+ * Port of C# KeyHeader class from Odin.Services.Peer.Encryption
+ */
+class KeyHeader(
+    var iv: ByteArray,
+    var aesKey: SensitiveByteArray
+) {
+    /**
+     * Combines IV and AES key into a single byte array
+     */
+    fun combine(): SensitiveByteArray {
+        return SensitiveByteArray(ByteArrayUtil.combine(iv, aesKey.getKey()))
+    }
+
+    /**
+     * Encrypts string data using AES-CBC and returns as a Buffer stream
+     */
+    suspend fun encryptDataAesAsStream(data: String): Buffer {
+        return encryptDataAesAsStream(data.encodeToByteArray())
+    }
+
+    /**
+     * Encrypts byte array data using AES-CBC and returns as a Buffer stream
+     */
+    suspend fun encryptDataAesAsStream(data: ByteArray): Buffer {
+        val cipher = encryptDataAes(data)
+        val buffer = Buffer()
+        buffer.write(cipher)
+        return buffer
+    }
+
+    /**
+     * Encrypts data using AES-CBC
+     */
+    suspend fun encryptDataAes(data: ByteArray): ByteArray {
+        return AesCbc.encrypt(
+            data = data,
+            key = aesKey,
+            iv = iv
+        )
+    }
+
+    /**
+     * Decrypts data using AES-CBC
+     */
+    suspend fun decrypt(encryptedData: ByteArray): ByteArray {
+        return AesCbc.decrypt(
+            cipherText = encryptedData,
+            key = aesKey,
+            iv = iv
+        )
+    }
+
+    companion object {
+        /**
+         * Creates a KeyHeader from combined bytes (IV + key)
+         * @param data The combined byte array
+         * @param ivLength Length of IV (default: 16)
+         * @param keyLength Length of key (default: 16)
+         */
+        fun fromCombinedBytes(data: ByteArray, ivLength: Int = 16, keyLength: Int = 16): KeyHeader {
+            val parts = ByteArrayUtil.split(data, ivLength, keyLength)
+            return KeyHeader(
+                iv = parts[0],
+                aesKey = SensitiveByteArray(parts[1])
+            )
+        }
+
+        /**
+         * Creates a new KeyHeader with random 16-byte arrays
+         */
+        fun newRandom16(): KeyHeader {
+            return KeyHeader(
+                iv = ByteArrayUtil.getRndByteArray(16),
+                aesKey = SensitiveByteArray(ByteArrayUtil.getRndByteArray(16))
+            )
+        }
+
+        /**
+         * Creates an empty KeyHeader with zero-filled arrays
+         */
+        fun empty(): KeyHeader {
+            return KeyHeader(
+                iv = ByteArray(16) { 0 },
+                aesKey = SensitiveByteArray(ByteArray(16) { 0 })
+            )
+        }
+    }
+}
