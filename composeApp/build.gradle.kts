@@ -1,12 +1,14 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
-    kotlin("plugin.serialization") version "2.0.20"
+    kotlin("plugin.serialization") version "2.2.21"
 }
 
 kotlin {
@@ -14,6 +16,30 @@ kotlin {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_11)
         }
+    }
+
+    jvm("desktop") {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_11)
+        }
+    }
+
+    @OptIn(ExperimentalWasmDsl::class)
+    wasmJs {
+        browser {
+            val rootDirPath = project.rootDir.path
+            val projectDirPath = project.projectDir.path
+            commonWebpackConfig {
+                outputFileName = "composeApp.js"
+                devServer = (devServer ?: KotlinWebpackConfig.DevServer()).apply {
+                    static = (static ?: mutableListOf()).apply {
+                        add(rootDirPath)
+                        add(projectDirPath)
+                    }
+                }
+            }
+        }
+        binaries.executable()
     }
 
     listOf(
@@ -71,8 +97,32 @@ kotlin {
             // Ktor iOS engine
             implementation("io.ktor:ktor-client-darwin:3.3.2")
         }
+        val desktopMain by getting {
+            dependencies {
+                implementation(compose.desktop.currentOs)
+                // Ktor Desktop engine
+                implementation("io.ktor:ktor-client-cio:3.3.2")
+            }
+        }
+        val wasmJsMain by getting {
+            dependencies {
+                // Ktor Web engine
+                implementation("io.ktor:ktor-client-js:3.3.2")
+            }
+        }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+        }
+    }
+}
+
+compose.desktop {
+    application {
+        mainClass = "id.homebase.homebasekmppoc.MainKt"
+        nativeDistributions {
+            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            packageName = "Odin KMP"
+            packageVersion = "1.0.0"
         }
     }
 }
