@@ -10,6 +10,8 @@ import id.homebase.homebasekmppoc.core.SensitiveByteArray
 import id.homebase.homebasekmppoc.decodeUrl
 import id.homebase.homebasekmppoc.generateUuidBytes
 import id.homebase.homebasekmppoc.generateUuidString
+import id.homebase.homebasekmppoc.getEccKeySize
+import id.homebase.homebasekmppoc.getRedirectUri
 import id.homebase.homebasekmppoc.http.UriBuilder
 import id.homebase.homebasekmppoc.http.createHttpClient
 import id.homebase.homebasekmppoc.launchCustomTabs
@@ -89,7 +91,7 @@ class YouAuthManager {
             //
 
             val privateKey = SensitiveByteArray(generateUuidBytes())
-            val keyPair = EccFullKeyData.create(privateKey, EccKeySize.P384, 1)
+            val keyPair = EccFullKeyData.create(privateKey, getEccKeySize(), 1)
 
             //
             // YouAuth [030]
@@ -111,13 +113,16 @@ class YouAuthManager {
                 permissionRequest = OdinSystemSerializer.serialize(appParameters)
             }
 
+            // Build platform-specific redirect URI
+            val redirectUri = getRedirectUri(clientId)
+
             val payload = YouAuthAuthorizeRequest(
                 clientId = clientId,
                 clientInfo = "",
                 clientType = clientType,
                 permissionRequest = permissionRequest,
                 publicKey = keyPair.publicKeyJwkBase64Url(),
-                redirectUri = "youauth://$clientId/authorization-code-callback",
+                redirectUri = redirectUri,
                 state = state,
             )
 

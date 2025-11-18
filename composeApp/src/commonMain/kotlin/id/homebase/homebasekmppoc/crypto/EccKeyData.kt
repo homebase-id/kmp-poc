@@ -23,7 +23,8 @@ enum class EccKeySize {
 open class EccPublicKeyData(
     var publicKey: ByteArray = ByteArray(0),  // DER encoded public key
     var crc32c: UInt = 0u,                     // CRC32C of the public key
-    var expiration: UnixTimeUtc = UnixTimeUtc.ZeroTime  // Expiration time
+    var expiration: UnixTimeUtc = UnixTimeUtc.ZeroTime,  // Expiration time
+    var keySize: EccKeySize? = null            // Curve size (P-256 or P-384)
 ) {
     companion object {
         val eccSignatureAlgorithmNames = arrayOf("SHA256withECDSA", "SHA384withECDSA")
@@ -52,7 +53,8 @@ open class EccPublicKeyData(
             return EccPublicKeyData(
                 publicKey = derEncodedPublicKey,
                 crc32c = keyCrc(derEncodedPublicKey),
-                expiration = UnixTimeUtc.now().addHours(hours.toLong())
+                expiration = UnixTimeUtc.now().addHours(hours.toLong()),
+                keySize = keySize
             )
         }
 
@@ -75,15 +77,16 @@ open class EccPublicKeyData(
      * Get the curve type from the public key
      */
     protected suspend fun getCurveEnum(): EccKeySize {
-        return platformGetCurveFromKey(publicKey)
+        // Use stored keySize if available, otherwise detect from key
+        return keySize ?: platformGetCurveFromKey(publicKey)
     }
 
     /**
      * Convert public key to JWK format
      */
     suspend fun publicKeyJwk(): String {
-        val (x, y) = platformDerToJwkCoordinates(publicKey)
         val curveSize = getCurveEnum()
+        val (x, y) = platformDerToJwkCoordinates(publicKey, curveSize)
 
         val expectedBytes = if (curveSize == EccKeySize.P384) 48 else 32
 
@@ -169,6 +172,7 @@ class EccFullKeyData private constructor() : EccPublicKeyData() {
             // Store the public key
             keyData.publicKey = publicKeyDer
             keyData.crc32c = keyCrc(publicKeyDer)
+            keyData.keySize = keySize  // Store the key size
 
             return keyData
         }
@@ -242,22 +246,12 @@ internal suspend fun platformJwkToDer(x: ByteArray, y: ByteArray, keySize: EccKe
  * Extract JWK coordinates from DER-encoded public key using cryptography-kotlin
  */
 @OptIn(DelicateCryptographyApi::class)
-internal suspend fun platformDerToJwkCoordinates(derKey: ByteArray): Pair<ByteArray, ByteArray> {
+internal suspend fun platformDerToJwkCoordinates(derKey: ByteArray, keySize: EccKeySize): Pair<ByteArray, ByteArray> {
     val crypto = CryptographyProvider.Default
     val ecdh = crypto.get(ECDH)
 
-    // First, detect the curve by trying both P-256 and P-384
-    val curve = try {
-        ecdh.publicKeyDecoder(EC.Curve.P256).decodeFromByteArray(EC.PublicKey.Format.DER, derKey)
-        EC.Curve.P256
-    } catch (e: Exception) {
-        try {
-            ecdh.publicKeyDecoder(EC.Curve.P384).decodeFromByteArray(EC.PublicKey.Format.DER, derKey)
-            EC.Curve.P384
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Unsupported ECC curve")
-        }
-    }
+    // Use the provided keySize instead of detecting
+    val curve = if (keySize == EccKeySize.P384) EC.Curve.P384 else EC.Curve.P256
 
     // Decode from DER
     val publicKey = ecdh.publicKeyDecoder(curve).decodeFromByteArray(EC.PublicKey.Format.DER, derKey)

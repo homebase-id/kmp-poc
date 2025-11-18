@@ -30,8 +30,8 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun DomainPage(youAuthManager: YouAuthManager) {
-    // var odinIdentity by remember { mutableStateOf("frodo.dotyou.cloud") }
-    var odinIdentity by remember { mutableStateOf("frodo.baggins.demo.rocks") }
+    var odinIdentity by remember { mutableStateOf("frodo.dotyou.cloud") }
+    // var odinIdentity by remember { mutableStateOf("frodo.baggins.demo.rocks") }
 
     val authState by youAuthManager.youAuthState.collectAsState()
     val coroutineScope = rememberCoroutineScope()

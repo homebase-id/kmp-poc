@@ -18,8 +18,24 @@ actual fun getPlatform(): Platform = WasmPlatform()
 
 actual fun isAndroid(): Boolean = false
 
+actual fun getRedirectScheme(): String = "https"
+
+actual fun getRedirectUri(clientId: String): String {
+    // For web, redirect back to the same origin
+    return window.location.origin
+}
+
+actual fun getEccKeySize(): id.homebase.homebasekmppoc.crypto.EccKeySize {
+    // Use P-384 like other platforms
+    return id.homebase.homebasekmppoc.crypto.EccKeySize.P384
+}
+
 actual fun launchCustomTabs(url: String, scope: CoroutineScope) {
-    window.open(url, "_blank")
+    // Navigate in same window so callback can be detected
+    println("launchCustomTabs called with URL: $url")
+
+    window.location.href = url
+    println("window.location.href set successfully")
 }
 
 private var dialogState: Pair<String, String>? by mutableStateOf(null)

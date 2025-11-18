@@ -18,6 +18,18 @@ actual fun getPlatform(): Platform = AndroidPlatform()
 
 actual fun isAndroid(): Boolean = true
 
+actual fun getRedirectScheme(): String = "youauth"
+
+actual fun getRedirectUri(clientId: String): String {
+    // Mobile uses custom URL scheme
+    return "youauth://$clientId/authorization-code-callback"
+}
+
+actual fun getEccKeySize(): id.homebase.homebasekmppoc.crypto.EccKeySize {
+    // Android uses P-384
+    return id.homebase.homebasekmppoc.crypto.EccKeySize.P384
+}
+
 actual fun launchCustomTabs(url: String, scope: CoroutineScope) {
     // Create custom color scheme to match app theme
     val colorSchemeParams = CustomTabColorSchemeParams.Builder()

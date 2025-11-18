@@ -27,6 +27,18 @@ actual fun getPlatform(): Platform = JVMPlatform()
 
 actual fun isAndroid(): Boolean = false
 
+actual fun getRedirectScheme(): String = "http"
+
+actual fun getRedirectUri(clientId: String): String {
+    // Desktop uses localhost HTTP server (to be implemented)
+    return "http://localhost:8080/callback"
+}
+
+actual fun getEccKeySize(): id.homebase.homebasekmppoc.crypto.EccKeySize {
+    // Desktop uses P-384
+    return id.homebase.homebasekmppoc.crypto.EccKeySize.P384
+}
+
 actual fun launchCustomTabs(url: String, scope: CoroutineScope) {
     try {
         if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {

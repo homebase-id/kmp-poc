@@ -16,6 +16,18 @@ actual fun getPlatform(): Platform = IOSPlatform()
 
 actual fun isAndroid(): Boolean = false
 
+actual fun getRedirectScheme(): String = "youauth"
+
+actual fun getRedirectUri(clientId: String): String {
+    // Mobile uses custom URL scheme
+    return "youauth://$clientId/authorization-code-callback"
+}
+
+actual fun getEccKeySize(): id.homebase.homebasekmppoc.crypto.EccKeySize {
+    // iOS uses P-384
+    return id.homebase.homebasekmppoc.crypto.EccKeySize.P384
+}
+
 actual fun launchCustomTabs(url: String, scope: CoroutineScope) {
     val session = ASWebAuthenticationSession(
         uRL = NSURL.URLWithString(url)!!,
