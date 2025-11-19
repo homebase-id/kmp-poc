@@ -13,59 +13,23 @@ import kotlinx.serialization.json.Json
  * Serializable ECC public key data
  */
 @Serializable
-data class EccPublicKey(
+class EccPublicKey(
     val publicKeyDer: SecureByteArray,
     val keySize: EccKeySize,
     val crc32c: UInt,
     val expiration: UnixTimeUtc
-) {
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other == null || this::class != other::class) return false
-        other as EccPublicKey
-        return publicKeyDer.unsafeBytes.contentEquals(other.publicKeyDer.unsafeBytes) &&
-                keySize == other.keySize &&
-                crc32c == other.crc32c &&
-                expiration == other.expiration
-    }
-
-    override fun hashCode(): Int {
-        var result = publicKeyDer.unsafeBytes.contentHashCode()
-        result = 31 * result + keySize.hashCode()
-        result = 31 * result + crc32c.hashCode()
-        result = 31 * result + expiration.hashCode()
-        return result
-    }
-}
+)
 
 /**
  * Serializable ECC private key data (encrypted)
  */
 @Serializable
-data class EccPrivateKey(
+class EccPrivateKey(
     val encryptedKey: SecureByteArray,
     val iv: SecureByteArray,
     val keyHash: SecureByteArray,
     val createdTimeStamp: UnixTimeUtc
-) {
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other == null || this::class != other::class) return false
-        other as EccPrivateKey
-        return encryptedKey.unsafeBytes.contentEquals(other.encryptedKey.unsafeBytes) &&
-                iv.unsafeBytes.contentEquals(other.iv.unsafeBytes) &&
-                keyHash.unsafeBytes.contentEquals(other.keyHash.unsafeBytes) &&
-                createdTimeStamp == other.createdTimeStamp
-    }
-
-    override fun hashCode(): Int {
-        var result = encryptedKey.unsafeBytes.contentHashCode()
-        result = 31 * result + iv.unsafeBytes.contentHashCode()
-        result = 31 * result + keyHash.unsafeBytes.contentHashCode()
-        result = 31 * result + createdTimeStamp.hashCode()
-        return result
-    }
-}
+)
 
 /**
  * Serializable ECC key pair (public + private)
