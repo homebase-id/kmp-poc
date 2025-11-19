@@ -35,3 +35,8 @@ class SecureByteArray(private val bytes: ByteArray) {
     // Optional: A custom toString() to avoid leaking contents (e.g., for security)
     override fun toString(): String = "SecureByteArray(size=${bytes.size})"
 }
+
+fun ByteArray.toSecureByteArray(): SecureByteArray {
+    return SecureByteArray(this)
+}
+
