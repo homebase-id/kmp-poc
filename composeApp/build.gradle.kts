@@ -80,8 +80,12 @@ kotlin {
         val desktopMain by getting {
             dependencies {
                 implementation(compose.desktop.currentOs)
-                // Ktor Desktop engine
+                // Ktor Desktop client engine
                 implementation("io.ktor:ktor-client-cio:3.3.2")
+                // Ktor Server for OAuth callback handling
+                implementation("io.ktor:ktor-server-core:3.3.2")
+                implementation("io.ktor:ktor-server-cio:3.3.2")
+                implementation("io.ktor:ktor-server-html-builder:3.3.2")
             }
         }
         commonTest.dependencies {

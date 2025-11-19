@@ -15,6 +15,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.CoroutineScope
 import java.awt.Desktop
 import java.net.URI
@@ -30,8 +31,18 @@ actual fun isAndroid(): Boolean = false
 actual fun getRedirectScheme(): String = "http"
 
 actual fun getRedirectUri(clientId: String): String {
-    // Desktop uses localhost HTTP server (to be implemented)
-    return "http://localhost:8080/callback"
+    // Get the current port if server is already running
+    var port = LocalCallbackServer.getPort()
+
+    // If not running, find an available port for when we start
+    if (port == 0) {
+        port = LocalCallbackServer.findAvailablePort()
+        if (port < 0) {
+            throw IllegalStateException("No available ports found for OAuth callback server")
+        }
+    }
+
+    return "http://localhost:$port/authorization-code-callback"
 }
 
 actual fun getEccKeySize(): id.homebase.homebasekmppoc.crypto.EccKeySize {
@@ -41,13 +52,31 @@ actual fun getEccKeySize(): id.homebase.homebasekmppoc.crypto.EccKeySize {
 
 actual fun launchCustomTabs(url: String, scope: CoroutineScope) {
     try {
+        // Start the local callback server before opening the browser
+        if (!LocalCallbackServer.isRunning()) {
+            // Extract the port from the redirect URI in the URL to ensure consistency
+            val portMatch = Regex("localhost%3A(\\d+)").find(url)
+            val preferredPort = portMatch?.groupValues?.get(1)?.toIntOrNull() ?: 0
+
+            val actualPort = LocalCallbackServer.start(scope, preferredPort)
+            if (actualPort < 0) {
+                showMessage("Error", "Failed to start OAuth callback server. No available ports found.")
+                return
+            }
+
+            if (preferredPort > 0 && actualPort != preferredPort) {
+                Logger.w("Platform.desktop") { "Server started on port $actualPort instead of preferred $preferredPort" }
+            }
+        }
+
+        // Open the authorization URL in the system browser
         if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
             Desktop.getDesktop().browse(URI(url))
         } else {
-            println("Desktop browsing not supported")
+            showMessage("Error", "Desktop browsing is not supported on this system")
         }
     } catch (e: Exception) {
-        println("Error launching browser: ${e.message}")
+        showMessage("Error", "Failed to launch browser: ${e.message}")
     }
 }
 

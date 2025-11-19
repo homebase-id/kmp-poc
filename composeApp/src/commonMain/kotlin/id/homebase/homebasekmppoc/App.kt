@@ -1,9 +1,12 @@
 package id.homebase.homebasekmppoc
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
@@ -43,10 +46,16 @@ fun App() {
                 }
             }
 
-            when (selectedTabIndex) {
-                0 -> OwnerPage()
-                1 -> DomainPage(domainYouAuthManager)
-                2 -> AppPage(appYouAuthManager)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                when (selectedTabIndex) {
+                    0 -> OwnerPage()
+                    1 -> DomainPage(domainYouAuthManager)
+                    2 -> AppPage(appYouAuthManager)
+                }
             }
         }
     }
