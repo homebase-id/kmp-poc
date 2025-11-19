@@ -1,6 +1,6 @@
 package id.homebase.homebasekmppoc.crypto
 
-import id.homebase.homebasekmppoc.core.SensitiveByteArray
+import id.homebase.homebasekmppoc.core.SecureByteArray
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -16,18 +16,18 @@ class EccKeyFunctionsTest {
 
     @Test
     fun testGenerateEccKeyPair_P256() = runTest {
-        val password = SensitiveByteArray("test-password-123".encodeToByteArray())
+        val password = SecureByteArray("test-password-123".encodeToByteArray())
         val keyPair = generateEccKeyPair(password, EccKeySize.P256, expirationHours = 24)
 
         // Verify public key
         assertEquals(EccKeySize.P256, keyPair.publicKey.keySize)
-        assertTrue(keyPair.publicKey.publicKeyDer.isNotEmpty())
+        assertTrue(keyPair.publicKey.publicKeyDer.unsafeBytes.isNotEmpty())
         assertTrue(keyPair.publicKey.crc32c > 0u)
 
         // Verify private key is encrypted
-        assertTrue(keyPair.privateKey.encryptedKey.isNotEmpty())
-        assertTrue(keyPair.privateKey.iv.size == 16)
-        assertTrue(keyPair.privateKey.keyHash.isNotEmpty())
+        assertTrue(keyPair.privateKey.encryptedKey.unsafeBytes.isNotEmpty())
+        assertTrue(keyPair.privateKey.iv.unsafeBytes.size == 16)
+        assertTrue(keyPair.privateKey.keyHash.unsafeBytes.isNotEmpty())
 
         // Verify timestamps
         assertTrue(keyPair.publicKey.expiration > keyPair.privateKey.createdTimeStamp)
@@ -35,25 +35,25 @@ class EccKeyFunctionsTest {
 
     @Test
     fun testGenerateEccKeyPair_P384() = runTest {
-        val password = SensitiveByteArray("test-password-456".encodeToByteArray())
+        val password = SecureByteArray("test-password-456".encodeToByteArray())
         val keyPair = generateEccKeyPair(password, EccKeySize.P384, expirationHours = 1)
 
         assertEquals(EccKeySize.P384, keyPair.publicKey.keySize)
-        assertTrue(keyPair.publicKey.publicKeyDer.isNotEmpty())
+        assertTrue(keyPair.publicKey.publicKeyDer.unsafeBytes.isNotEmpty())
     }
 
     @Test
     fun testGenerateEccKeyPair_DifferentPasswordsProduceDifferentEncryption() = runTest {
-        val password1 = SensitiveByteArray("password1".encodeToByteArray())
-        val password2 = SensitiveByteArray("password2".encodeToByteArray())
+        val password1 = SecureByteArray("password1".encodeToByteArray())
+        val password2 = SecureByteArray("password2".encodeToByteArray())
 
         val keyPair1 = generateEccKeyPair(password1, EccKeySize.P256, 1)
         val keyPair2 = generateEccKeyPair(password2, EccKeySize.P256, 1)
 
         // Different passwords should produce different key hashes
         assertNotEquals(
-            keyPair1.privateKey.keyHash.contentToString(),
-            keyPair2.privateKey.keyHash.contentToString()
+            keyPair1.privateKey.keyHash.unsafeBytes.contentToString(),
+            keyPair2.privateKey.keyHash.unsafeBytes.contentToString()
         )
     }
 
@@ -63,7 +63,7 @@ class EccKeyFunctionsTest {
 
     @Test
     fun testPublicKeyToJwk_RoundTrip_P256() = runTest {
-        val password = SensitiveByteArray("test".encodeToByteArray())
+        val password = SecureByteArray("test".encodeToByteArray())
         val original = generateEccKeyPair(password, EccKeySize.P256, 1)
 
         // Convert to JWK and back
@@ -72,38 +72,38 @@ class EccKeyFunctionsTest {
 
         // Public keys should match
         assertEquals(
-            original.publicKey.publicKeyDer.contentToString(),
-            restored.publicKeyDer.contentToString()
+            original.publicKey.publicKeyDer.unsafeBytes.contentToString(),
+            restored.publicKeyDer.unsafeBytes.contentToString()
         )
         assertEquals(original.publicKey.keySize, restored.keySize)
     }
 
     @Test
     fun testPublicKeyToJwk_RoundTrip_P384() = runTest {
-        val password = SensitiveByteArray("test".encodeToByteArray())
+        val password = SecureByteArray("test".encodeToByteArray())
         val original = generateEccKeyPair(password, EccKeySize.P384, 1)
 
         val jwk = publicKeyToJwk(original.publicKey)
         val restored = publicKeyFromJwk(jwk, 1)
 
         assertEquals(
-            original.publicKey.publicKeyDer.contentToString(),
-            restored.publicKeyDer.contentToString()
+            original.publicKey.publicKeyDer.unsafeBytes.contentToString(),
+            restored.publicKeyDer.unsafeBytes.contentToString()
         )
         assertEquals(original.publicKey.keySize, restored.keySize)
     }
 
     @Test
     fun testPublicKeyToJwkBase64Url_RoundTrip() = runTest {
-        val password = SensitiveByteArray("test".encodeToByteArray())
+        val password = SecureByteArray("test".encodeToByteArray())
         val original = generateEccKeyPair(password, EccKeySize.P256, 1)
 
         val jwkBase64 = publicKeyToJwkBase64Url(original.publicKey)
         val restored = publicKeyFromJwkBase64Url(jwkBase64, 1)
 
         assertEquals(
-            original.publicKey.publicKeyDer.contentToString(),
-            restored.publicKeyDer.contentToString()
+            original.publicKey.publicKeyDer.unsafeBytes.contentToString(),
+            restored.publicKeyDer.unsafeBytes.contentToString()
         )
     }
 
@@ -131,7 +131,7 @@ class EccKeyFunctionsTest {
 
     @Test
     fun testDecryptPrivateKey_CorrectPassword() = runTest {
-        val password = SensitiveByteArray("correct-password".encodeToByteArray())
+        val password = SecureByteArray("correct-password".encodeToByteArray())
         val keyPair = generateEccKeyPair(password, EccKeySize.P256, 1)
 
         // Should decrypt successfully
@@ -141,8 +141,8 @@ class EccKeyFunctionsTest {
 
     @Test
     fun testDecryptPrivateKey_WrongPassword() = runTest {
-        val correctPassword = SensitiveByteArray("correct".encodeToByteArray())
-        val wrongPassword = SensitiveByteArray("wrong".encodeToByteArray())
+        val correctPassword = SecureByteArray("correct".encodeToByteArray())
+        val wrongPassword = SecureByteArray("wrong".encodeToByteArray())
 
         val keyPair = generateEccKeyPair(correctPassword, EccKeySize.P256, 1)
 
@@ -158,8 +158,8 @@ class EccKeyFunctionsTest {
 
     @Test
     fun testPerformEcdhKeyAgreement_P256_BothSides() = runTest {
-        val alicePassword = SensitiveByteArray("alice-pwd".encodeToByteArray())
-        val bobPassword = SensitiveByteArray("bob-pwd".encodeToByteArray())
+        val alicePassword = SecureByteArray("alice-pwd".encodeToByteArray())
+        val bobPassword = SecureByteArray("bob-pwd".encodeToByteArray())
 
         // Generate key pairs for Alice and Bob
         val aliceKeyPair = generateEccKeyPair(alicePassword, EccKeySize.P256, 1)
@@ -186,15 +186,15 @@ class EccKeyFunctionsTest {
 
         // Shared secrets should match
         assertEquals(
-            aliceSharedSecret.getKey().contentToString(),
-            bobSharedSecret.getKey().contentToString()
+            aliceSharedSecret.unsafeBytes.contentToString(),
+            bobSharedSecret.unsafeBytes.contentToString()
         )
     }
 
     @Test
     fun testPerformEcdhKeyAgreement_P384_BothSides() = runTest {
-        val alicePassword = SensitiveByteArray("alice-pwd".encodeToByteArray())
-        val bobPassword = SensitiveByteArray("bob-pwd".encodeToByteArray())
+        val alicePassword = SecureByteArray("alice-pwd".encodeToByteArray())
+        val bobPassword = SecureByteArray("bob-pwd".encodeToByteArray())
 
         val aliceKeyPair = generateEccKeyPair(alicePassword, EccKeySize.P384, 1)
         val bobKeyPair = generateEccKeyPair(bobPassword, EccKeySize.P384, 1)
@@ -216,15 +216,15 @@ class EccKeyFunctionsTest {
         )
 
         assertEquals(
-            aliceSharedSecret.getKey().contentToString(),
-            bobSharedSecret.getKey().contentToString()
+            aliceSharedSecret.unsafeBytes.contentToString(),
+            bobSharedSecret.unsafeBytes.contentToString()
         )
     }
 
     @Test
     fun testPerformEcdhKeyAgreement_DifferentSaltsProduceDifferentSecrets() = runTest {
-        val alicePassword = SensitiveByteArray("alice".encodeToByteArray())
-        val bobPassword = SensitiveByteArray("bob".encodeToByteArray())
+        val alicePassword = SecureByteArray("alice".encodeToByteArray())
+        val bobPassword = SecureByteArray("bob".encodeToByteArray())
 
         val aliceKeyPair = generateEccKeyPair(alicePassword, EccKeySize.P256, 1)
         val bobKeyPair = generateEccKeyPair(bobPassword, EccKeySize.P256, 1)
@@ -237,15 +237,15 @@ class EccKeyFunctionsTest {
 
         // Different salts should produce different derived keys
         assertNotEquals(
-            secret1.getKey().contentToString(),
-            secret2.getKey().contentToString()
+            secret1.unsafeBytes.contentToString(),
+            secret2.unsafeBytes.contentToString()
         )
     }
 
     @Test
     fun testPerformEcdhKeyAgreement_WrongPassword() = runTest {
-        val correctPassword = SensitiveByteArray("correct".encodeToByteArray())
-        val wrongPassword = SensitiveByteArray("wrong".encodeToByteArray())
+        val correctPassword = SecureByteArray("correct".encodeToByteArray())
+        val wrongPassword = SecureByteArray("wrong".encodeToByteArray())
 
         val aliceKeyPair = generateEccKeyPair(correctPassword, EccKeySize.P256, 1)
         val bobKeyPair = generateEccKeyPair(correctPassword, EccKeySize.P256, 1)
@@ -260,7 +260,7 @@ class EccKeyFunctionsTest {
 
     @Test
     fun testPerformEcdhKeyAgreement_InvalidSaltSize() = runTest {
-        val password = SensitiveByteArray("password".encodeToByteArray())
+        val password = SecureByteArray("password".encodeToByteArray())
         val aliceKeyPair = generateEccKeyPair(password, EccKeySize.P256, 1)
         val bobKeyPair = generateEccKeyPair(password, EccKeySize.P256, 1)
 
@@ -279,8 +279,8 @@ class EccKeyFunctionsTest {
     @Test
     fun testFullFlow_KeyGeneration_JwkExchange_Ecdh() = runTest {
         // Alice and Bob each generate their key pairs
-        val alicePassword = SensitiveByteArray("alice-secret".encodeToByteArray())
-        val bobPassword = SensitiveByteArray("bob-secret".encodeToByteArray())
+        val alicePassword = SecureByteArray("alice-secret".encodeToByteArray())
+        val bobPassword = SecureByteArray("bob-secret".encodeToByteArray())
 
         val aliceKeyPair = generateEccKeyPair(alicePassword, EccKeySize.P256, 24)
         val bobKeyPair = generateEccKeyPair(bobPassword, EccKeySize.P256, 24)
@@ -318,11 +318,11 @@ class EccKeyFunctionsTest {
 
         // Both should have the same shared secret
         assertEquals(
-            aliceSharedSecret.getKey().contentToString(),
-            bobSharedSecret.getKey().contentToString()
+            aliceSharedSecret.unsafeBytes.contentToString(),
+            bobSharedSecret.unsafeBytes.contentToString()
         )
 
         // Derived key should be 16 bytes (as specified in performEcdhKeyAgreement)
-        assertEquals(16, aliceSharedSecret.getKey().size)
+        assertEquals(16, aliceSharedSecret.unsafeBytes.size)
     }
 }

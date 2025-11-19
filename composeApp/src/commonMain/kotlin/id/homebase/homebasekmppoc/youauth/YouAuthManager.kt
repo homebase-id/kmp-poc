@@ -9,7 +9,7 @@ import id.homebase.homebasekmppoc.crypto.performEcdhKeyAgreement
 import id.homebase.homebasekmppoc.crypto.publicKeyFromJwkBase64Url
 import id.homebase.homebasekmppoc.crypto.publicKeyToJwkBase64Url
 import id.homebase.homebasekmppoc.crypto.HashUtil
-import id.homebase.homebasekmppoc.core.SensitiveByteArray
+import id.homebase.homebasekmppoc.core.SecureByteArray
 import id.homebase.homebasekmppoc.decodeUrl
 import id.homebase.homebasekmppoc.generateUuidBytes
 import id.homebase.homebasekmppoc.generateUuidString
@@ -57,7 +57,7 @@ sealed class YouAuthState {
  */
 private data class AuthCodeFlowState(
     val identity: String,
-    val password: SensitiveByteArray,
+    val password: SecureByteArray,
     val keyPair: EccKeyPair
 )
 
@@ -93,7 +93,7 @@ class YouAuthManager {
             // YouAuth [010]
             //
 
-            val password = SensitiveByteArray(generateUuidBytes())
+            val password = SecureByteArray(generateUuidBytes())
             val keyPair = generateEccKeyPair(password, getEccKeySize(), 1)
 
             //
@@ -185,7 +185,7 @@ class YouAuthManager {
 
             val remotePublicKeyJwk = publicKeyFromJwkBase64Url(remotePublicKey)
             val exchangeSecret = performEcdhKeyAgreement(keyPair, password, remotePublicKeyJwk, remoteSalt)
-            val exchangeSecretDigest = HashUtil.sha256(exchangeSecret.getKey()).toBase64()
+            val exchangeSecretDigest = HashUtil.sha256(exchangeSecret.unsafeBytes).toBase64()
 
             //
             // YouAuth [100]
@@ -217,11 +217,11 @@ class YouAuthManager {
 
             val sharedSecretCipher = Base64.decode(token.base64SharedSecretCipher)
             val sharedSecretIv = Base64.decode(token.base64SharedSecretIv)
-            val sharedSecret = AesCbc.decrypt(sharedSecretCipher, exchangeSecret.getKey(), sharedSecretIv)
+            val sharedSecret = AesCbc.decrypt(sharedSecretCipher, exchangeSecret.unsafeBytes, sharedSecretIv)
 
             val clientAuthTokenCipher = Base64.decode(token.base64ClientAuthTokenCipher)
             val clientAuthTokenIv = Base64.decode(token.base64ClientAuthTokenIv)
-            val clientAuthToken = AesCbc.decrypt(clientAuthTokenCipher, exchangeSecret.getKey(), clientAuthTokenIv)
+            val clientAuthToken = AesCbc.decrypt(clientAuthTokenCipher, exchangeSecret.unsafeBytes, clientAuthTokenIv)
 
             //
             // Post YouAuth [400] - Store authentication state

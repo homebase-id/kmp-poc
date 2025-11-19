@@ -1,6 +1,6 @@
 package id.homebase.homebasekmppoc.crypto
 
-import id.homebase.homebasekmppoc.core.SensitiveByteArray
+import id.homebase.homebasekmppoc.core.SecureByteArray
 import kotlinx.io.Buffer
 
 /**
@@ -9,13 +9,13 @@ import kotlinx.io.Buffer
  */
 class KeyHeader(
     var iv: ByteArray,
-    var aesKey: SensitiveByteArray
+    var aesKey: SecureByteArray
 ) {
     /**
      * Combines IV and AES key into a single byte array
      */
-    fun combine(): SensitiveByteArray {
-        return SensitiveByteArray(ByteArrayUtil.combine(iv, aesKey.getKey()))
+    fun combine(): SecureByteArray {
+        return SecureByteArray(ByteArrayUtil.combine(iv, aesKey.unsafeBytes))
     }
 
     /**
@@ -68,7 +68,7 @@ class KeyHeader(
             val parts = ByteArrayUtil.split(data, ivLength, keyLength)
             return KeyHeader(
                 iv = parts[0],
-                aesKey = SensitiveByteArray(parts[1])
+                aesKey = SecureByteArray(parts[1])
             )
         }
 
@@ -78,7 +78,7 @@ class KeyHeader(
         fun newRandom16(): KeyHeader {
             return KeyHeader(
                 iv = ByteArrayUtil.getRndByteArray(16),
-                aesKey = SensitiveByteArray(ByteArrayUtil.getRndByteArray(16))
+                aesKey = SecureByteArray(ByteArrayUtil.getRndByteArray(16))
             )
         }
 
@@ -88,7 +88,7 @@ class KeyHeader(
         fun empty(): KeyHeader {
             return KeyHeader(
                 iv = ByteArray(16) { 0 },
-                aesKey = SensitiveByteArray(ByteArray(16) { 0 })
+                aesKey = SecureByteArray(ByteArray(16) { 0 })
             )
         }
     }

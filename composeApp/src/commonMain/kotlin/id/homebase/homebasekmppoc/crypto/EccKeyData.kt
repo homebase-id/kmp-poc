@@ -4,9 +4,8 @@ import dev.whyoleg.cryptography.CryptographyProvider
 import dev.whyoleg.cryptography.DelicateCryptographyApi
 import dev.whyoleg.cryptography.algorithms.EC
 import dev.whyoleg.cryptography.algorithms.ECDH
-import id.homebase.homebasekmppoc.core.SensitiveByteArray
+import id.homebase.homebasekmppoc.core.SecureByteArray
 import id.homebase.homebasekmppoc.core.UnixTimeUtc
-import id.homebase.homebasekmppoc.core.toSensitiveByteArray
 import kotlinx.serialization.json.Json
 
 /**
@@ -138,7 +137,7 @@ open class DEPRECATED_EccPublicKeyData(
  */
 @Deprecated("Use EccKeyFunctions.kt instead")
 class DEPRECATED_EccFullKeyData private constructor() : DEPRECATED_EccPublicKeyData() {
-    private var _privateKey: SensitiveByteArray? = null  // Cached decrypted private key
+    private var _privateKey: SecureByteArray? = null  // Cached decrypted private key
 
     var storedKey: ByteArray = ByteArray(0)  // Encrypted private key
     var iv: ByteArray = ByteArray(0)          // IV for encryption
@@ -150,7 +149,7 @@ class DEPRECATED_EccFullKeyData private constructor() : DEPRECATED_EccPublicKeyD
          * Create a new ECC full key pair
          */
         suspend fun create(
-            key: SensitiveByteArray,
+            key: SecureByteArray,
             keySize: EccKeySize,
             hours: Int,
             minutes: Int = 0,
@@ -180,20 +179,20 @@ class DEPRECATED_EccFullKeyData private constructor() : DEPRECATED_EccPublicKeyD
         }
     }
 
-    private suspend fun createPrivate(key: SensitiveByteArray, fullDerKey: ByteArray) {
+    private suspend fun createPrivate(key: SecureByteArray, fullDerKey: ByteArray) {
         iv = ByteArrayUtil.getRndByteArray(16)
-        keyHash = ByteArrayUtil.reduceSha256Hash(key.getKey())
-        _privateKey = SensitiveByteArray(fullDerKey)
+        keyHash = ByteArrayUtil.reduceSha256Hash(key.unsafeBytes)
+        _privateKey = SecureByteArray(fullDerKey)
         storedKey = AesCbc.encrypt(fullDerKey, key, iv)
     }
 
-    private suspend fun getFullKey(key: SensitiveByteArray): SensitiveByteArray {
-        if (!ByteArrayUtil.equiByteArrayCompare(keyHash, ByteArrayUtil.reduceSha256Hash(key.getKey()))) {
+    private suspend fun getFullKey(key: SecureByteArray): SecureByteArray {
+        if (!ByteArrayUtil.equiByteArrayCompare(keyHash, ByteArrayUtil.reduceSha256Hash(key.unsafeBytes))) {
             throw IllegalStateException("Incorrect key")
         }
 
         if (_privateKey == null) {
-            _privateKey = SensitiveByteArray(AesCbc.decrypt(storedKey, key, iv))
+            _privateKey = SecureByteArray(AesCbc.decrypt(storedKey, key, iv))
         }
 
         return _privateKey!!
@@ -202,11 +201,11 @@ class DEPRECATED_EccFullKeyData private constructor() : DEPRECATED_EccPublicKeyD
     /**
      * Perform ECDH key agreement to derive a shared secret
      */
-    suspend fun getEcdhSharedSecret(pwd: SensitiveByteArray, remotePublicKey: DEPRECATED_EccPublicKeyData, randomSalt: ByteArray): SensitiveByteArray {
+    suspend fun getEcdhSharedSecret(pwd: SecureByteArray, remotePublicKey: DEPRECATED_EccPublicKeyData, randomSalt: ByteArray): SecureByteArray {
         require(randomSalt.size >= 16) { "Salt must be at least 16 bytes" }
 
         // Get the private key
-        val privateKeyBytes = getFullKey(pwd).getKey()
+        val privateKeyBytes = getFullKey(pwd).unsafeBytes
 
         // Perform ECDH and derive shared secret
         val sharedSecret = platformEcdhKeyAgreement(privateKeyBytes, remotePublicKey.publicKey)
@@ -214,7 +213,7 @@ class DEPRECATED_EccFullKeyData private constructor() : DEPRECATED_EccPublicKeyD
         // Apply HKDF to derive a symmetric key from the shared secret
         val derivedKey = HashUtil.hkdf(sharedSecret, randomSalt, 16)
 
-        return derivedKey.toSensitiveByteArray()
+        return SecureByteArray(derivedKey)
     }
 }
 

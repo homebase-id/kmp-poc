@@ -4,9 +4,8 @@ import dev.whyoleg.cryptography.CryptographyProvider
 import dev.whyoleg.cryptography.DelicateCryptographyApi
 import dev.whyoleg.cryptography.algorithms.EC
 import dev.whyoleg.cryptography.algorithms.ECDH
-import id.homebase.homebasekmppoc.core.SensitiveByteArray
+import id.homebase.homebasekmppoc.core.SecureByteArray
 import id.homebase.homebasekmppoc.core.UnixTimeUtc
-import id.homebase.homebasekmppoc.core.toSensitiveByteArray
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -15,7 +14,7 @@ import kotlinx.serialization.json.Json
  */
 @Serializable
 data class EccPublicKey(
-    val publicKeyDer: ByteArray,
+    val publicKeyDer: SecureByteArray,
     val keySize: EccKeySize,
     val crc32c: UInt,
     val expiration: UnixTimeUtc
@@ -24,14 +23,14 @@ data class EccPublicKey(
         if (this === other) return true
         if (other == null || this::class != other::class) return false
         other as EccPublicKey
-        return publicKeyDer.contentEquals(other.publicKeyDer) &&
+        return publicKeyDer.unsafeBytes.contentEquals(other.publicKeyDer.unsafeBytes) &&
                 keySize == other.keySize &&
                 crc32c == other.crc32c &&
                 expiration == other.expiration
     }
 
     override fun hashCode(): Int {
-        var result = publicKeyDer.contentHashCode()
+        var result = publicKeyDer.unsafeBytes.contentHashCode()
         result = 31 * result + keySize.hashCode()
         result = 31 * result + crc32c.hashCode()
         result = 31 * result + expiration.hashCode()
@@ -44,25 +43,25 @@ data class EccPublicKey(
  */
 @Serializable
 data class EccPrivateKey(
-    val encryptedKey: ByteArray,
-    val iv: ByteArray,
-    val keyHash: ByteArray,
+    val encryptedKey: SecureByteArray,
+    val iv: SecureByteArray,
+    val keyHash: SecureByteArray,
     val createdTimeStamp: UnixTimeUtc
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other == null || this::class != other::class) return false
         other as EccPrivateKey
-        return encryptedKey.contentEquals(other.encryptedKey) &&
-                iv.contentEquals(other.iv) &&
-                keyHash.contentEquals(other.keyHash) &&
+        return encryptedKey.unsafeBytes.contentEquals(other.encryptedKey.unsafeBytes) &&
+                iv.unsafeBytes.contentEquals(other.iv.unsafeBytes) &&
+                keyHash.unsafeBytes.contentEquals(other.keyHash.unsafeBytes) &&
                 createdTimeStamp == other.createdTimeStamp
     }
 
     override fun hashCode(): Int {
-        var result = encryptedKey.contentHashCode()
-        result = 31 * result + iv.contentHashCode()
-        result = 31 * result + keyHash.contentHashCode()
+        var result = encryptedKey.unsafeBytes.contentHashCode()
+        result = 31 * result + iv.unsafeBytes.contentHashCode()
+        result = 31 * result + keyHash.unsafeBytes.contentHashCode()
         result = 31 * result + createdTimeStamp.hashCode()
         return result
     }
@@ -90,7 +89,7 @@ data class EccKeyPair(
  * @return Generated key pair
  */
 suspend fun generateEccKeyPair(
-    password: SensitiveByteArray,
+    password: SecureByteArray,
     keySize: EccKeySize,
     expirationHours: Int
 ): EccKeyPair {
@@ -102,7 +101,7 @@ suspend fun generateEccKeyPair(
 
     // Encrypt private key
     val iv = ByteArrayUtil.getRndByteArray(16)
-    val keyHash = ByteArrayUtil.reduceSha256Hash(password.getKey())
+    val keyHash = ByteArrayUtil.reduceSha256Hash(password.unsafeBytes)
     val encryptedKey = AesCbc.encrypt(privateKeyDer, keyHash, iv)
 
     // Calculate CRC for public key
@@ -110,15 +109,15 @@ suspend fun generateEccKeyPair(
 
     return EccKeyPair(
         publicKey = EccPublicKey(
-            publicKeyDer = publicKeyDer,
+            publicKeyDer = SecureByteArray(publicKeyDer),
             keySize = keySize,
             crc32c = crc32c,
             expiration = expiration
         ),
         privateKey = EccPrivateKey(
-            encryptedKey = encryptedKey,
-            iv = iv,
-            keyHash = keyHash,
+            encryptedKey = SecureByteArray(encryptedKey),
+            iv = SecureByteArray(iv),
+            keyHash = SecureByteArray(keyHash),
             createdTimeStamp = createdAt
         )
     )
@@ -135,7 +134,7 @@ suspend fun generateEccKeyPair(
  * @return JWK as JSON string
  */
 suspend fun publicKeyToJwk(publicKey: EccPublicKey): String {
-    val (x, y) = derToJwkCoordinates(publicKey.publicKeyDer, publicKey.keySize)
+    val (x, y) = derToJwkCoordinates(publicKey.publicKeyDer.unsafeBytes, publicKey.keySize)
 
     val expectedBytes = if (publicKey.keySize == EccKeySize.P384) 48 else 32
     val xPadded = ensureLength(x, expectedBytes)
@@ -187,7 +186,7 @@ suspend fun publicKeyFromJwk(jwk: String, expirationHours: Int = 1): EccPublicKe
     val derEncodedPublicKey = jwkToDer(x, y, keySize)
 
     return EccPublicKey(
-        publicKeyDer = derEncodedPublicKey,
+        publicKeyDer = SecureByteArray(derEncodedPublicKey),
         keySize = keySize,
         crc32c = Crc32c.calculateCrc32c(0u, derEncodedPublicKey),
         expiration = UnixTimeUtc.now().addHours(expirationHours.toLong())
@@ -216,15 +215,15 @@ suspend fun publicKeyFromJwkBase64Url(jwkBase64Url: String, expirationHours: Int
  * @param password Password to decrypt
  * @return Decrypted private key bytes (DER format)
  */
-suspend fun decryptPrivateKey(privateKey: EccPrivateKey, password: SensitiveByteArray): ByteArray {
+suspend fun decryptPrivateKey(privateKey: EccPrivateKey, password: SecureByteArray): ByteArray {
     // Verify password
-    val keyHash = ByteArrayUtil.reduceSha256Hash(password.getKey())
-    if (!ByteArrayUtil.equiByteArrayCompare(privateKey.keyHash, keyHash)) {
+    val keyHash = ByteArrayUtil.reduceSha256Hash(password.unsafeBytes)
+    if (!ByteArrayUtil.equiByteArrayCompare(privateKey.keyHash.unsafeBytes, keyHash)) {
         throw IllegalStateException("Incorrect password")
     }
 
     // Decrypt private key using derived key
-    return AesCbc.decrypt(privateKey.encryptedKey, keyHash, privateKey.iv)
+    return AesCbc.decrypt(privateKey.encryptedKey.unsafeBytes, keyHash, privateKey.iv.unsafeBytes)
 }
 
 // ============================================================================
@@ -242,22 +241,22 @@ suspend fun decryptPrivateKey(privateKey: EccPrivateKey, password: SensitiveByte
  */
 suspend fun performEcdhKeyAgreement(
     keyPair: EccKeyPair,
-    password: SensitiveByteArray,
+    password: SecureByteArray,
     remotePublicKey: EccPublicKey,
     salt: ByteArray
-): SensitiveByteArray {
+): SecureByteArray {
     require(salt.size >= 16) { "Salt must be at least 16 bytes" }
 
     // Decrypt local private key
     val privateKeyDer = decryptPrivateKey(keyPair.privateKey, password)
 
     // Perform ECDH
-    val sharedSecret = performPlatformEcdhKeyAgreement(privateKeyDer, remotePublicKey.publicKeyDer)
+    val sharedSecret = performPlatformEcdhKeyAgreement(privateKeyDer, remotePublicKey.publicKeyDer.unsafeBytes)
 
     // Apply HKDF to derive symmetric key
     val derivedKey = HashUtil.hkdf(sharedSecret, salt, 16)
 
-    return derivedKey.toSensitiveByteArray()
+    return SecureByteArray(derivedKey)
 }
 
 // ============================================================================

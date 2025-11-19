@@ -1,6 +1,6 @@
 package id.homebase.homebasekmppoc.crypto
 
-import id.homebase.homebasekmppoc.core.SensitiveByteArray
+import id.homebase.homebasekmppoc.core.SecureByteArray
 import id.homebase.homebasekmppoc.toBase64
 import kotlinx.serialization.Serializable
 import kotlin.io.encoding.Base64
@@ -22,11 +22,11 @@ class EncryptedKeyHeader(
      * @return Decrypted KeyHeader
      * @throws Exception if unsupported encryption version
      */
-    suspend fun decryptAesToKeyHeader(key: SensitiveByteArray): KeyHeader {
+    suspend fun decryptAesToKeyHeader(key: SecureByteArray): KeyHeader {
         if (encryptionVersion == 1) {
             val bytes = AesCbc.decrypt(encryptedAesKey, key, iv)
             val kh = KeyHeader.fromCombinedBytes(bytes, 16, 16)
-            SensitiveByteArray(bytes).wipe()
+            SecureByteArray(bytes).clear()
             return kh
         }
 
@@ -36,9 +36,9 @@ class EncryptedKeyHeader(
     /**
      * Combines IV and encrypted AES key into a single byte array
      */
-    fun combine(): SensitiveByteArray {
+    fun combine(): SecureByteArray {
         // TODO: I don't know the length of encrypted AES Key so maybe base64 encode this instead?
-        return SensitiveByteArray(ByteArrayUtil.combine(iv, encryptedAesKey))
+        return SecureByteArray(ByteArrayUtil.combine(iv, encryptedAesKey))
     }
 
     /**
@@ -48,7 +48,7 @@ class EncryptedKeyHeader(
         val versionBytes = ByteArrayUtil.int32ToBytes(encryptionVersion)
         val combinedBytes = ByteArrayUtil.combine(iv, encryptedAesKey, versionBytes)
         val encryptedKeyHeader64 = combinedBytes.toBase64()
-        SensitiveByteArray(combinedBytes).wipe()
+        SecureByteArray(combinedBytes).clear()
         return encryptedKeyHeader64
     }
 
@@ -63,11 +63,11 @@ class EncryptedKeyHeader(
         suspend fun encryptKeyHeaderAes(
             keyHeader: KeyHeader,
             iv: ByteArray,
-            key: SensitiveByteArray
+            key: SecureByteArray
         ): EncryptedKeyHeader {
             val secureKeyHeader = keyHeader.combine()
-            val data = AesCbc.encrypt(secureKeyHeader.getKey(), key, iv)
-            secureKeyHeader.wipe()
+            val data = AesCbc.encrypt(secureKeyHeader.unsafeBytes, key, iv)
+            secureKeyHeader.clear()
 
             return EncryptedKeyHeader(
                 encryptionVersion = 1,
