@@ -20,7 +20,8 @@ enum class EccKeySize {
 /**
  * ECC public key data
  */
-open class EccPublicKeyData(
+@Deprecated("Use EccKeyFunctions.kt instead")
+open class DEPRECATED_EccPublicKeyData(
     var publicKey: ByteArray = ByteArray(0),  // DER encoded public key
     var crc32c: UInt = 0u,                     // CRC32C of the public key
     var expiration: UnixTimeUtc = UnixTimeUtc.ZeroTime,  // Expiration time
@@ -32,9 +33,9 @@ open class EccPublicKeyData(
         val eccCurveIdentifiers = arrayOf("secp256r1", "secp384r1")
 
         /**
-         * Create EccPublicKeyData from JWK (JSON Web Key) format
+         * Create DEPRECATED_EccPublicKeyData from JWK (JSON Web Key) format
          */
-        suspend fun fromJwkPublicKey(jwk: String, hours: Int = 1): EccPublicKeyData {
+        suspend fun fromJwkPublicKey(jwk: String, hours: Int = 1): DEPRECATED_EccPublicKeyData {
             val jwkMap = Json.decodeFromString<Map<String, String>>(jwk)
 
             require(jwkMap["kty"] == "EC") { "Invalid key type, kty must be EC" }
@@ -50,7 +51,7 @@ open class EccPublicKeyData(
             val keySize = if (curveName == "P-384") EccKeySize.P384 else EccKeySize.P256
             val derEncodedPublicKey = platformJwkToDer(x, y, keySize)
 
-            return EccPublicKeyData(
+            return DEPRECATED_EccPublicKeyData(
                 publicKey = derEncodedPublicKey,
                 crc32c = keyCrc(derEncodedPublicKey),
                 expiration = UnixTimeUtc.now().addHours(hours.toLong()),
@@ -59,9 +60,9 @@ open class EccPublicKeyData(
         }
 
         /**
-         * Create EccPublicKeyData from base64url-encoded JWK
+         * Create DEPRECATED_EccPublicKeyData from base64url-encoded JWK
          */
-        suspend fun fromJwkBase64UrlPublicKey(jwkBase64Url: String, hours: Int = 1): EccPublicKeyData {
+        suspend fun fromJwkBase64UrlPublicKey(jwkBase64Url: String, hours: Int = 1): DEPRECATED_EccPublicKeyData {
             return fromJwkPublicKey(Base64UrlEncoder.decodeString(jwkBase64Url), hours)
         }
 
@@ -135,7 +136,8 @@ open class EccPublicKeyData(
 /**
  * ECC full key data (includes private key)
  */
-class EccFullKeyData private constructor() : EccPublicKeyData() {
+@Deprecated("Use EccKeyFunctions.kt instead")
+class DEPRECATED_EccFullKeyData private constructor() : DEPRECATED_EccPublicKeyData() {
     private var _privateKey: SensitiveByteArray? = null  // Cached decrypted private key
 
     var storedKey: ByteArray = ByteArray(0)  // Encrypted private key
@@ -153,8 +155,8 @@ class EccFullKeyData private constructor() : EccPublicKeyData() {
             hours: Int,
             minutes: Int = 0,
             seconds: Int = 0
-        ): EccFullKeyData {
-            val keyData = EccFullKeyData()
+        ): DEPRECATED_EccFullKeyData {
+            val keyData = DEPRECATED_EccFullKeyData()
 
             // Generate ECC key pair
             val (privateKeyDer, publicKeyDer) = platformGenerateEccKeyPair(keySize)
@@ -200,7 +202,7 @@ class EccFullKeyData private constructor() : EccPublicKeyData() {
     /**
      * Perform ECDH key agreement to derive a shared secret
      */
-    suspend fun getEcdhSharedSecret(pwd: SensitiveByteArray, remotePublicKey: EccPublicKeyData, randomSalt: ByteArray): SensitiveByteArray {
+    suspend fun getEcdhSharedSecret(pwd: SensitiveByteArray, remotePublicKey: DEPRECATED_EccPublicKeyData, randomSalt: ByteArray): SensitiveByteArray {
         require(randomSalt.size >= 16) { "Salt must be at least 16 bytes" }
 
         // Get the private key

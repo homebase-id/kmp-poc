@@ -2,9 +2,12 @@ package id.homebase.homebasekmppoc.youauth
 
 import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.crypto.AesCbc
-import id.homebase.homebasekmppoc.crypto.EccFullKeyData
+import id.homebase.homebasekmppoc.crypto.EccKeyPair
 import id.homebase.homebasekmppoc.crypto.EccKeySize
-import id.homebase.homebasekmppoc.crypto.EccPublicKeyData
+import id.homebase.homebasekmppoc.crypto.generateEccKeyPair
+import id.homebase.homebasekmppoc.crypto.performEcdhKeyAgreement
+import id.homebase.homebasekmppoc.crypto.publicKeyFromJwkBase64Url
+import id.homebase.homebasekmppoc.crypto.publicKeyToJwkBase64Url
 import id.homebase.homebasekmppoc.crypto.HashUtil
 import id.homebase.homebasekmppoc.core.SensitiveByteArray
 import id.homebase.homebasekmppoc.decodeUrl
@@ -54,8 +57,8 @@ sealed class YouAuthState {
  */
 private data class AuthCodeFlowState(
     val identity: String,
-    val privateKey: SensitiveByteArray,
-    val keyPair: EccFullKeyData
+    val password: SensitiveByteArray,
+    val keyPair: EccKeyPair
 )
 
 /**
@@ -90,15 +93,15 @@ class YouAuthManager {
             // YouAuth [010]
             //
 
-            val privateKey = SensitiveByteArray(generateUuidBytes())
-            val keyPair = EccFullKeyData.create(privateKey, getEccKeySize(), 1)
+            val password = SensitiveByteArray(generateUuidBytes())
+            val keyPair = generateEccKeyPair(password, getEccKeySize(), 1)
 
             //
             // YouAuth [030]
             //
 
             val state = generateUuidString()
-            authCodeFlowState = AuthCodeFlowState(identity, privateKey, keyPair)
+            authCodeFlowState = AuthCodeFlowState(identity, password, keyPair)
 
             // Register this instance with the router to receive callbacks for this state
             YouAuthCallbackRouter.register(state, this)
@@ -121,7 +124,7 @@ class YouAuthManager {
                 clientInfo = "",
                 clientType = clientType,
                 permissionRequest = permissionRequest,
-                publicKey = keyPair.publicKeyJwkBase64Url(),
+                publicKey = publicKeyToJwkBase64Url(keyPair.publicKey),
                 redirectUri = redirectUri,
                 state = state,
             )
@@ -175,13 +178,13 @@ class YouAuthManager {
             // YouAuth [090]
             //
 
-            val privateKey = authCodeFlowState!!.privateKey
+            val password = authCodeFlowState!!.password
             val keyPair = authCodeFlowState!!.keyPair
             val remotePublicKey = publicKey
             val remoteSalt = Base64.decode(salt)
 
-            val remotePublicKeyJwk = EccPublicKeyData.fromJwkBase64UrlPublicKey(remotePublicKey)
-            val exchangeSecret = keyPair.getEcdhSharedSecret(privateKey, remotePublicKeyJwk, remoteSalt)
+            val remotePublicKeyJwk = publicKeyFromJwkBase64Url(remotePublicKey)
+            val exchangeSecret = performEcdhKeyAgreement(keyPair, password, remotePublicKeyJwk, remoteSalt)
             val exchangeSecretDigest = HashUtil.sha256(exchangeSecret.getKey()).toBase64()
 
             //
