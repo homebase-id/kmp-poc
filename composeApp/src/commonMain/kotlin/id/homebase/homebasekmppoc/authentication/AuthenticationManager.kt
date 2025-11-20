@@ -27,9 +27,11 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.setCookie
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
@@ -74,8 +76,10 @@ class AuthenticationManager {
 
             Logger.d("authenticate") { "Received nonce: ${nonceData.nonce64}" }
 
-            // Prepare authentication payload
-            val reply = prepareAuthPassword(password, nonceData)
+            // Prepare authentication payload (CPU-intensive operations on background thread)
+            val reply = withContext(Dispatchers.Default) {
+                prepareAuthPassword(password, nonceData)
+            }
 
             // POST authentication
             val authUrl = "https://${identity}/api/owner/v1/authentication"

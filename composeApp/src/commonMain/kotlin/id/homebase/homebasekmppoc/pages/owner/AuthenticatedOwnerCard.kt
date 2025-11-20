@@ -140,7 +140,7 @@ fun AuthenticatedOwnerCard(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "XXXXXX",
+                            text = "verifyToken response",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.primary,
                             textAlign = TextAlign.Center
