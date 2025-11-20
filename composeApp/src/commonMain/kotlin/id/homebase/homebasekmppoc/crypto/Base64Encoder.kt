@@ -1,0 +1,45 @@
+package id.homebase.homebasekmppoc.crypto
+
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
+
+/**
+ * Standard Base64 encoding utilities
+ * Provides standard base64 encoding/decoding (RFC 4648 Section 4)
+ * Use this for server responses and standard base64 data
+ */
+object Base64Encoder {
+
+    @OptIn(ExperimentalEncodingApi::class)
+    private val base64 = Base64.Default
+
+    /**
+     * Encode byte array to standard base64 string
+     */
+    @OptIn(ExperimentalEncodingApi::class)
+    fun encode(input: ByteArray): String {
+        return base64.encode(input)
+    }
+
+    /**
+     * Encode string to standard base64 string
+     */
+    fun encode(input: String): String {
+        return encode(input.toUtf8ByteArray())
+    }
+
+    /**
+     * Decode standard base64 string to byte array
+     */
+    @OptIn(ExperimentalEncodingApi::class)
+    fun decode(input: String): ByteArray {
+        return base64.decode(input)
+    }
+
+    /**
+     * Decode standard base64 string to UTF-8 string
+     */
+    fun decodeString(input: String): String {
+        return decode(input).toStringFromUtf8Bytes()
+    }
+}

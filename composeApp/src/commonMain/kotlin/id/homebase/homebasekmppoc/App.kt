@@ -13,6 +13,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import id.homebase.homebasekmppoc.authentication.AuthenticationManager
 import id.homebase.homebasekmppoc.pages.app.AppPage
 import id.homebase.homebasekmppoc.pages.owner.OwnerPage
 import id.homebase.homebasekmppoc.pages.domain.DomainPage
@@ -27,6 +28,7 @@ fun App() {
         val tabs = listOf("Owner", "Domain", "App")
 
         // Hoist YouAuthManager to App level so it survives tab navigation
+        val authenticationManager = remember { AuthenticationManager() }
         val domainYouAuthManager = remember { YouAuthManager() }
         val appYouAuthManager = remember { YouAuthManager() }
 
@@ -52,7 +54,7 @@ fun App() {
                     .verticalScroll(rememberScrollState())
             ) {
                 when (selectedTabIndex) {
-                    0 -> OwnerPage()
+                    0 -> OwnerPage(authenticationManager)
                     1 -> DomainPage(domainYouAuthManager)
                     2 -> AppPage(appYouAuthManager)
                 }
