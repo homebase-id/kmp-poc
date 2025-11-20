@@ -1,6 +1,5 @@
 package id.homebase.homebasekmppoc.drives
 
-import id.homebase.homebasekmppoc.crypto.Base64UrlEncoder
 import id.homebase.homebasekmppoc.crypto.CryptoHelper
 import id.homebase.homebasekmppoc.encodeUrl
 import id.homebase.homebasekmppoc.http.createHttpClient
@@ -47,10 +46,20 @@ class DriveQueryProvider(private val httpClient: HttpClient) {
         }
 
         // Build base URL
-        val baseUrl = "https://$domain/api/apps/v1/drive/query/batch?$queryString"
+        val url = "https://$domain/api/apps/v1/drive/query/batch?$queryString"
+
+        return queryBatch(url, clientAuthToken, sharedSecret)
+    }
+
+    //
+
+    suspend fun queryBatch(
+        uri: String,
+        clientAuthToken: String,
+        sharedSecret: String): QueryBatchResponse {
 
         // Encrypt query string
-        val url = CryptoHelper.uriWithEncryptedQueryString(baseUrl, sharedSecret)
+        val url = CryptoHelper.uriWithEncryptedQueryString(uri, sharedSecret)
 
         // Make HTTP request
         val response: HttpResponse = httpClient.get(url) {
