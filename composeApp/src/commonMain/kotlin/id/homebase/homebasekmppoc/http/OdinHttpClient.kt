@@ -1,13 +1,13 @@
 package id.homebase.homebasekmppoc.http
 
 import co.touchlab.kermit.Logger
+import id.homebase.homebasekmppoc.authentication.AuthState
 import id.homebase.homebasekmppoc.crypto.AesCbc
 import id.homebase.homebasekmppoc.crypto.ByteArrayUtil
 import id.homebase.homebasekmppoc.crypto.CryptoHelper
 import id.homebase.homebasekmppoc.encodeUrl
 import id.homebase.homebasekmppoc.serialization.OdinSystemSerializer
 import id.homebase.homebasekmppoc.toBase64
-import id.homebase.homebasekmppoc.youauth.YouAuthState
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -22,7 +22,7 @@ import kotlin.io.encoding.Base64
  * Handles query string encryption and authentication headers
  */
 class OdinHttpClient(
-    private val authenticatedState: YouAuthState.Authenticated
+    private val authenticatedState: AuthState.Authenticated
 ) {
     private val identity: String = authenticatedState.identity
     private val clientAuthToken: String = authenticatedState.clientAuthToken
@@ -117,7 +117,29 @@ class OdinHttpClient(
 
     //
 
-    suspend fun verifyToken(): String {
+    suspend fun verifyOwnerToken(): String {
+        val uri = "https://$identity/api/owner/v1/authentication/verifytoken"
+        val encryptedUri = buildUriWithEncryptedQueryString(uri)
+
+        Logger.d("OdinHttpClient") { "Making GET request to: $encryptedUri" }
+
+        val client = createHttpClient()
+        val response = client.get(encryptedUri) {
+            headers {
+                append("Cookie", "DY0810=$clientAuthToken")
+            }
+        }
+
+        if (response.status != HttpStatusCode.OK) {
+            return response.status.toString()
+        }
+
+        return response.body<Boolean>().toString()
+    }
+
+    //
+
+    suspend fun verifyAppToken(): String {
         val uri = "https://$identity/api/apps/v1/auth/verifytoken"
         val encryptedUri = buildUriWithEncryptedQueryString(uri)
 
@@ -130,7 +152,11 @@ class OdinHttpClient(
             }
         }
 
-        return response.status.toString()
+        if (response.status != HttpStatusCode.OK) {
+            return response.status.toString()
+        }
+
+        return response.body<Boolean>().toString()
     }
 
     //

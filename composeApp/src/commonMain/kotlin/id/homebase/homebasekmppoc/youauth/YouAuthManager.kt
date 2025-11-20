@@ -1,6 +1,7 @@
 package id.homebase.homebasekmppoc.youauth
 
 import co.touchlab.kermit.Logger
+import id.homebase.homebasekmppoc.authentication.AuthState
 import id.homebase.homebasekmppoc.crypto.AesCbc
 import id.homebase.homebasekmppoc.crypto.EccKeyPair
 import id.homebase.homebasekmppoc.crypto.EccKeySize
@@ -33,23 +34,6 @@ import kotlin.io.encoding.Base64
 /**
  * Authentication state for the YouAuth flow
  */
-sealed class YouAuthState {
-    /** User is not authenticated */
-    data object Unauthenticated : YouAuthState()
-
-    /** Authentication flow is in progress */
-    data object Authenticating : YouAuthState()
-
-    /** User is authenticated with valid tokens */
-    data class Authenticated(
-        val identity: String,
-        val clientAuthToken: String,  // Base64 encoded
-        val sharedSecret: String      // Base64 encoded
-    ) : YouAuthState()
-
-    /** Authentication failed with an error */
-    data class Error(val message: String) : YouAuthState()
-}
 
 /**
  * Internal state for flow
@@ -65,8 +49,8 @@ private data class AuthCodeFlowState(
  * Create instances to manage independent authentication flows.
  */
 class YouAuthManager {
-    private val _youAuthState = MutableStateFlow<YouAuthState>(YouAuthState.Unauthenticated)
-    val youAuthState: StateFlow<YouAuthState> = _youAuthState.asStateFlow()
+    private val _youAuthState = MutableStateFlow<AuthState>(AuthState.Unauthenticated)
+    val youAuthState: StateFlow<AuthState> = _youAuthState.asStateFlow()
 
     private var authCodeFlowState: AuthCodeFlowState? = null
 
@@ -80,12 +64,12 @@ class YouAuthManager {
         appParameters: YouAuthAppParameters? = null) {
 
         // Sanity
-        if (_youAuthState.value == YouAuthState.Authenticating || _youAuthState.value is YouAuthState.Authenticated) {
+        if (_youAuthState.value == AuthState.Authenticating || _youAuthState.value is AuthState.Authenticated) {
             Logger.e("YouAuthManager") { "Already authenticated" }
             return
         }
 
-        _youAuthState.value = YouAuthState.Authenticating
+        _youAuthState.value = AuthState.Authenticating
         try {
 
             //
@@ -138,7 +122,7 @@ class YouAuthManager {
 
         } catch (e: Exception) {
             Logger.e("YouAuthManager") { "Error starting authorization code flow: ${e.message}" }
-            _youAuthState.value = YouAuthState.Error(e.message ?: "Unknown error")
+            _youAuthState.value = AuthState.Error(e.message ?: "Unknown error")
         }
     }
 
@@ -149,7 +133,7 @@ class YouAuthManager {
         // Sanity
         if (authCodeFlowState == null) {
             Logger.e("YouAuthManager") { "No pending auth code flow state" }
-            _youAuthState.value = YouAuthState.Error("No pending auth code flow")
+            _youAuthState.value = AuthState.Error("No pending auth code flow")
             return
         }
 
@@ -231,7 +215,7 @@ class YouAuthManager {
             val sharedSecretValue = Base64.encode(sharedSecret)
 
             // Update state to authenticated
-            _youAuthState.value = YouAuthState.Authenticated(
+            _youAuthState.value = AuthState.Authenticated(
                 identity = identityValue,
                 clientAuthToken = catValue,
                 sharedSecret = sharedSecretValue
@@ -241,7 +225,7 @@ class YouAuthManager {
 
         } catch (e: Exception) {
             Logger.e("YouAuthManager") { "Error completing auth: ${e.message}" }
-            _youAuthState.value = YouAuthState.Error(e.message ?: "Unknown error")
+            _youAuthState.value = AuthState.Error(e.message ?: "Unknown error")
         } finally {
             authCodeFlowState = null
             YouAuthCallbackRouter.unregister(state)
@@ -254,7 +238,7 @@ class YouAuthManager {
      * Logout and clear authentication state
      */
     fun logout() {
-        _youAuthState.value = YouAuthState.Unauthenticated
+        _youAuthState.value = AuthState.Unauthenticated
         Logger.i("YouAuthManager") { "User logged out" }
     }
 

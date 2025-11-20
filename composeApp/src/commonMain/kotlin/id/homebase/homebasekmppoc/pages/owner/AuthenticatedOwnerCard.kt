@@ -32,7 +32,6 @@ import homebasekmppoc.composeapp.generated.resources.Res
 import homebasekmppoc.composeapp.generated.resources.compose_multiplatform
 import id.homebase.homebasekmppoc.authentication.AuthState
 import id.homebase.homebasekmppoc.http.OdinHttpClient
-import id.homebase.homebasekmppoc.youauth.YouAuthState
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -47,7 +46,7 @@ fun AuthenticatedOwnerCard(
     authenticatedState: AuthState.Authenticated?,
     modifier: Modifier = Modifier
 ) {
-//    var verifytokenReponse by remember { mutableStateOf<String?>(null) }
+    var verifytokenReponse by remember { mutableStateOf<String?>(null) }
 //    var isAuthenticatedResponse by remember { mutableStateOf<String?>(null) }
 //    var pingResponse by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -57,8 +56,8 @@ fun AuthenticatedOwnerCard(
     LaunchedEffect(authenticatedState) {
         if (authenticatedState != null) {
             try {
-//                val client = OdinHttpClient(authenticatedState)
-//                verifytokenReponse = client.verifyToken()
+                val client = OdinHttpClient(authenticatedState)
+                verifytokenReponse = client.verifyOwnerToken()
 //                isAuthenticatedResponse = client.isAuthenticated()
 //                pingResponse = client.getString("/api/owner/v1/builtin/home/auth/ping?text=helloworld")
                 isLoading = false
@@ -148,7 +147,7 @@ fun AuthenticatedOwnerCard(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "No data",
+                            text = verifytokenReponse ?: "No data",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center

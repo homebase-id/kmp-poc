@@ -19,12 +19,14 @@ import id.homebase.homebasekmppoc.crypto.performEcdhKeyAgreement
 import id.homebase.homebasekmppoc.crypto.publicKeyFromJwkBase64Url
 import id.homebase.homebasekmppoc.crypto.publicKeyToJwk
 import id.homebase.homebasekmppoc.http.createHttpClient
+import id.homebase.homebasekmppoc.serialization.OdinSystemSerializer
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import io.ktor.http.setCookie
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -80,18 +82,25 @@ class AuthenticationManager {
             val response = client.post(authUrl) {
                 contentType(ContentType.Application.Json)
                 setBody(reply)
-            }.body<AuthenticationResponse>()
+            }
+
+            val clientAuthToken = response.setCookie()
+                .find { it.name == "DY0810" }
+                ?.value
+                ?: throw IllegalStateException("DY0810 cookie not found in response")
+
+            val result = OdinSystemSerializer.deserialize<AuthenticationResponse>(response.body())
 
             Logger.d("authenticate") { "Authentication successful" }
 
             // Update auth state
             _authState.value = AuthState.Authenticated(
                 identity = identity,
-                clientAuthToken = "response.clientAuthToken",
-                sharedSecret = response.sharedSecret
+                clientAuthToken = clientAuthToken,
+                sharedSecret = result.sharedSecret
             )
 
-            return response
+            return result
 
         } catch (e: Exception) {
             Logger.e("authenticate", e) { "Authentication failed: ${e.message}" }

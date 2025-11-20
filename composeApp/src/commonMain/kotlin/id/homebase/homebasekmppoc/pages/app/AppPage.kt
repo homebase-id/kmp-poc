@@ -23,8 +23,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import id.homebase.homebasekmppoc.authentication.AuthState
 import id.homebase.homebasekmppoc.youauth.YouAuthManager
-import id.homebase.homebasekmppoc.youauth.YouAuthState
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -54,7 +54,7 @@ fun AppPage(youAuthManager: YouAuthManager) {
 
         // Always show the authenticated app card
         AuthenticatedAppCard(
-            authenticatedState = if (authState is YouAuthState.Authenticated) authState as YouAuthState.Authenticated else null,
+            authenticatedState = if (authState is AuthState.Authenticated) authState as AuthState.Authenticated else null,
             modifier = Modifier.padding(horizontal = 16.dp)
         )
 
@@ -62,7 +62,7 @@ fun AppPage(youAuthManager: YouAuthManager) {
 
         // Show auth state information
         when (val state = authState) {
-            is YouAuthState.Unauthenticated -> {
+            is AuthState.Unauthenticated -> {
                 OutlinedTextField(
                     value = odinIdentity,
                     onValueChange = { odinIdentity = it },
@@ -82,7 +82,7 @@ fun AppPage(youAuthManager: YouAuthManager) {
                     Text("Log in")
                 }
             }
-            is YouAuthState.Authenticating -> {
+            is AuthState.Authenticating -> {
                 CircularProgressIndicator()
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
@@ -91,7 +91,7 @@ fun AppPage(youAuthManager: YouAuthManager) {
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
-            is YouAuthState.Authenticated -> {
+            is AuthState.Authenticated -> {
                 Button(
                     onClick = {
                         youAuthManager.logout()
@@ -101,7 +101,7 @@ fun AppPage(youAuthManager: YouAuthManager) {
                     Text("Log out")
                 }
             }
-            is YouAuthState.Error -> {
+            is AuthState.Error -> {
                 Text(
                     text = "Error: ${state.message}",
                     style = MaterialTheme.typography.bodyMedium,

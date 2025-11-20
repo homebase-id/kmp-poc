@@ -31,10 +31,10 @@ import androidx.compose.ui.unit.dp
 import co.touchlab.kermit.Logger
 import homebasekmppoc.composeapp.generated.resources.Res
 import homebasekmppoc.composeapp.generated.resources.compose_multiplatform
+import id.homebase.homebasekmppoc.authentication.AuthState
 import id.homebase.homebasekmppoc.drives.DriveQueryProvider
 import id.homebase.homebasekmppoc.drives.QueryBatchResponse
 import id.homebase.homebasekmppoc.http.OdinHttpClient
-import id.homebase.homebasekmppoc.youauth.YouAuthState
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -47,7 +47,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  */
 @Composable
 fun AuthenticatedAppCard(
-    authenticatedState: YouAuthState.Authenticated?,
+    authenticatedState: AuthState.Authenticated?,
     modifier: Modifier = Modifier
 ) {
     var queryBatchResponse by remember { mutableStateOf<QueryBatchResponse?>(null) }
@@ -171,7 +171,7 @@ fun AuthenticatedAppCard(
 fun AuthenticatedUserCardPreview() {
     MaterialTheme {
         AuthenticatedAppCard(
-            authenticatedState = YouAuthState.Authenticated(
+            authenticatedState = AuthState.Authenticated(
                 identity = "frodo.dotyou.cloud",
                 clientAuthToken = "mock-token",
                 sharedSecret = "mock-secret"

@@ -29,7 +29,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import id.homebase.homebasekmppoc.authentication.AuthState
 import id.homebase.homebasekmppoc.authentication.AuthenticationManager
-import id.homebase.homebasekmppoc.youauth.YouAuthState
 import id.homebase.homebasekmppoc.youauth.YouAuthManager
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -52,7 +51,7 @@ fun OwnerPage(authenticationManager: AuthenticationManager) {
             is AuthState.Authenticated -> {
                 resultMessage = "Authentication successful!\nIdentity: ${state.identity}"
                 isSuccess = true
-                showResultDialog = true
+                showResultDialog = false
             }
             is AuthState.Error -> {
                 resultMessage = "Authentication failed:\n${state.message}"

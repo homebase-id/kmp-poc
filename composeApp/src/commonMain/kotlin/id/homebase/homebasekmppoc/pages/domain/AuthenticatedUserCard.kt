@@ -30,8 +30,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import homebasekmppoc.composeapp.generated.resources.Res
 import homebasekmppoc.composeapp.generated.resources.compose_multiplatform
+import id.homebase.homebasekmppoc.authentication.AuthState
 import id.homebase.homebasekmppoc.http.OdinHttpClient
-import id.homebase.homebasekmppoc.youauth.YouAuthState
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -43,7 +43,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  */
 @Composable
 fun AuthenticatedUserCard(
-    authenticatedState: YouAuthState.Authenticated?,
+    authenticatedState: AuthState.Authenticated?,
     modifier: Modifier = Modifier
 ) {
     var verifytokenReponse by remember { mutableStateOf<String?>(null) }
@@ -57,7 +57,7 @@ fun AuthenticatedUserCard(
         if (authenticatedState != null) {
             try {
                 val client = OdinHttpClient(authenticatedState)
-                verifytokenReponse = client.verifyToken()
+                verifytokenReponse = client.verifyAppToken()
                 isAuthenticatedResponse = client.isAuthenticated()
                 pingResponse = client.getString("/api/guest/v1/builtin/home/auth/ping?text=helloworld")
                 isLoading = false
@@ -221,7 +221,7 @@ fun AuthenticatedUserCard(
 fun AuthenticatedUserCardPreview() {
     MaterialTheme {
         AuthenticatedUserCard(
-            authenticatedState = YouAuthState.Authenticated(
+            authenticatedState = AuthState.Authenticated(
                 identity = "frodo.dotyou.cloud",
                 clientAuthToken = "mock-token",
                 sharedSecret = "mock-secret"
