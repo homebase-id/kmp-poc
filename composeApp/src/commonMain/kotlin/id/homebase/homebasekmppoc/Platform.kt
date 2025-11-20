@@ -16,8 +16,6 @@ expect fun getRedirectScheme(): String
 
 expect fun getRedirectUri(clientId: String): String
 
-expect fun getEccKeySize(): id.homebase.homebasekmppoc.crypto.EccKeySize
-
 expect fun launchCustomTabs(url: String, scope: CoroutineScope)
 
 expect fun showMessage(title: String, message: String)

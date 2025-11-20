@@ -24,6 +24,12 @@ in your IDE’s toolbar or build it directly from the terminal:
   ```shell
   .\gradlew.bat :composeApp:assembleDebug
   ```
+  
+- turn on adb reverse for HTTPS support in the Android emulator
+```shell
+adb root
+adb reverse tcp:443 tcp:443
+```
 
 ### Build and Run iOS Application
 

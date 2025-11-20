@@ -45,11 +45,6 @@ actual fun getRedirectUri(clientId: String): String {
     return "http://localhost:$port/authorization-code-callback"
 }
 
-actual fun getEccKeySize(): id.homebase.homebasekmppoc.crypto.EccKeySize {
-    // Desktop uses P-384
-    return id.homebase.homebasekmppoc.crypto.EccKeySize.P384
-}
-
 actual fun launchCustomTabs(url: String, scope: CoroutineScope) {
     try {
         // Start the local callback server before opening the browser

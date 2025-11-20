@@ -13,7 +13,6 @@ import id.homebase.homebasekmppoc.core.SecureByteArray
 import id.homebase.homebasekmppoc.decodeUrl
 import id.homebase.homebasekmppoc.generateUuidBytes
 import id.homebase.homebasekmppoc.generateUuidString
-import id.homebase.homebasekmppoc.getEccKeySize
 import id.homebase.homebasekmppoc.getRedirectUri
 import id.homebase.homebasekmppoc.http.UriBuilder
 import id.homebase.homebasekmppoc.http.createHttpClient
@@ -94,7 +93,7 @@ class YouAuthManager {
             //
 
             val password = SecureByteArray(generateUuidBytes())
-            val keyPair = generateEccKeyPair(password, getEccKeySize(), 1)
+            val keyPair = generateEccKeyPair(password, EccKeySize.P384, 1)
 
             //
             // YouAuth [030]
