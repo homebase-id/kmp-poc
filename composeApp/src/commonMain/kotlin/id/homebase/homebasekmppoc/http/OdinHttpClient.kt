@@ -87,7 +87,7 @@ class OdinHttpClient(
      * @param cipherJson The encrypted JSON response
      * @return Decrypted string
      */
-    private suspend fun decryptContentAsString(cipherJson: String): String {
+    suspend fun decryptContentAsString(cipherJson: String): String {
         return CryptoHelper.decryptContentAsString(cipherJson, sharedSecret)
     }
 
@@ -107,7 +107,9 @@ class OdinHttpClient(
      */
     suspend inline fun <reified T> get(path: String): T {
         val cipherJson = performRequest(path)
-        return decryptContent<T>(cipherJson)
+        val plainJson = decryptContentAsString(cipherJson)
+        Logger.d("OdinHttpClient") { "Decrypted response JSON: $plainJson" }
+        return OdinSystemSerializer.deserialize<T>(plainJson)
     }
 
     //
@@ -172,47 +174,6 @@ class OdinHttpClient(
 
     //
 
-    suspend fun getPayloadBytes(): ByteArray
-    {
-        val uri = "https://$identity/api/owner/v1/drive/files/payload?alias=e8475dc46cb4b6651c2d0dbd0f3aad5f&type=8f448716e34cedf9014145e043ca6612&fileId=5201aa19-6010-2200-8aa8-fced8bf4cc24&key=pst_mdi0&xfst=128"
-
-        val encryptedUri = buildUriWithEncryptedQueryString(uri)
-
-        Logger.d("OdinHttpClient") { "Making GET request to: $encryptedUri" }
-
-        val client = createHttpClient()
-
-        var response: io.ktor.client.statement.HttpResponse
-        if (uri.contains("/api/owner")) {
-            response = client.get(encryptedUri) {
-                headers {
-                    append("Cookie", "DY0810=$clientAuthToken")
-                }
-            }
-        } else  {
-            response = client.get(encryptedUri) {
-                headers {
-                    append("Cookie", "XT32=$clientAuthToken")
-                }
-            }
-        }
-
-        Logger.d("OdinHttpClient") { "response length: ${response.contentLength()}" }
-
-        // Get response as raw bytes
-        val cipherBytes = response.body<ByteArray>()
-        Logger.d("OdinHttpClient") { "getPayloadBytes encrypted response length: ${cipherBytes.size}" }
-        Logger.d("OdinHttpClient") { "getPayloadBytes first 32 bytes: ${cipherBytes.take(32).joinToString(" ") { "%02x".format(it) }}" }
-        Logger.d("OdinHttpClient") { "sharedSecret length: ${sharedSecret.size}" }
-        Logger.d("OdinHttpClient") { "sharedSecret: ${sharedSecret.toBase64()}" }
-
-        // Decrypt the response using raw byte decryption (no JSON)
-        //val decryptedBytes = CryptoHelper.decryptContent(cipherBytes, sharedSecret)
-        //Logger.d("OdinHttpClient") { "getPayloadBytes decrypted length: ${decryptedBytes.size}" }
-
-        //return decryptedBytes
-        return ByteArray(1)
-    }
 
     //
 

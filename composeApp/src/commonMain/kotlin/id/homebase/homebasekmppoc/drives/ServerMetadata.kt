@@ -26,7 +26,8 @@ data class ServerMetadata(
 @Serializable
 data class AccessControlList(
     val requiredSecurityGroup: String? = null,
-    val circleIdList: List<String>? = null
+    val circleIdList: List<String>? = null,
+    val odinIdList: List<String>? = null
     // Add fields as needed from the C# AccessControlList
 )
 

@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package id.homebase.homebasekmppoc.core
 
 import kotlinx.serialization.KSerializer
@@ -47,9 +49,12 @@ data class GuidId(val value: String) {
 
         fun isValid(guid: String?): Boolean {
             if (guid.isNullOrEmpty()) return false
-            // Basic GUID format validation (8-4-4-4-12 hex digits)
-            val guidRegex = Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
-            return guidRegex.matches(guid)
+            try {
+                Uuid.parse(guid)
+                return true
+            } catch (e: Exception) {
+                return false
+            }
         }
 
         fun isValid(guid: GuidId?): Boolean {

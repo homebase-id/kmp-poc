@@ -1,5 +1,6 @@
 package id.homebase.homebasekmppoc.drives
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
@@ -8,7 +9,10 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 enum class FileState(val value: Int) {
+    @SerialName("deleted")
     Deleted(0),
+
+    @SerialName("active")
     Active(1);
     // Archived(3) - commented out in original
 

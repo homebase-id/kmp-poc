@@ -38,8 +38,15 @@ data class ClientFileMetadata(
  */
 @Serializable
 data class AppFileMetaData(
+    val uniqueId: GuidId? = null,
+    val tags: List<GuidId>? = null,
+    val fileType: Int? = null,
+    val dataType: Int? = null,
+    val groupId: GuidId? = null,
+    val userDate: Long? = null,
     val content: String? = null,
-    val tags: List<String>? = null
+    val previewThumbnail: ThumbnailDescriptor? = null,
+    val archivalStatus: Int? = null
     // Add fields as needed from the C# AppFileMetaData
 )
 
@@ -66,7 +73,13 @@ data class ReactionSummary(
 data class PayloadDescriptor(
     val key: String,
     val contentType: String? = null,
-    val thumbnails: List<ThumbnailDescriptor>? = null
+    val thumbnails: List<ThumbnailDescriptor>? = null,
+    val iv: String? = null,
+    val bytesWritten: Long? = null,
+    val lastModified: Long? = null,
+    val descriptorContent: String? = null,
+    val previewThumbnail: ThumbnailDescriptor? = null,
+    val uid: Long? = null
     // Add fields as needed
 ) {
     fun keyEquals(otherKey: String): Boolean {
@@ -76,9 +89,11 @@ data class PayloadDescriptor(
 
 @Serializable
 data class ThumbnailDescriptor(
-    val key: String,
-    val width: Int,
-    val height: Int
+    val pixelWidth: Int? = null,
+    val pixelHeight: Int? = null,
+    val contentType: String? = null,
+    val content: String? = null,
+    val bytesWritten: Long? = null
 )
 
 @Serializable

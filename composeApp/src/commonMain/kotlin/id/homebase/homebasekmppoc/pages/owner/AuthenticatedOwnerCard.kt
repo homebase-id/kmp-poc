@@ -33,6 +33,7 @@ import homebasekmppoc.composeapp.generated.resources.Res
 import homebasekmppoc.composeapp.generated.resources.compose_multiplatform
 import id.homebase.homebasekmppoc.authentication.AuthState
 import id.homebase.homebasekmppoc.http.OdinHttpClient
+import id.homebase.homebasekmppoc.http.PayloadPlayground
 import id.homebase.homebasekmppoc.util.toImageBitmap
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -50,8 +51,7 @@ fun AuthenticatedOwnerCard(
 ) {
     var verifytokenReponse by remember { mutableStateOf<String?>(null) }
     var payloadResponse by remember { mutableStateOf<ByteArray?>(null) }
-//    var isAuthenticatedResponse by remember { mutableStateOf<String?>(null) }
-//    var pingResponse by remember { mutableStateOf<String?>(null) }
+
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(authenticatedState != null) }
 
@@ -63,9 +63,13 @@ fun AuthenticatedOwnerCard(
                 verifytokenReponse = client.verifyOwnerToken()
                 // payloadResponse = client.getPayloadBytes()
 
+                val payloadPlayground = PayloadPlayground(authenticatedState)
+                val drives = payloadPlayground.getEverything()
+
                 isLoading = false
             } catch (e: Exception) {
                 errorMessage = e.message ?: "Unknown error"
+                Logger.e(e) { "$errorMessage" }
                 isLoading = false
             }
         }

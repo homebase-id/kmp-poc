@@ -24,15 +24,30 @@ object CamelCaseNamingStrategy : JsonNamingStrategy {
 object OdinSystemSerializer {
     /**
      * JSON configuration with camelCase naming strategy
-     * Matches C# JsonNamingPolicy.CamelCase behavior:
+     * Matches C# JsonSerializerOptions behavior:
      * - PropertyNameCaseInsensitive = true → ignoreUnknownKeys = true
      * - PropertyNamingPolicy = JsonNamingPolicy.CamelCase → custom CamelCaseNamingStrategy
+     * - JsonStringEnumConverter → handled by @Serializable on enum classes (serializes as strings by default)
+     * - ByteArrayConverter → built-in (Base64)
+     * - GuidConverter/NullableGuidConverter → handled by @Serializable(with = GuidIdSerializer::class)
+     *
+     * Additional options:
+     * - isLenient = false → strict JSON parsing (default)
+     * - allowStructuredMapKeys = true → allows complex types as map keys
+     * - prettyPrint = false → compact JSON output (default)
+     * - explicitNulls = true → include null values in output (default)
+     * - coerceInputValues = false → don't coerce invalid values to defaults (default)
      */
     @OptIn(ExperimentalSerializationApi::class)
     val json = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
         namingStrategy = CamelCaseNamingStrategy
+        isLenient = false
+        allowStructuredMapKeys = true
+        prettyPrint = false
+        explicitNulls = true
+        coerceInputValues = false
     }
 
     /**

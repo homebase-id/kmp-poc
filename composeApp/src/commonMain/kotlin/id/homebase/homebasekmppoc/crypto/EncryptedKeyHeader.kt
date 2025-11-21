@@ -1,6 +1,7 @@
 package id.homebase.homebasekmppoc.crypto
 
 import id.homebase.homebasekmppoc.core.SecureByteArray
+import id.homebase.homebasekmppoc.serialization.Base64ByteArraySerializer
 import id.homebase.homebasekmppoc.toBase64
 import kotlinx.serialization.Serializable
 import kotlin.io.encoding.Base64
@@ -13,7 +14,9 @@ import kotlin.io.encoding.Base64
 class EncryptedKeyHeader(
     var encryptionVersion: Int = 1,
     var type: EncryptionType = EncryptionType.Aes,
+    @Serializable(with = Base64ByteArraySerializer::class)
     var iv: ByteArray,
+    @Serializable(with = Base64ByteArraySerializer::class)
     var encryptedAesKey: ByteArray
 ) {
     /**

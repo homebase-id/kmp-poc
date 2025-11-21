@@ -1,5 +1,6 @@
 package id.homebase.homebasekmppoc.drives
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
@@ -8,7 +9,10 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 enum class FileSystemType(val value: Int) {
+    @SerialName("standard")
     Standard(0),
+
+    @SerialName("comment")
     Comment(1);
     // Add more as needed from the C# enum
 

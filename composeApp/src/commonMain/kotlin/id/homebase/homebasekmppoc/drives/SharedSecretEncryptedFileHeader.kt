@@ -1,6 +1,7 @@
 package id.homebase.homebasekmppoc.drives
 
 import id.homebase.homebasekmppoc.core.GuidId
+import id.homebase.homebasekmppoc.crypto.EncryptedKeyHeader
 import kotlinx.serialization.Serializable
 
 /**
@@ -13,7 +14,7 @@ data class SharedSecretEncryptedFileHeader(
     val targetDrive: TargetDrive,
     val fileState: FileState,
     val fileSystemType: FileSystemType,
-    //val sharedSecretEncryptedKeyHeader: EncryptedKeyHeader,
+    val sharedSecretEncryptedKeyHeader: EncryptedKeyHeader,
     val fileMetadata: ClientFileMetadata,
     val serverMetadata: ServerMetadata,
     val priority: Int = 0,
