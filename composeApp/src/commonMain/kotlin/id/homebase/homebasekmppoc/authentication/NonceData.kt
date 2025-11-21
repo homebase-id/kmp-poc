@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class NonceData(
-    val crc: Int,
+    val crc: UInt,
     val id: String,
     val nonce64: String,
     val publicJwk: String,
