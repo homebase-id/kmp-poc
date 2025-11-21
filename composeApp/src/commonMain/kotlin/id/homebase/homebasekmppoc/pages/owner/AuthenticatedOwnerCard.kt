@@ -28,10 +28,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import co.touchlab.kermit.Logger
 import homebasekmppoc.composeapp.generated.resources.Res
 import homebasekmppoc.composeapp.generated.resources.compose_multiplatform
 import id.homebase.homebasekmppoc.authentication.AuthState
 import id.homebase.homebasekmppoc.http.OdinHttpClient
+import id.homebase.homebasekmppoc.util.toImageBitmap
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -47,6 +49,7 @@ fun AuthenticatedOwnerCard(
     modifier: Modifier = Modifier
 ) {
     var verifytokenReponse by remember { mutableStateOf<String?>(null) }
+    var payloadResponse by remember { mutableStateOf<ByteArray?>(null) }
 //    var isAuthenticatedResponse by remember { mutableStateOf<String?>(null) }
 //    var pingResponse by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -58,6 +61,8 @@ fun AuthenticatedOwnerCard(
             try {
                 val client = OdinHttpClient(authenticatedState)
                 verifytokenReponse = client.verifyOwnerToken()
+                payloadResponse = client.getPayloadBytes()
+                //Logger.d ("payload") { "Payload size: ${payloadResponse?.size}" }
 //                isAuthenticatedResponse = client.isAuthenticated()
 //                pingResponse = client.getString("/api/owner/v1/builtin/home/auth/ping?text=helloworld")
                 isLoading = false
@@ -154,6 +159,61 @@ fun AuthenticatedOwnerCard(
                         )
                     }
 
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Payload Image Section
+                    val imageBitmap = remember(payloadResponse) {
+                        payloadResponse?.toImageBitmap()
+                    }
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(
+                                width = 1.dp,
+                                color = MaterialTheme.colorScheme.outline,
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            .padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Payload Image",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        when {
+                            imageBitmap != null -> {
+                                Image(
+                                    bitmap = imageBitmap,
+                                    contentDescription = "Retrieved payload image",
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(200.dp),
+                                    contentScale = ContentScale.Fit
+                                )
+                            }
+                            payloadResponse != null -> {
+                                Text(
+                                    text = "Error displaying image",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.error,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                            else -> {
+                                Text(
+                                    text = "No image data",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
