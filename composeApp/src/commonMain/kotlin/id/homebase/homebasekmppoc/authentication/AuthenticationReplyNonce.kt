@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 data class AuthenticationReplyNonce(
     val nonce64: String,
     val nonceHashedPassword64: String,
-    val crc: Int,
+    val crc: UInt,
     val gcmEncrypted64: String,
     val publicKeyJwk: String
 )

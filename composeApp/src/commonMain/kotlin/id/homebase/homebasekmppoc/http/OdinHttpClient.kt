@@ -207,10 +207,11 @@ class OdinHttpClient(
         Logger.d("OdinHttpClient") { "sharedSecret: ${sharedSecret.toBase64()}" }
 
         // Decrypt the response using raw byte decryption (no JSON)
-        val decryptedBytes = CryptoHelper.decryptContent(cipherBytes, sharedSecret)
-        Logger.d("OdinHttpClient") { "getPayloadBytes decrypted length: ${decryptedBytes.size}" }
+        //val decryptedBytes = CryptoHelper.decryptContent(cipherBytes, sharedSecret)
+        //Logger.d("OdinHttpClient") { "getPayloadBytes decrypted length: ${decryptedBytes.size}" }
 
-        return decryptedBytes
+        //return decryptedBytes
+        return ByteArray(1)
     }
 
     //

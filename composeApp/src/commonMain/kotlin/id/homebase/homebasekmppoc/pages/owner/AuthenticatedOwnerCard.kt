@@ -61,10 +61,8 @@ fun AuthenticatedOwnerCard(
             try {
                 val client = OdinHttpClient(authenticatedState)
                 verifytokenReponse = client.verifyOwnerToken()
-                payloadResponse = client.getPayloadBytes()
-                //Logger.d ("payload") { "Payload size: ${payloadResponse?.size}" }
-//                isAuthenticatedResponse = client.isAuthenticated()
-//                pingResponse = client.getString("/api/owner/v1/builtin/home/auth/ping?text=helloworld")
+                // payloadResponse = client.getPayloadBytes()
+
                 isLoading = false
             } catch (e: Exception) {
                 errorMessage = e.message ?: "Unknown error"
