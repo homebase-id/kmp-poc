@@ -3,13 +3,16 @@ package id.homebase.homebasekmppoc.http
 import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.authentication.AuthState
 import id.homebase.homebasekmppoc.core.GuidId
+import id.homebase.homebasekmppoc.crypto.CryptoHelper
 import id.homebase.homebasekmppoc.drives.DriveDefinition
 import id.homebase.homebasekmppoc.drives.GetDrivesByTypeRequest
 import id.homebase.homebasekmppoc.drives.SharedSecretEncryptedFileHeader
 import id.homebase.homebasekmppoc.drives.SystemDriveConstants
+import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.headers
 import io.ktor.http.contentLength
+import io.ktor.utils.io.core.toByteArray
 
 class PayloadPlayground(private val authenticated: AuthState.Authenticated) {
 
@@ -25,9 +28,21 @@ class PayloadPlayground(private val authenticated: AuthState.Authenticated) {
 
         val fileHeader = getFileHeader(fileId, alias, type, fileSystemType)
         val payloadBytes = getPayloadBytes(fileHeader, fileSystemType)
+    }
 
+    //
 
+    suspend fun getImage(): ByteArray {
 
+        val fileId = "1355aa19-2030-8200-00ef-563eed96bebf"
+        val alias = "e8475dc46cb4b6651c2d0dbd0f3aad5f"
+        val type = "8f448716e34cedf9014145e043ca6612"
+        val fileSystemType = "128"
+
+        val fileHeader = getFileHeader(fileId, alias, type, fileSystemType)
+        val payloadBytes = getPayloadBytes(fileHeader, fileSystemType)
+
+        return payloadBytes
     }
 
     //
@@ -88,40 +103,23 @@ class PayloadPlayground(private val authenticated: AuthState.Authenticated) {
             }
         }
 
+        // Decrypt the AES key using the shared secret
+        val sharedSecretBytes = kotlin.io.encoding.Base64.decode(authenticated.sharedSecret)
+        val keyHeader = header.sharedSecretEncryptedKeyHeader.decryptAesToKeyHeader(
+            id.homebase.homebasekmppoc.core.SecureByteArray(sharedSecretBytes)
+        )
+
         Logger.d("OdinHttpClient") { "response length: ${response.contentLength()}" }
 
+        // Get response as raw bytes
+        val encryptedBytes = response.body<ByteArray>()
+        Logger.d("OdinHttpClient") { "Encrypted payload length: ${encryptedBytes.size}" }
 
-        // var response: io.ktor.client.statement.HttpResponse
-        // if (uri.contains("/api/owner")) {
-        //     response = client.get(encryptedUri) {
-        //         headers {
-        //             append("Cookie", "DY0810=$clientAuthToken")
-        //         }
-        //     }
-        // } else  {
-        //     response = client.get(encryptedUri) {
-        //         headers {
-        //             append("Cookie", "XT32=$clientAuthToken")
-        //         }
-        //     }
-        // }
+        // Decrypt the payload using the key header
+        val decryptedBytes = keyHeader.decrypt(encryptedBytes)
+        Logger.d("OdinHttpClient") { "Decrypted payload length: ${decryptedBytes.size}" }
 
-        //
-
-        //
-        // // Get response as raw bytes
-        // val cipherBytes = response.body<ByteArray>()
-        // Logger.d("OdinHttpClient") { "getPayloadBytes encrypted response length: ${cipherBytes.size}" }
-        // Logger.d("OdinHttpClient") { "getPayloadBytes first 32 bytes: ${cipherBytes.take(32).joinToString(" ") { "%02x".format(it) }}" }
-        // Logger.d("OdinHttpClient") { "sharedSecret length: ${sharedSecret.size}" }
-        // Logger.d("OdinHttpClient") { "sharedSecret: ${sharedSecret.toBase64()}" }
-
-        // Decrypt the response using raw byte decryption (no JSON)
-        //val decryptedBytes = CryptoHelper.decryptContent(cipherBytes, sharedSecret)
-        //Logger.d("OdinHttpClient") { "getPayloadBytes decrypted length: ${decryptedBytes.size}" }
-
-        //return decryptedBytes
-        return ByteArray(1)
+        return decryptedBytes
     }
 
 
