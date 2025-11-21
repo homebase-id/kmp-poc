@@ -7,12 +7,9 @@ import id.homebase.homebasekmppoc.drives.DriveDefinition
 import id.homebase.homebasekmppoc.drives.GetDrivesByTypeRequest
 import id.homebase.homebasekmppoc.drives.SharedSecretEncryptedFileHeader
 import id.homebase.homebasekmppoc.drives.SystemDriveConstants
-import id.homebase.homebasekmppoc.toBase64
-import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.headers
 import io.ktor.http.contentLength
-import kotlin.io.encoding.Base64
 
 class PayloadPlayground(private val authenticated: AuthState.Authenticated) {
 
@@ -42,9 +39,9 @@ class PayloadPlayground(private val authenticated: AuthState.Authenticated) {
             1,
             Int.MAX_VALUE)
 
-        val url = "/api/owner/v1/drive/mgmt/type?${params.toQueryString()}"
+        val uri = "/api/owner/v1/drive/mgmt/type?${params.toQueryString()}"
         val client = OdinHttpClient(authenticated)
-        val drives = client.get<PagedResult<DriveDefinition>>(url)
+        val drives = client.get<PagedResult<DriveDefinition>>(uri)
 
         drives.results.forEach {
             Logger.d("PayloadPlayground") { "Drive: Alias=${it.targetDriveInfo.alias} Type=${it.targetDriveInfo.type} Name=${it.name}" }
@@ -57,10 +54,10 @@ class PayloadPlayground(private val authenticated: AuthState.Authenticated) {
 
     suspend fun getFileHeader(fileId: String, alias: String, type: String, fileSystemType: String): SharedSecretEncryptedFileHeader
     {
-        val url = "/api/owner/v1/drive/files/header?alias=$alias&type=$type&fileId=$fileId&xfst=$fileSystemType"
+        val uri = "/api/owner/v1/drive/files/header?alias=$alias&type=$type&fileId=$fileId&xfst=$fileSystemType"
 
         val client = OdinHttpClient(authenticated)
-        val result = client.get<SharedSecretEncryptedFileHeader>(url)
+        val result = client.get<SharedSecretEncryptedFileHeader>(uri)
 
         return result
     }
@@ -69,14 +66,31 @@ class PayloadPlayground(private val authenticated: AuthState.Authenticated) {
 
     suspend fun getPayloadBytes(header: SharedSecretEncryptedFileHeader, fileSystemType: String): ByteArray
     {
-        // val uri = "https://$identity/api/owner/v1/drive/files/payload?alias=e8475dc46cb4b6651c2d0dbd0f3aad5f&type=8f448716e34cedf9014145e043ca6612&fileId=5201aa19-6010-2200-8aa8-fced8bf4cc24&key=pst_mdi0&xfst=128"
-        //
-        // val encryptedUri = buildUriWithEncryptedQueryString(uri)
-        //
-        // Logger.d("OdinHttpClient") { "Making GET request to: $encryptedUri" }
-        //
-        // val client = createHttpClient()
-        //
+        // SEB:TODO fix OdinHttpClient so it can handle raw bytes as well as JSON
+
+        val fileId = header.fileId
+        val alias = header.targetDrive.alias
+        val type = header.targetDrive.type
+        val key = header.fileMetadata.payloads?.get(0)?.key ?: throw Exception("No payload key found in file metadata")
+        val uri = "https://${authenticated.identity}/api/owner/v1/drive/files/payload?alias=$alias&type=$type&fileId=$fileId&key=pst_mdi0&xfst=$fileSystemType"
+
+        val odinClient = OdinHttpClient(authenticated)
+
+        val encryptedUri = odinClient.buildUriWithEncryptedQueryString(uri)
+
+        Logger.d("OdinHttpClient") { "Making GET request to: $encryptedUri" }
+
+        val client = createHttpClient()
+
+        val response = client.get(encryptedUri) {
+            headers {
+                append("Cookie", "DY0810=${authenticated.clientAuthToken}")
+            }
+        }
+
+        Logger.d("OdinHttpClient") { "response length: ${response.contentLength()}" }
+
+
         // var response: io.ktor.client.statement.HttpResponse
         // if (uri.contains("/api/owner")) {
         //     response = client.get(encryptedUri) {
@@ -91,8 +105,9 @@ class PayloadPlayground(private val authenticated: AuthState.Authenticated) {
         //         }
         //     }
         // }
+
         //
-        // Logger.d("OdinHttpClient") { "response length: ${response.contentLength()}" }
+
         //
         // // Get response as raw bytes
         // val cipherBytes = response.body<ByteArray>()

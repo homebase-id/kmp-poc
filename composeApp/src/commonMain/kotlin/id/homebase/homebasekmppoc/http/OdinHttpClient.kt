@@ -36,7 +36,7 @@ class OdinHttpClient(
      * @param uri The full URI including path and query string
      * @return URI with query string encrypted and replaced with ss parameter
      */
-    private suspend fun buildUriWithEncryptedQueryString(uri: String): String {
+    suspend fun buildUriWithEncryptedQueryString(uri: String): String {
         return CryptoHelper.uriWithEncryptedQueryString(uri, sharedSecret)
     }
 
