@@ -50,7 +50,7 @@ fun AuthenticatedOwnerCard(
     modifier: Modifier = Modifier
 ) {
     var verifytokenReponse by remember { mutableStateOf<String?>(null) }
-    var payloadResponse by remember { mutableStateOf<ByteArray?>(null) }
+    var imageBytes by remember { mutableStateOf<ByteArray?>(null) }
 
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(authenticatedState != null) }
@@ -61,10 +61,10 @@ fun AuthenticatedOwnerCard(
             try {
                 val client = OdinHttpClient(authenticatedState)
                 verifytokenReponse = client.verifyOwnerToken()
-                // payloadResponse = client.getPayloadBytes()
 
                 val payloadPlayground = PayloadPlayground(authenticatedState)
-                val drives = payloadPlayground.getEverything()
+                // val drives = payloadPlayground.getEverything()
+                imageBytes = payloadPlayground.getImage()
 
                 isLoading = false
             } catch (e: Exception) {
@@ -164,8 +164,8 @@ fun AuthenticatedOwnerCard(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     // Payload Image Section
-                    val imageBitmap = remember(payloadResponse) {
-                        payloadResponse?.toImageBitmap()
+                    val imageBitmap = remember(imageBytes) {
+                        imageBytes?.toImageBitmap()
                     }
 
                     Column(
@@ -198,7 +198,7 @@ fun AuthenticatedOwnerCard(
                                     contentScale = ContentScale.Fit
                                 )
                             }
-                            payloadResponse != null -> {
+                            imageBytes != null -> {
                                 Text(
                                     text = "Error displaying image",
                                     style = MaterialTheme.typography.bodyMedium,

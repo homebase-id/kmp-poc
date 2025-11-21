@@ -39,8 +39,14 @@ class PayloadPlayground(private val authenticated: AuthState.Authenticated) {
         val type = "8f448716e34cedf9014145e043ca6612"
         val fileSystemType = "128"
 
+        Logger.d("PayloadPlayground") { "getImage: Fetching file header..." }
         val fileHeader = getFileHeader(fileId, alias, type, fileSystemType)
+
+        Logger.d("PayloadPlayground") { "getImage: Fetching payload bytes..." }
         val payloadBytes = getPayloadBytes(fileHeader, fileSystemType)
+
+        Logger.d("PayloadPlayground") { "getImage: Verifying image format..." }
+        id.homebase.homebasekmppoc.util.ImageFormatDetector.logImageInfo(payloadBytes, "PayloadPlayground")
 
         return payloadBytes
     }
@@ -81,43 +87,52 @@ class PayloadPlayground(private val authenticated: AuthState.Authenticated) {
 
     suspend fun getPayloadBytes(header: SharedSecretEncryptedFileHeader, fileSystemType: String): ByteArray
     {
-        // SEB:TODO fix OdinHttpClient so it can handle raw bytes as well as JSON
-
         val fileId = header.fileId
         val alias = header.targetDrive.alias
         val type = header.targetDrive.type
-        val key = header.fileMetadata.payloads?.get(0)?.key ?: throw Exception("No payload key found in file metadata")
-        val uri = "https://${authenticated.identity}/api/owner/v1/drive/files/payload?alias=$alias&type=$type&fileId=$fileId&key=pst_mdi0&xfst=$fileSystemType"
+
+        // Get the payload descriptor (assuming first payload for now)
+        val payload = header.fileMetadata.payloads?.get(0)
+            ?: throw Exception("No payload found in file metadata")
+
+        val payloadKey = payload.key
+        val payloadIvBase64 = payload.iv ?: throw Exception("No IV found in payload descriptor")
+
+        Logger.d("PayloadPlayground") { "Payload key: $payloadKey" }
+        Logger.d("PayloadPlayground") { "Payload IV (base64): $payloadIvBase64" }
+
+        val uri = "https://${authenticated.identity}/api/owner/v1/drive/files/payload?alias=$alias&type=$type&fileId=$fileId&key=$payloadKey&xfst=$fileSystemType"
 
         val odinClient = OdinHttpClient(authenticated)
-
         val encryptedUri = odinClient.buildUriWithEncryptedQueryString(uri)
 
-        Logger.d("OdinHttpClient") { "Making GET request to: $encryptedUri" }
+        Logger.d("PayloadPlayground") { "Making GET request to: $encryptedUri" }
 
         val client = createHttpClient()
-
         val response = client.get(encryptedUri) {
             headers {
                 append("Cookie", "DY0810=${authenticated.clientAuthToken}")
             }
         }
 
-        // Decrypt the AES key using the shared secret
+        Logger.d("PayloadPlayground") { "Response length: ${response.contentLength()}" }
+
+        // Decrypt the KeyHeader using the shared secret
         val sharedSecretBytes = kotlin.io.encoding.Base64.decode(authenticated.sharedSecret)
         val keyHeader = header.sharedSecretEncryptedKeyHeader.decryptAesToKeyHeader(
             id.homebase.homebasekmppoc.core.SecureByteArray(sharedSecretBytes)
         )
 
-        Logger.d("OdinHttpClient") { "response length: ${response.contentLength()}" }
-
-        // Get response as raw bytes
+        // Get encrypted payload bytes
         val encryptedBytes = response.body<ByteArray>()
-        Logger.d("OdinHttpClient") { "Encrypted payload length: ${encryptedBytes.size}" }
+        Logger.d("PayloadPlayground") { "Encrypted payload length: ${encryptedBytes.size}" }
 
-        // Decrypt the payload using the key header
-        val decryptedBytes = keyHeader.decrypt(encryptedBytes)
-        Logger.d("OdinHttpClient") { "Decrypted payload length: ${decryptedBytes.size}" }
+        // Decrypt the payload using the KeyHeader's AES key BUT the payload's IV
+        val payloadIv = kotlin.io.encoding.Base64.decode(payloadIvBase64)
+        Logger.d("PayloadPlayground") { "Using payload IV: ${payloadIv.size} bytes" }
+
+        val decryptedBytes = keyHeader.decryptWithIv(encryptedBytes, payloadIv)
+        Logger.d("PayloadPlayground") { "Decrypted payload length: ${decryptedBytes.size}" }
 
         return decryptedBytes
     }
