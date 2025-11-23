@@ -1,8 +1,12 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package id.homebase.homebasekmppoc.drives
 
-import id.homebase.homebasekmppoc.core.GuidId
 import id.homebase.homebasekmppoc.crypto.EncryptedKeyHeader
+import id.homebase.homebasekmppoc.serialization.UuidSerializer
 import kotlinx.serialization.Serializable
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /**
  * Shared secret encrypted file header
@@ -10,7 +14,8 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class SharedSecretEncryptedFileHeader(
-    val fileId: GuidId,
+    @Serializable(with = UuidSerializer::class)
+    val fileId: Uuid,
     val targetDrive: TargetDrive,
     val fileState: FileState,
     val fileSystemType: FileSystemType,

@@ -1,8 +1,12 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package id.homebase.homebasekmppoc.drives
 
-import id.homebase.homebasekmppoc.core.GuidId
 import id.homebase.homebasekmppoc.core.UnixTimeUtc
+import id.homebase.homebasekmppoc.serialization.UuidSerializer
 import kotlinx.serialization.Serializable
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /**
  * Client file metadata
@@ -12,7 +16,8 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class ClientFileMetadata(
-    val globalTransitId: GuidId? = null,
+    @Serializable(with = UuidSerializer::class)
+    val globalTransitId: Uuid? = null,
     val created: UnixTimeUtc = UnixTimeUtc.ZeroTime,
     val updated: UnixTimeUtc = UnixTimeUtc.ZeroTime,
     val transitCreated: UnixTimeUtc = UnixTimeUtc.ZeroTime,
@@ -24,7 +29,8 @@ data class ClientFileMetadata(
     val localAppData: LocalAppMetadata? = null,
     val referencedFile: GlobalTransitIdFileIdentifier? = null,
     val reactionPreview: ReactionSummary? = null,
-    val versionTag: GuidId? = null,
+    @Serializable(with = UuidSerializer::class)
+    val versionTag: Uuid? = null,
     val payloads: List<PayloadDescriptor>? = null,
     val dataSource: DataSource? = null
 ) {
@@ -38,11 +44,13 @@ data class ClientFileMetadata(
  */
 @Serializable
 data class AppFileMetaData(
-    val uniqueId: GuidId? = null,
-    val tags: List<GuidId>? = null,
+    @Serializable(with = UuidSerializer::class)
+    val uniqueId: Uuid? = null,
+    val tags: List<@Serializable(with = UuidSerializer::class) Uuid>? = null,
     val fileType: Int? = null,
     val dataType: Int? = null,
-    val groupId: GuidId? = null,
+    @Serializable(with = UuidSerializer::class)
+    val groupId: Uuid? = null,
     val userDate: Long? = null,
     val content: String? = null,
     val previewThumbnail: ThumbnailDescriptor? = null,
@@ -52,16 +60,45 @@ data class AppFileMetaData(
 
 @Serializable
 data class LocalAppMetadata(
-    val versionTag: GuidId? = null
+    @Serializable(with = UuidSerializer::class)
+    val versionTag: Uuid? = null
     // Add fields as needed
 )
 
+/**
+ * Drive and file info which identifies a file using a GlobalTransitId.
+ * Used externally to the host (can be sent to clients).
+ */
 @Serializable
 data class GlobalTransitIdFileIdentifier(
-    val globalTransitId: GuidId,
-    val targetDrive: String? = null
-    // Add fields as needed
-)
+    /**
+     * The drive to access
+     */
+    val targetDrive: TargetDrive,
+
+    /**
+     * The global transit id to retrieve
+     */
+    @Serializable(with = UuidSerializer::class)
+    val globalTransitId: Uuid
+) {
+    /**
+     * Checks if this identifier has valid values.
+     */
+    fun hasValue(): Boolean {
+        return globalTransitId != Uuid.NIL && targetDrive.isValid()
+    }
+
+    /**
+     * Converts this GlobalTransitIdFileIdentifier to a FileIdentifier.
+     */
+    fun toFileIdentifier(): FileIdentifier {
+        return FileIdentifier(
+            globalTransitId = globalTransitId,
+            targetDrive = targetDrive
+        )
+    }
+}
 
 @Serializable
 data class ReactionSummary(
@@ -99,6 +136,7 @@ data class ThumbnailDescriptor(
 @Serializable
 data class DataSource(
     val identity: String,
-    val driveId: GuidId,
+    @Serializable(with = UuidSerializer::class)
+    val driveId: Uuid,
     val payloadsAreRemote: Boolean = false
 )

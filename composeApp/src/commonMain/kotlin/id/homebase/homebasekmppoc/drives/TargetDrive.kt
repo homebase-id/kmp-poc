@@ -1,9 +1,13 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package id.homebase.homebasekmppoc.drives
 
-import id.homebase.homebasekmppoc.core.GuidId
+import id.homebase.homebasekmppoc.serialization.UuidSerializer
 import io.ktor.utils.io.charsets.Charsets
 import io.ktor.utils.io.core.toByteArray
 import kotlinx.serialization.Serializable
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /**
  * A drive specifier for incoming requests to perform actions on a drive.
@@ -13,26 +17,28 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class TargetDrive(
-    val alias: GuidId,
-    val type: GuidId
+    @Serializable(with = UuidSerializer::class)
+    val alias: Uuid,
+    @Serializable(with = UuidSerializer::class)
+    val type: Uuid
 ) {
 
     fun clone(): TargetDrive {
         return TargetDrive(
-            alias = alias.clone(),
-            type = type.clone()
+            alias = alias,
+            type = type
         )
     }
 
     fun toKey(): ByteArray {
         // Combine type and alias as bytes
-        val typeBytes = type.value.toByteArray(Charsets.UTF_8)
-        val aliasBytes = alias.value.toByteArray(Charsets.UTF_8)
+        val typeBytes = type.toString().toByteArray(Charsets.UTF_8)
+        val aliasBytes = alias.toString().toByteArray(Charsets.UTF_8)
         return typeBytes + aliasBytes
     }
 
     fun isValid(): Boolean {
-        return GuidId.isValid(alias) && GuidId.isValid(type)
+        return alias != Uuid.NIL && type != Uuid.NIL
     }
 
     override fun toString(): String {
@@ -42,14 +48,14 @@ data class TargetDrive(
     companion object {
         fun newTargetDrive(): TargetDrive {
             return TargetDrive(
-                alias = GuidId.newGuid(),
-                type = GuidId.newGuid()
+                alias = Uuid.random(),
+                type = Uuid.random()
             )
         }
 
-        fun newTargetDrive(type: GuidId): TargetDrive {
+        fun newTargetDrive(type: Uuid): TargetDrive {
             return TargetDrive(
-                alias = GuidId.newGuid(),
+                alias = Uuid.random(),
                 type = type
             )
         }

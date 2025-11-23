@@ -1,8 +1,9 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package id.homebase.homebasekmppoc.http
 
 import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.authentication.AuthState
-import id.homebase.homebasekmppoc.core.GuidId
 import id.homebase.homebasekmppoc.crypto.CryptoHelper
 import id.homebase.homebasekmppoc.drives.DriveDefinition
 import id.homebase.homebasekmppoc.drives.GetDrivesByTypeRequest
@@ -13,6 +14,8 @@ import io.ktor.client.request.get
 import io.ktor.client.request.headers
 import io.ktor.http.contentLength
 import io.ktor.utils.io.core.toByteArray
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 class PayloadPlayground(private val authenticated: AuthState.Authenticated) {
 
@@ -53,7 +56,7 @@ class PayloadPlayground(private val authenticated: AuthState.Authenticated) {
 
     //
 
-    suspend fun getDrivesByType(type: GuidId): PagedResult<DriveDefinition> {
+    suspend fun getDrivesByType(type: Uuid): PagedResult<DriveDefinition> {
 
         val params = GetDrivesByTypeRequest(
             type.toString(),
