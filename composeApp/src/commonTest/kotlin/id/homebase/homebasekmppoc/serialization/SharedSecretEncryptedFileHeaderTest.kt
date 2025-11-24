@@ -4,7 +4,9 @@ import id.homebase.homebasekmppoc.drives.SharedSecretEncryptedFileHeader
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.uuid.ExperimentalUuidApi
 
+@ExperimentalUuidApi
 class SharedSecretEncryptedFileHeaderTest {
 
     @Test
@@ -83,8 +85,8 @@ class SharedSecretEncryptedFileHeaderTest {
         val header = OdinSystemSerializer.deserialize<SharedSecretEncryptedFileHeader>(json)
 
         assertNotNull(header)
-        assertEquals("1355aa19-2030-8200-00ef-563eed96bebf", header.fileId.value)
-        assertEquals("e8475dc46cb4b6651c2d0dbd0f3aad5f", header.targetDrive.alias.value)
+        assertEquals("1355aa19-2030-8200-00ef-563eed96bebf", header.fileId.toString())
+        assertEquals("e8475dc4-6cb4-b665-1c2d-0dbd0f3aad5f", header.targetDrive.alias.toString())
         assertEquals(300, header.priority)
         assertEquals(5402950L, header.fileByteCount)
 
