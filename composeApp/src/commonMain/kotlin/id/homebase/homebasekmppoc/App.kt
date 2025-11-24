@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import id.homebase.homebasekmppoc.authentication.AuthenticationManager
 import id.homebase.homebasekmppoc.pages.app.AppPage
+import id.homebase.homebasekmppoc.pages.db.DbPage
 import id.homebase.homebasekmppoc.pages.owner.OwnerPage
 import id.homebase.homebasekmppoc.pages.domain.DomainPage
 import id.homebase.homebasekmppoc.youauth.YouAuthManager
@@ -25,7 +26,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 fun App() {
     MaterialTheme {
         var selectedTabIndex by remember { mutableStateOf(0) }
-        val tabs = listOf("Owner", "Domain", "App")
+        val tabs = listOf("Owner", "Domain", "App", "db")
 
         // Hoist YouAuthManager to App level so it survives tab navigation
         val authenticationManager = remember { AuthenticationManager() }
@@ -57,6 +58,7 @@ fun App() {
                     0 -> OwnerPage(authenticationManager)
                     1 -> DomainPage(domainYouAuthManager)
                     2 -> AppPage(appYouAuthManager)
+                    3 -> DbPage()
                 }
             }
         }
