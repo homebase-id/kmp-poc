@@ -8,6 +8,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.lifecycleScope
+import id.homebase.homebasekmppoc.database.DatabaseDriverFactory
+import id.homebase.homebasekmppoc.database.DatabaseManager
 import id.homebase.homebasekmppoc.youauth.YouAuthCallbackRouter
 import kotlinx.coroutines.launch
 
@@ -20,6 +22,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         instance = this
+
+        // Initialize database
+        DatabaseManager.initialize(DatabaseDriverFactory(applicationContext))
 
         handleIntent(intent)
 

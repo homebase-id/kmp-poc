@@ -1,0 +1,30 @@
+CREATE TABLE IF NOT EXISTS DriveTagIndex(
+   rowId INTEGER PRIMARY KEY AUTOINCREMENT,
+   identityId BLOB NOT NULL,
+   driveId BLOB NOT NULL,
+   fileId BLOB NOT NULL,
+   tagId BLOB NOT NULL,
+   UNIQUE(identityId,driveId,fileId,tagId)
+);
+
+-- Insert a tag
+insertTag:
+INSERT INTO DriveTagIndex(identityId, driveId, fileId, tagId)
+VALUES (?, ?, ?, ?);
+
+-- Select all tags
+selectAll:
+SELECT * FROM DriveTagIndex;
+
+-- Select tags for a file
+selectByFile:
+SELECT * FROM DriveTagIndex
+WHERE identityId = ? AND driveId = ? AND fileId = ?;
+
+-- Count tags
+countAll:
+SELECT COUNT(*) FROM DriveTagIndex;
+
+-- Delete all tags (for testing)
+deleteAll:
+DELETE FROM DriveTagIndex;

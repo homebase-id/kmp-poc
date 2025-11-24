@@ -29,9 +29,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import id.homebase.homebasekmppoc.authentication.AuthState
 import id.homebase.homebasekmppoc.authentication.AuthenticationManager
+import id.homebase.homebasekmppoc.database.DatabaseManager
 import id.homebase.homebasekmppoc.youauth.YouAuthManager
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import kotlin.random.Random
 
 @Composable
 fun OwnerPage(authenticationManager: AuthenticationManager) {
@@ -41,6 +43,8 @@ fun OwnerPage(authenticationManager: AuthenticationManager) {
     var showResultDialog by remember { mutableStateOf(false) }
     var resultMessage by remember { mutableStateOf("") }
     var isSuccess by remember { mutableStateOf(false) }
+
+    var dbTestResult by remember { mutableStateOf("") }
 
     val authState by authenticationManager.authState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
@@ -187,6 +191,95 @@ fun OwnerPage(authenticationManager: AuthenticationManager) {
                     Text("Try again")
                 }
             }
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Database test section
+        Text(
+            text = "Database Test",
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(
+            onClick = {
+                coroutineScope.launch {
+                    try {
+                        val db = DatabaseManager.getDatabase()
+
+                        // Test data - create sample byte arrays
+                        val randomId = Random.nextLong()
+                        val currentTime = randomId // Use random ID as timestamp for testing
+                        val identityId = "test-identity".encodeToByteArray()
+                        val driveId = "test-drive".encodeToByteArray()
+                        val fileId = "test-file-$currentTime".encodeToByteArray()
+                        val versionTag = "version-tag-$randomId".encodeToByteArray()
+                        val driveAlias = "alias".encodeToByteArray()
+                        val driveType = "type".encodeToByteArray()
+
+                        // Write a record to DriveMainIndex
+                        db.driveMainIndexQueries.insertDriveMainIndex(
+                            identityId = identityId,
+                            driveId = driveId,
+                            fileId = fileId,
+                            globalTransitId = null,
+                            fileState = 1L,
+                            requiredSecurityGroup = 100L,
+                            fileSystemType = 1L,
+                            userDate = currentTime,
+                            fileType = 1L,
+                            dataType = 1L,
+                            archivalStatus = 0L,
+                            historyStatus = 0L,
+                            senderId = "sender@example.com",
+                            groupId = null,
+                            uniqueId = "unique-$currentTime".encodeToByteArray(),
+                            byteCount = 1024L,
+                            hdrEncryptedKeyHeader = "{}",
+                            hdrVersionTag = versionTag,
+                            hdrAppData = "{}",
+                            hdrLocalVersionTag = null,
+                            hdrLocalAppData = null,
+                            hdrReactionSummary = null,
+                            hdrServerData = "{}",
+                            hdrTransferHistory = null,
+                            hdrFileMetaData = "{}",
+                            hdrTmpDriveAlias = driveAlias,
+                            hdrTmpDriveType = driveType,
+                            created = currentTime,
+                            modified = currentTime
+                        )
+
+                        // Read back all records
+                        val records = db.driveMainIndexQueries.selectAll().executeAsList()
+                        val count = db.driveMainIndexQueries.countAll().executeAsOne()
+
+                        dbTestResult = "Success!\nWrote 1 record\nTotal records: $count\nLast record fileId: ${records.lastOrNull()?.fileId?.decodeToString()}"
+                    } catch (e: Exception) {
+                        dbTestResult = "Error: ${e.message}\n${e.stackTraceToString()}"
+                    }
+                }
+            },
+            modifier = Modifier.padding(horizontal = 16.dp)
+        ) {
+            Text("Test Database Write/Read")
+        }
+
+        if (dbTestResult.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = dbTestResult,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (dbTestResult.startsWith("Success"))
+                    MaterialTheme.colorScheme.primary
+                else
+                    MaterialTheme.colorScheme.error,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
         }
     }
 }

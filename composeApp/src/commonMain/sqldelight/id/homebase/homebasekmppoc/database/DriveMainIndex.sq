@@ -1,0 +1,68 @@
+CREATE TABLE IF NOT EXISTS DriveMainIndex(
+   rowId INTEGER PRIMARY KEY AUTOINCREMENT,
+   identityId BLOB NOT NULL,
+   driveId BLOB NOT NULL,
+   fileId BLOB NOT NULL,
+   globalTransitId BLOB,
+   fileState INTEGER NOT NULL,
+   requiredSecurityGroup INTEGER NOT NULL,
+   fileSystemType INTEGER NOT NULL,
+   userDate INTEGER NOT NULL,
+   fileType INTEGER NOT NULL,
+   dataType INTEGER NOT NULL,
+   archivalStatus INTEGER NOT NULL,
+   historyStatus INTEGER NOT NULL,
+   senderId TEXT,
+   groupId BLOB,
+   uniqueId BLOB,
+   byteCount INTEGER NOT NULL,
+   hdrEncryptedKeyHeader TEXT NOT NULL,
+   hdrVersionTag BLOB NOT NULL,
+   hdrAppData TEXT NOT NULL,
+   hdrLocalVersionTag BLOB,
+   hdrLocalAppData TEXT,
+   hdrReactionSummary TEXT,
+   hdrServerData TEXT NOT NULL,
+   hdrTransferHistory TEXT,
+   hdrFileMetaData TEXT NOT NULL,
+   hdrTmpDriveAlias BLOB NOT NULL,
+   hdrTmpDriveType BLOB NOT NULL,
+   created INTEGER NOT NULL,
+   modified INTEGER NOT NULL,
+   UNIQUE(identityId,driveId,fileId),
+   UNIQUE(identityId,driveId,uniqueId),
+   UNIQUE(identityId,driveId,globalTransitId),
+   UNIQUE(identityId,hdrVersionTag)
+);
+
+CREATE INDEX IF NOT EXISTS Idx0DriveMainIndex ON DriveMainIndex(identityId,driveId,fileSystemType,requiredSecurityGroup,created,rowId);
+CREATE INDEX IF NOT EXISTS Idx1DriveMainIndex ON DriveMainIndex(identityId,driveId,fileSystemType,requiredSecurityGroup,modified,rowId);
+CREATE INDEX IF NOT EXISTS Idx2DriveMainIndex ON DriveMainIndex(identityId,driveId,fileSystemType,requiredSecurityGroup,userDate,rowId);
+
+-- Insert a record
+insertDriveMainIndex:
+INSERT INTO DriveMainIndex(
+   identityId, driveId, fileId, globalTransitId, fileState, requiredSecurityGroup,
+   fileSystemType, userDate, fileType, dataType, archivalStatus, historyStatus,
+   senderId, groupId, uniqueId, byteCount, hdrEncryptedKeyHeader, hdrVersionTag,
+   hdrAppData, hdrLocalVersionTag, hdrLocalAppData, hdrReactionSummary,
+   hdrServerData, hdrTransferHistory, hdrFileMetaData, hdrTmpDriveAlias,
+   hdrTmpDriveType, created, modified
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Select all records
+selectAll:
+SELECT * FROM DriveMainIndex;
+
+-- Select by identity and drive
+selectByIdentityAndDrive:
+SELECT * FROM DriveMainIndex
+WHERE identityId = ? AND driveId = ?;
+
+-- Count records
+countAll:
+SELECT COUNT(*) FROM DriveMainIndex;
+
+-- Delete all records (for testing)
+deleteAll:
+DELETE FROM DriveMainIndex;

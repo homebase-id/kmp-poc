@@ -5,8 +5,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
+import id.homebase.homebasekmppoc.database.DatabaseDriverFactory
+import id.homebase.homebasekmppoc.database.DatabaseManager
 
 fun main() = application {
+    // Initialize database
+    DatabaseManager.initialize(DatabaseDriverFactory())
+
     Window(
         onCloseRequest = ::exitApplication,
         title = "Odin KMP",

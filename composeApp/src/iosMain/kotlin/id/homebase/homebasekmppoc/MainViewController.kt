@@ -1,6 +1,8 @@
 package id.homebase.homebasekmppoc
 
 import androidx.compose.ui.window.ComposeUIViewController
+import id.homebase.homebasekmppoc.database.DatabaseDriverFactory
+import id.homebase.homebasekmppoc.database.DatabaseManager
 import platform.UIKit.UIViewController
 import platform.darwin.NSObject
 
@@ -15,6 +17,9 @@ class AuthPresentationContextProvider : NSObject(), platform.AuthenticationServi
 }
 
 fun MainViewController(): UIViewController {
+    // Initialize database
+    DatabaseManager.initialize(DatabaseDriverFactory())
+
     val controller = ComposeUIViewController { App() }
     MainViewControllerRef.instance = controller
     return controller
