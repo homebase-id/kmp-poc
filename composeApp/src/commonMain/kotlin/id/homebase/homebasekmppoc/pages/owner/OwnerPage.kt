@@ -247,8 +247,6 @@ fun OwnerPage(authenticationManager: AuthenticationManager) {
                             hdrServerData = "{}",
                             hdrTransferHistory = null,
                             hdrFileMetaData = "{}",
-                            hdrTmpDriveAlias = driveAlias,
-                            hdrTmpDriveType = driveType,
                             created = currentTime,
                             modified = currentTime
                         )

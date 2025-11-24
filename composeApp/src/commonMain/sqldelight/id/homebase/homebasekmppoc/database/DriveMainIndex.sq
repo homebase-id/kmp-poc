@@ -25,8 +25,6 @@ CREATE TABLE IF NOT EXISTS DriveMainIndex(
    hdrServerData TEXT NOT NULL,
    hdrTransferHistory TEXT,
    hdrFileMetaData TEXT NOT NULL,
-   hdrTmpDriveAlias BLOB NOT NULL,
-   hdrTmpDriveType BLOB NOT NULL,
    created INTEGER NOT NULL,
    modified INTEGER NOT NULL,
    UNIQUE(identityId,driveId,fileId),
@@ -35,9 +33,9 @@ CREATE TABLE IF NOT EXISTS DriveMainIndex(
    UNIQUE(identityId,hdrVersionTag)
 );
 
-CREATE INDEX IF NOT EXISTS Idx0DriveMainIndex ON DriveMainIndex(identityId,driveId,fileSystemType,requiredSecurityGroup,created,rowId);
-CREATE INDEX IF NOT EXISTS Idx1DriveMainIndex ON DriveMainIndex(identityId,driveId,fileSystemType,requiredSecurityGroup,modified,rowId);
-CREATE INDEX IF NOT EXISTS Idx2DriveMainIndex ON DriveMainIndex(identityId,driveId,fileSystemType,requiredSecurityGroup,userDate,rowId);
+CREATE INDEX IF NOT EXISTS Idx0DriveMainIndex ON DriveMainIndex(identityId,driveId,fileSystemType,created,rowId);
+CREATE INDEX IF NOT EXISTS Idx1DriveMainIndex ON DriveMainIndex(identityId,driveId,fileSystemType,modified,rowId);
+CREATE INDEX IF NOT EXISTS Idx2DriveMainIndex ON DriveMainIndex(identityId,driveId,fileSystemType,userDate,rowId);
 
 -- Insert a record
 insertDriveMainIndex:
@@ -46,9 +44,39 @@ INSERT INTO DriveMainIndex(
    fileSystemType, userDate, fileType, dataType, archivalStatus, historyStatus,
    senderId, groupId, uniqueId, byteCount, hdrEncryptedKeyHeader, hdrVersionTag,
    hdrAppData, hdrLocalVersionTag, hdrLocalAppData, hdrReactionSummary,
-   hdrServerData, hdrTransferHistory, hdrFileMetaData, hdrTmpDriveAlias,
-   hdrTmpDriveType, created, modified
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+   hdrServerData, hdrTransferHistory, hdrFileMetaData, created, modified
+) VALUES (
+    ?, ?, ?, ?, ?, ?,
+    ?, ?, ?, ?, ?, ?,
+    ?, ?, ?, ?, ?, ?,
+    ?, ?, ?, ?, ?,
+    ?, ?, ?, ?);
+
+-- Upsert a record
+upsertDriveMainIndex:
+INSERT INTO DriveMainIndex (
+   identityId,driveId,fileId,globalTransitId,fileState,requiredSecurityGroup,
+   fileSystemType,userDate,fileType,dataType,archivalStatus,historyStatus,
+   senderId,groupId,uniqueId,byteCount,hdrEncryptedKeyHeader,hdrVersionTag,
+   hdrAppData,hdrLocalVersionTag,hdrLocalAppData,hdrReactionSummary,hdrServerData,
+   hdrTransferHistory,hdrFileMetaData,created,modified)
+VALUES (
+   ?,?,?,?,?,
+   ?,?,?,?,?,?,?,
+   ?,?,?,?,?,?,
+   ?,?,?,?,?,?,
+   ?, ?, ?)
+ON CONFLICT (identityId,driveId,fileId) DO UPDATE
+SET globalTransitId = excluded.globalTransitId,fileState = excluded.fileState,requiredSecurityGroup = excluded.requiredSecurityGroup,
+    fileSystemType = excluded.fileSystemType,
+    userDate = excluded.userDate,fileType = excluded.fileType,dataType = excluded.dataType,
+    archivalStatus = excluded.archivalStatus,historyStatus = excluded.historyStatus,senderId = excluded.senderId,groupId = excluded.groupId,
+    uniqueId = excluded.uniqueId,byteCount = excluded.byteCount,hdrEncryptedKeyHeader = excluded.hdrEncryptedKeyHeader,hdrVersionTag = excluded.hdrVersionTag,
+    hdrAppData = excluded.hdrAppData,hdrLocalVersionTag = excluded.hdrLocalVersionTag,hdrLocalAppData = excluded.hdrLocalAppData,
+    hdrReactionSummary = excluded.hdrReactionSummary,hdrServerData = excluded.hdrServerData,hdrTransferHistory = excluded.hdrTransferHistory,
+    hdrFileMetaData = excluded.hdrFileMetaData,
+    modified = excluded.modified
+RETURNING created,modified,rowId;
 
 -- Select all records
 selectAll:
