@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.sqldelight)
     kotlin("plugin.serialization") version "2.2.21"
 }
 
@@ -61,6 +62,9 @@ kotlin {
             implementation("io.ktor:ktor-client-core:3.3.2")
             implementation("io.ktor:ktor-client-content-negotiation:3.3.2")
             implementation("io.ktor:ktor-serialization-kotlinx-json:3.3.2")
+            // SQLDelight
+            implementation("app.cash.sqldelight:runtime:2.0.2")
+            implementation("app.cash.sqldelight:coroutines-extensions:2.0.2")
         }
         androidMain.dependencies {
             implementation(compose.preview)
@@ -72,10 +76,14 @@ kotlin {
             implementation("androidx.browser:browser:1.9.0")
             // Ktor Android engine
             implementation("io.ktor:ktor-client-okhttp:3.3.2")
+            // SQLDelight Android driver
+            implementation("app.cash.sqldelight:android-driver:2.0.2")
         }
         iosMain.dependencies {
             // Ktor iOS engine
             implementation("io.ktor:ktor-client-darwin:3.3.2")
+            // SQLDelight iOS driver
+            implementation("app.cash.sqldelight:native-driver:2.0.2")
         }
         val desktopMain by getting {
             dependencies {
@@ -86,6 +94,8 @@ kotlin {
                 implementation("io.ktor:ktor-server-core:3.3.2")
                 implementation("io.ktor:ktor-server-cio:3.3.2")
                 implementation("io.ktor:ktor-server-html-builder:3.3.2")
+                // SQLDelight Desktop driver
+                implementation("app.cash.sqldelight:sqlite-driver:2.0.2")
             }
         }
         commonTest.dependencies {
@@ -139,5 +149,13 @@ android {
 
 dependencies {
     debugImplementation(compose.uiTooling)
+}
+
+sqldelight {
+    databases {
+        create("OdinDatabase") {
+            packageName.set("id.homebase.homebasekmppoc.database")
+        }
+    }
 }
 
