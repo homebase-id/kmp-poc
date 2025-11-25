@@ -37,21 +37,6 @@ CREATE INDEX IF NOT EXISTS Idx0DriveMainIndex ON DriveMainIndex(identityId,drive
 CREATE INDEX IF NOT EXISTS Idx1DriveMainIndex ON DriveMainIndex(identityId,driveId,fileSystemType,modified,rowId);
 CREATE INDEX IF NOT EXISTS Idx2DriveMainIndex ON DriveMainIndex(identityId,driveId,fileSystemType,userDate,rowId);
 
--- Insert a record
-insertDriveMainIndex:
-INSERT INTO DriveMainIndex(
-   identityId, driveId, fileId, globalTransitId, fileState, requiredSecurityGroup,
-   fileSystemType, userDate, fileType, dataType, archivalStatus, historyStatus,
-   senderId, groupId, uniqueId, byteCount, hdrEncryptedKeyHeader, hdrVersionTag,
-   hdrAppData, hdrLocalVersionTag, hdrLocalAppData, hdrReactionSummary,
-   hdrServerData, hdrTransferHistory, hdrFileMetaData, created, modified
-) VALUES (
-    ?, ?, ?, ?, ?, ?,
-    ?, ?, ?, ?, ?, ?,
-    ?, ?, ?, ?, ?, ?,
-    ?, ?, ?, ?, ?,
-    ?, ?, ?, ?);
-
 -- Upsert a record
 upsertDriveMainIndex:
 INSERT INTO DriveMainIndex (
@@ -78,19 +63,19 @@ SET globalTransitId = excluded.globalTransitId,fileState = excluded.fileState,re
     modified = excluded.modified
 RETURNING created,modified,rowId;
 
--- Select all records
-selectAll:
-SELECT * FROM DriveMainIndex;
-
--- Select by identity and drive
-selectByIdentityAndDrive:
+-- Select by identity and drive and file - get single row
+selectByIdentityAndDriveAndFile:
 SELECT * FROM DriveMainIndex
-WHERE identityId = ? AND driveId = ?;
-
--- Count records
-countAll:
-SELECT COUNT(*) FROM DriveMainIndex;
+WHERE identityId = ? AND driveId = ? AND fileId = ?;
 
 -- Delete all records (for testing)
 deleteAll:
 DELETE FROM DriveMainIndex;
+
+-- Count all records - for TESTING
+countAll:
+SELECT count(*) FROM DriveMainIndex;
+
+-- Select all records - for TESTING
+selectAll:
+SELECT * FROM DriveMainIndex;

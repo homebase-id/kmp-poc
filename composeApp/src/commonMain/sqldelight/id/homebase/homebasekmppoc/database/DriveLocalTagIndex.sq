@@ -12,19 +12,12 @@ insertLocalTag:
 INSERT INTO DriveLocalTagIndex(identityId, driveId, fileId, tagId)
 VALUES (?, ?, ?, ?);
 
--- Select all local tags
-selectAll:
-SELECT * FROM DriveLocalTagIndex;
-
 -- Select local tags for a file
 selectByFile:
 SELECT * FROM DriveLocalTagIndex
 WHERE identityId = ? AND driveId = ? AND fileId = ?;
 
--- Count local tags
-countAll:
-SELECT COUNT(*) FROM DriveLocalTagIndex;
-
 -- Delete all local tags (for testing)
-deleteAll:
-DELETE FROM DriveLocalTagIndex;
+deleteByFile:
+DELETE FROM DriveLocalTagIndex
+WHERE identityId = ? AND driveId = ? AND fileId = ?;

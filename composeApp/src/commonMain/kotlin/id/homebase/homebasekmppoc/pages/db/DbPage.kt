@@ -63,7 +63,7 @@ fun DbPage() {
                         val driveType = "type".encodeToByteArray()
 
                         // Write a record to DriveMainIndex
-                        db.driveMainIndexQueries.insertDriveMainIndex(
+                        db.driveMainIndexQueries.upsertDriveMainIndex(
                             identityId = identityId,
                             driveId = driveId,
                             fileId = fileId,
