@@ -126,6 +126,18 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1")
+            implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
+        }
+        androidUnitTest.dependencies {
+            implementation("app.cash.sqldelight:sqlite-driver:2.0.2")
+        }
+        iosTest.dependencies {
+            implementation("app.cash.sqldelight:native-driver:2.0.2")
+        }
+        val desktopTest by getting {
+            dependencies {
+                implementation("app.cash.sqldelight:sqlite-driver:2.0.2")
+            }
         }
     }
 }

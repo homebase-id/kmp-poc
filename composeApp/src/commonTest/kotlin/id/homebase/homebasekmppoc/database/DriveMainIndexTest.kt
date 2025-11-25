@@ -11,12 +11,12 @@ class DriveMainIndexTest {
 
     @Test
     fun testUpsertSelectByIdentityAndDriveAndFile() = runTest {
-        // Create in-memory test database using TestDatabaseHelper
-        val db = TestDatabaseHelper.createInMemoryDatabase()
+        // Create in-memory test database
+        val db = createInMemoryDatabase()
 
         // Test data - create sample byte arrays and values
         val randomId = Random.nextLong()
-        val currentTime = System.currentTimeMillis()
+        val currentTime = Random.nextLong()
         val identityId = "test-identity".encodeToByteArray()
         val driveId = "test-drive".encodeToByteArray()
         val fileId = "test-file-$currentTime".encodeToByteArray()
@@ -117,11 +117,11 @@ class DriveMainIndexTest {
 
     @Test
     fun testUpsertUpdateExistingRecord() = runTest {
-        // Create in-memory test database using TestDatabaseHelper
-        val db = TestDatabaseHelper.createInMemoryDatabase()
+        // Create in-memory test database
+        val db = createInMemoryDatabase()
 
         // Test data
-        val currentTime = System.currentTimeMillis()
+        val currentTime = Random.nextLong()
         val identityId = "test-identity-update".encodeToByteArray()
         val driveId = "test-drive-update".encodeToByteArray()
         val fileId = "test-file-update".encodeToByteArray()
@@ -214,8 +214,8 @@ class DriveMainIndexTest {
 
     @Test
     fun testSelectByIdentityAndDriveAndFileWithNonExistentRecord() = runTest {
-        // Create in-memory test database using TestDatabaseHelper
-        val db = TestDatabaseHelper.createInMemoryDatabase()
+        // Create in-memory test database
+        val db = createInMemoryDatabase()
 
         // Test data for non-existent record
         val identityId = "non-existent-identity".encodeToByteArray()
@@ -235,14 +235,14 @@ class DriveMainIndexTest {
 
     @Test
     fun testCountAllAndSelectAll() = runTest {
-        // Create in-memory test database using TestDatabaseHelper
-        val db = TestDatabaseHelper.createInMemoryDatabase()
+        // Create in-memory test database
+        val db = createInMemoryDatabase()
 
         // Initially should be empty
         assertEquals(0L, db.driveMainIndexQueries.countAll().executeAsOne())
 
         // Insert some test records
-        val currentTime = System.currentTimeMillis()
+        val currentTime = Random.nextLong()
         val identityId = "test-identity-count".encodeToByteArray()
         val driveId = "test-drive-count".encodeToByteArray()
 
@@ -286,7 +286,7 @@ class DriveMainIndexTest {
         assertEquals(3, allRecords.size, "Should have exactly 3 records")
 
         // Verify the records have different fileIds
-        val fileIds = allRecords.map { it.fileId.toString(Charsets.UTF_8) }
+        val fileIds = allRecords.map { it.fileId.decodeToString() }
         assertTrue(fileIds.contains("file-1"))
         assertTrue(fileIds.contains("file-2"))
         assertTrue(fileIds.contains("file-3"))
@@ -294,11 +294,11 @@ class DriveMainIndexTest {
 
     @Test
     fun testDeleteAll() = runTest {
-        // Create in-memory test database using TestDatabaseHelper
-        val db = TestDatabaseHelper.createInMemoryDatabase()
+        // Create in-memory test database
+        val db = createInMemoryDatabase()
 
         // Insert a test record first
-        val currentTime = System.currentTimeMillis()
+        val currentTime = Random.nextLong()
         db.driveMainIndexQueries.upsertDriveMainIndex(
             identityId = "test-identity-delete".encodeToByteArray(),
             driveId = "test-drive-delete".encodeToByteArray(),

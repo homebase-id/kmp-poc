@@ -3,7 +3,7 @@ package id.homebase.homebasekmppoc.database
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 
 /**
- * Desktop test implementation using SQLite JDBC driver
+ * Android test implementation using SQLite JDBC driver
  */
 actual fun createInMemoryDatabase(): OdinDatabase {
     val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
