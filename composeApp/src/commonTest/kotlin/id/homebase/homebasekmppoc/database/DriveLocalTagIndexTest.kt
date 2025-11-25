@@ -1,18 +1,33 @@
 package id.homebase.homebasekmppoc.database
 
+import app.cash.sqldelight.db.SqlDriver
 import  kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.random.Random
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
 import kotlin.test.assertFalse
 
 class DriveLocalTagIndexTest {
 
+    private var driver: SqlDriver? = null
+    private lateinit var db: OdinDatabase
+
+    @BeforeTest
+    fun setup() {
+        driver = createInMemoryDatabase()
+        db = OdinDatabase(driver!!)
+    }
+
+    @AfterTest
+    fun tearDown() {
+        driver?.close()
+    }
+
     @Test
     fun testInsertSelectDeleteLocalTag() = runTest {
-        // Create in-memory test database
-        val db = createInMemoryDatabase()
 
         // Test data - create sample byte arrays
         val randomId = Random.nextLong()
@@ -88,8 +103,6 @@ class DriveLocalTagIndexTest {
 
     @Test
     fun testSelectByFileWithNoLocalTags() = runTest {
-        // Create in-memory test database
-        val db = createInMemoryDatabase()
 
         // Test data for non-existent file
         val identityId = "non-existent-identity".encodeToByteArray()
@@ -109,8 +122,6 @@ class DriveLocalTagIndexTest {
 
     @Test
     fun testUniqueConstraint() = runTest {
-        // Create in-memory test database
-        val db = createInMemoryDatabase()
 
         // Test data
         val randomId = Random.nextLong()

@@ -1,18 +1,33 @@
 package id.homebase.homebasekmppoc.database
 
+import app.cash.sqldelight.db.SqlDriver
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.test.assertNotNull
 import kotlin.random.Random
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
 
 class DriveMainIndexTest {
 
+    private var driver: SqlDriver? = null
+    private lateinit var db: OdinDatabase
+
+    @BeforeTest
+    fun setup() {
+        driver = createInMemoryDatabase()
+        db = OdinDatabase(driver!!)
+    }
+
+    @AfterTest
+    fun tearDown() {
+        driver?.close()
+    }
+
     @Test
     fun testUpsertSelectByIdentityAndDriveAndFile() = runTest {
-        // Create in-memory test database
-        val db = createInMemoryDatabase()
 
         // Test data - create sample byte arrays and values
         val randomId = Random.nextLong()
@@ -117,8 +132,6 @@ class DriveMainIndexTest {
 
     @Test
     fun testUpsertUpdateExistingRecord() = runTest {
-        // Create in-memory test database
-        val db = createInMemoryDatabase()
 
         // Test data
         val currentTime = Random.nextLong()
@@ -214,8 +227,6 @@ class DriveMainIndexTest {
 
     @Test
     fun testSelectByIdentityAndDriveAndFileWithNonExistentRecord() = runTest {
-        // Create in-memory test database
-        val db = createInMemoryDatabase()
 
         // Test data for non-existent record
         val identityId = "non-existent-identity".encodeToByteArray()
@@ -235,8 +246,6 @@ class DriveMainIndexTest {
 
     @Test
     fun testCountAllAndSelectAll() = runTest {
-        // Create in-memory test database
-        val db = createInMemoryDatabase()
 
         // Initially should be empty
         assertEquals(0L, db.driveMainIndexQueries.countAll().executeAsOne())
@@ -294,8 +303,6 @@ class DriveMainIndexTest {
 
     @Test
     fun testDeleteAll() = runTest {
-        // Create in-memory test database
-        val db = createInMemoryDatabase()
 
         // Insert a test record first
         val currentTime = Random.nextLong()

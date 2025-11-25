@@ -26,12 +26,12 @@ echo -e "${GREEN}✓ Android tests completed${NC}\n"
 # iOS Simulator Tests (only on macOS)
 echo -e "${BLUE}[3/3] Running iOS Simulator Tests...${NC}"
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    # ./gradlew iosSimulatorArm64Test
-    # echo -e "${GREEN}✓ iOS tests completed${NC}\n"
-
+    ./gradlew iosSimulatorArm64Test
+    echo -e "${GREEN}✓ iOS tests completed${NC}\n"
     # Run iOS Simulator tests directly, bypassing Gradle's broken test result collector
-    # SEB:TODO figure out if we can make gradle work properly here
-    ./run-ios-tests-ci.sh
+    # SEB:NOTE figure out if we can make gradle work properly here
+    # SEB:TODO comment back in if Gradle starts failing to run IOS tests properly
+    # ./run-ios-tests-ci.sh
 else
     ./gradlew compileTestKotlinIosSimulatorArm64
     echo -e "${GREEN}✓ iOS tests compiled (execution skipped - requires macOS)${NC}\n"
