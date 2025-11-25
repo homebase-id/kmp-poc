@@ -60,8 +60,7 @@ SET globalTransitId = excluded.globalTransitId,fileState = excluded.fileState,re
     hdrAppData = excluded.hdrAppData,hdrLocalVersionTag = excluded.hdrLocalVersionTag,hdrLocalAppData = excluded.hdrLocalAppData,
     hdrReactionSummary = excluded.hdrReactionSummary,hdrServerData = excluded.hdrServerData,hdrTransferHistory = excluded.hdrTransferHistory,
     hdrFileMetaData = excluded.hdrFileMetaData,
-    modified = excluded.modified
-RETURNING created,modified,rowId;
+    modified = excluded.modified;
 
 -- Select by identity and drive and file - get single row
 selectByIdentityAndDriveAndFile:
