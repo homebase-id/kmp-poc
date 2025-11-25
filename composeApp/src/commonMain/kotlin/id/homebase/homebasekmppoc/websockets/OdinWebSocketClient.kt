@@ -77,7 +77,6 @@ sealed class WebSocketState {
 /**
  * WebSocket client for connecting to Odin notify/ws endpoint
  */
-@OptIn(kotlin.time.ExperimentalTime::class)
 class OdinWebSocketClient(
     private val authenticatedState: AuthState.Authenticated
 ) {

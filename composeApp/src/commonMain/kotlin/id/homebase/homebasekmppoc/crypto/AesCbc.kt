@@ -1,14 +1,12 @@
 package id.homebase.homebasekmppoc.crypto
 
 import dev.whyoleg.cryptography.CryptographyProvider
-import dev.whyoleg.cryptography.DelicateCryptographyApi
 import dev.whyoleg.cryptography.algorithms.AES
 import id.homebase.homebasekmppoc.core.SecureByteArray
 
 /**
  * AES-CBC encryption/decryption utilities using cryptography-kotlin
  */
-@OptIn(DelicateCryptographyApi::class)
 object AesCbc {
 
     private val crypto = CryptographyProvider.Default

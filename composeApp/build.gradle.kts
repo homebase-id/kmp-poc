@@ -11,6 +11,17 @@ plugins {
 }
 
 kotlin {
+    // Global opt-ins for all targets
+    sourceSets.all {
+        languageSettings.apply {
+            optIn("kotlin.uuid.ExperimentalUuidApi")
+            optIn("kotlin.io.encoding.ExperimentalEncodingApi")
+            optIn("kotlinx.serialization.ExperimentalSerializationApi")
+            optIn("kotlin.time.ExperimentalTime")
+            optIn("dev.whyoleg.cryptography.DelicateCryptographyApi")
+        }
+    }
+
     androidTarget {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_11)

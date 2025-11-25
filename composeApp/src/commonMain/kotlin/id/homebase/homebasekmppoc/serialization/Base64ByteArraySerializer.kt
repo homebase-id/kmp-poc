@@ -7,13 +7,11 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
 
 /**
  * Custom serializer for ByteArray that uses Base64 encoding
  * Matches C# behavior where byte[] is automatically serialized to/from Base64 strings
  */
-@OptIn(ExperimentalEncodingApi::class)
 object Base64ByteArraySerializer : KSerializer<ByteArray> {
     override val descriptor: SerialDescriptor =
         PrimitiveSerialDescriptor("Base64ByteArray", PrimitiveKind.STRING)

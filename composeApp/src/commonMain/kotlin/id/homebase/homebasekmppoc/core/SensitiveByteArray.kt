@@ -2,7 +2,6 @@ package id.homebase.homebasekmppoc.core
 
 import id.homebase.homebasekmppoc.crypto.ByteArrayUtil
 import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
 
 /**
  * A wrapper for sensitive byte arrays (keys, secrets) that provides:
@@ -19,7 +18,6 @@ class SensitiveByteArray : AutoCloseable {
         setKey(data)
     }
 
-    @OptIn(ExperimentalEncodingApi::class)
     constructor(data64: String) {
         setKey(Base64.decode(data64))
     }

@@ -1,7 +1,6 @@
 package id.homebase.homebasekmppoc.crypto
 
 import dev.whyoleg.cryptography.CryptographyProvider
-import dev.whyoleg.cryptography.DelicateCryptographyApi
 import dev.whyoleg.cryptography.algorithms.EC
 import dev.whyoleg.cryptography.algorithms.ECDH
 import id.homebase.homebasekmppoc.core.SecureByteArray
@@ -241,7 +240,6 @@ private fun ensureLength(bytes: ByteArray, length: Int): ByteArray {
 /**
  * Convert JWK coordinates to DER-encoded public key
  */
-@OptIn(DelicateCryptographyApi::class)
 private suspend fun jwkToDer(x: ByteArray, y: ByteArray, keySize: EccKeySize): ByteArray {
     val crypto = CryptographyProvider.Default
     val ecdh = crypto.get(ECDH)
@@ -267,7 +265,6 @@ private suspend fun jwkToDer(x: ByteArray, y: ByteArray, keySize: EccKeySize): B
 /**
  * Extract JWK coordinates from DER-encoded public key
  */
-@OptIn(DelicateCryptographyApi::class)
 private suspend fun derToJwkCoordinates(derKey: ByteArray, keySize: EccKeySize): Pair<ByteArray, ByteArray> {
     val crypto = CryptographyProvider.Default
     val ecdh = crypto.get(ECDH)
@@ -294,7 +291,6 @@ private suspend fun derToJwkCoordinates(derKey: ByteArray, keySize: EccKeySize):
  * Generate an ECC key pair using platform crypto
  * Returns (privateKeyDer, publicKeyDer)
  */
-@OptIn(DelicateCryptographyApi::class)
 private suspend fun generatePlatformEccKeyPair(keySize: EccKeySize): Pair<ByteArray, ByteArray> {
     val crypto = CryptographyProvider.Default
     val ecdh = crypto.get(ECDH)
@@ -318,7 +314,6 @@ private suspend fun generatePlatformEccKeyPair(keySize: EccKeySize): Pair<ByteAr
  * Perform ECDH key agreement using platform crypto
  * Returns the raw shared secret (before HKDF)
  */
-@OptIn(DelicateCryptographyApi::class)
 private suspend fun performPlatformEcdhKeyAgreement(privateKeyDer: ByteArray, publicKeyDer: ByteArray): ByteArray {
     val crypto = CryptographyProvider.Default
     val ecdh = crypto.get(ECDH)

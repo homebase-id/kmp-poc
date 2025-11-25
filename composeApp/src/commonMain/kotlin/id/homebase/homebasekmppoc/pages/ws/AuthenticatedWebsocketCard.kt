@@ -41,7 +41,6 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * @param authenticatedState The authenticated state containing identity and tokens (optional)
  * @param modifier Optional modifier for the card
  */
-@OptIn(kotlin.time.ExperimentalTime::class)
 @Composable
 fun AuthenticatedWebsocketCard(
     authenticatedState: AuthState.Authenticated?,

@@ -1,6 +1,5 @@
 package id.homebase.homebasekmppoc.serialization
 
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
 import kotlinx.serialization.encodeToString
@@ -11,7 +10,6 @@ import kotlinx.serialization.descriptors.SerialDescriptor
  * Custom camelCase naming strategy to match C# JsonNamingPolicy.CamelCase
  * Converts PascalCase property names to camelCase (first letter lowercase)
  */
-@OptIn(ExperimentalSerializationApi::class)
 object CamelCaseNamingStrategy : JsonNamingStrategy {
     override fun serialNameForJson(descriptor: SerialDescriptor, elementIndex: Int, serialName: String): String {
         return serialName.replaceFirstChar { it.lowercase() }
@@ -38,7 +36,6 @@ object OdinSystemSerializer {
      * - explicitNulls = true → include null values in output (default)
      * - coerceInputValues = false → don't coerce invalid values to defaults (default)
      */
-    @OptIn(ExperimentalSerializationApi::class)
     val json = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true

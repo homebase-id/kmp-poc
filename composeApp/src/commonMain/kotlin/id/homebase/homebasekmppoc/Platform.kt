@@ -68,11 +68,9 @@ fun decodeUrl(value: String): String {
 }
 
 // Generate a random UUID as byte array
-@OptIn(kotlin.uuid.ExperimentalUuidApi::class)
 fun generateUuidBytes(): ByteArray = Uuid.random().toByteArray()
 
 // Generate a random UUID as byte array
-@OptIn(kotlin.uuid.ExperimentalUuidApi::class)
 fun generateUuidString(): String = Uuid.random().toString()
 
 fun ByteArray.toBase64(): String {
