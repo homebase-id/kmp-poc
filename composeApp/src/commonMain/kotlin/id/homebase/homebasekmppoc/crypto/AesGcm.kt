@@ -1,7 +1,6 @@
 package id.homebase.homebasekmppoc.crypto
 
 import dev.whyoleg.cryptography.CryptographyProvider
-import dev.whyoleg.cryptography.DelicateCryptographyApi
 import dev.whyoleg.cryptography.algorithms.AES
 import id.homebase.homebasekmppoc.core.SecureByteArray
 
@@ -12,7 +11,6 @@ import id.homebase.homebasekmppoc.core.SecureByteArray
  * The authentication tag is automatically appended to the ciphertext during encryption
  * and verified during decryption.
  */
-@OptIn(DelicateCryptographyApi::class)
 object AesGcm {
 
     private val crypto = CryptographyProvider.Default

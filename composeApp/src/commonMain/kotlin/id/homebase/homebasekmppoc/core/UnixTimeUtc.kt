@@ -10,7 +10,6 @@ import kotlinx.serialization.encoding.Encoder
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 /**
@@ -31,7 +30,6 @@ object UnixTimeUtcSerializer : KSerializer<UnixTimeUtc> {
 }
 
 @Serializable(with = UnixTimeUtcSerializer::class)
-@OptIn(ExperimentalTime::class)
 data class UnixTimeUtc(val milliseconds: Long) {
 
     constructor() : this(Clock.System.now().toEpochMilliseconds())

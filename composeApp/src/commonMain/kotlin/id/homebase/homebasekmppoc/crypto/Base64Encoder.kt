@@ -1,7 +1,6 @@
 package id.homebase.homebasekmppoc.crypto
 
 import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
 
 /**
  * Standard Base64 encoding utilities
@@ -10,13 +9,11 @@ import kotlin.io.encoding.ExperimentalEncodingApi
  */
 object Base64Encoder {
 
-    @OptIn(ExperimentalEncodingApi::class)
     private val base64 = Base64.Default
 
     /**
      * Encode byte array to standard base64 string
      */
-    @OptIn(ExperimentalEncodingApi::class)
     fun encode(input: ByteArray): String {
         return base64.encode(input)
     }
@@ -31,7 +28,6 @@ object Base64Encoder {
     /**
      * Decode standard base64 string to byte array
      */
-    @OptIn(ExperimentalEncodingApi::class)
     fun decode(input: String): ByteArray {
         return base64.decode(input)
     }

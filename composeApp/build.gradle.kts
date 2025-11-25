@@ -11,6 +11,28 @@ plugins {
 }
 
 kotlin {
+    // Global opt-ins for all targets
+    sourceSets.all {
+        languageSettings.apply {
+            optIn("kotlin.uuid.ExperimentalUuidApi")
+            optIn("kotlin.io.encoding.ExperimentalEncodingApi")
+            optIn("kotlinx.serialization.ExperimentalSerializationApi")
+            optIn("kotlin.time.ExperimentalTime")
+            optIn("dev.whyoleg.cryptography.DelicateCryptographyApi")
+        }
+    }
+
+    // Suppress expect/actual classes Beta warning
+    targets.all {
+        compilations.all {
+            compileTaskProvider.configure {
+                compilerOptions {
+                    freeCompilerArgs.add("-Xexpect-actual-classes")
+                }
+            }
+        }
+    }
+
     androidTarget {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_11)
@@ -64,6 +86,7 @@ kotlin {
             implementation("io.ktor:ktor-client-core:3.3.2")
             implementation("io.ktor:ktor-client-content-negotiation:3.3.2")
             implementation("io.ktor:ktor-serialization-kotlinx-json:3.3.2")
+            implementation("io.ktor:ktor-client-websockets:3.3.2")
             // SQLDelight
             implementation("app.cash.sqldelight:runtime:2.0.2")
             implementation("app.cash.sqldelight:coroutines-extensions:2.0.2")

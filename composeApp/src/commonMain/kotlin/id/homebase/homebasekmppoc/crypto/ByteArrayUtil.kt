@@ -1,7 +1,6 @@
 package id.homebase.homebasekmppoc.crypto
 
 import kotlin.random.Random
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /**
@@ -162,7 +161,6 @@ object ByteArrayUtil {
     /**
      * Reduces a SHA256 hash to 16 bytes (Guid size) by XORing the two halves
      */
-    @OptIn(ExperimentalUuidApi::class)
     suspend fun reduceSha256Hash(input: String): Uuid {
         return Uuid.fromByteArray(reduceSha256Hash(input.encodeToByteArray()))
     }
@@ -197,7 +195,6 @@ object ByteArrayUtil {
     /**
      * Returns a cryptographically strong random Guid (UUID)
      */
-    @OptIn(ExperimentalUuidApi::class)
     fun getRandomCryptoGuid(): Uuid {
         return Uuid.fromByteArray(getRndByteArray(16))
     }
@@ -293,7 +290,6 @@ object ByteArrayUtil {
      * memcmp for two Guids (UUIDs)
      * Returns: 1 if b1 > b2; 0 if equal; -1 if b1 < b2
      */
-    @OptIn(ExperimentalUuidApi::class)
     fun muidcmp(b1: Uuid?, b2: Uuid?): Int {
         return muidcmp(b1?.toByteArray(), b2?.toByteArray())
     }
