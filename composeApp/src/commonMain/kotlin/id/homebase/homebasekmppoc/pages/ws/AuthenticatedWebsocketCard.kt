@@ -30,10 +30,8 @@ import androidx.compose.ui.unit.dp
 import id.homebase.homebasekmppoc.authentication.AuthState
 import id.homebase.homebasekmppoc.websockets.OdinWebSocketClient
 import id.homebase.homebasekmppoc.websockets.WebSocketState
-import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
  * A card component that displays WebSocket traffic for authenticated users.
@@ -182,11 +180,11 @@ fun AuthenticatedWebsocketCard(
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             webSocketMessages.forEach { message ->
-                                val timestamp = Instant.fromEpochMilliseconds(message.timestamp)
+                                val timestamp = kotlin.time.Instant.fromEpochMilliseconds(message.timestamp)
                                     .toLocalDateTime(TimeZone.currentSystemDefault())
                                 val timeStr = "${timestamp.hour.toString().padStart(2, '0')}:" +
                                         "${timestamp.minute.toString().padStart(2, '0')}:" +
-                                        "${timestamp.second.toString().padStart(2, '0')}"
+                                        timestamp.second.toString().padStart(2, '0')
 
                                 Column {
                                     Text(
