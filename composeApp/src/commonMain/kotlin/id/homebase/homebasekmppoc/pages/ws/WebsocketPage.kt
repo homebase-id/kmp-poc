@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc.pages.owner
+package id.homebase.homebasekmppoc.pages.ws
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -29,14 +29,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import id.homebase.homebasekmppoc.authentication.AuthState
 import id.homebase.homebasekmppoc.authentication.AuthenticationManager
-import id.homebase.homebasekmppoc.database.DatabaseManager
-import id.homebase.homebasekmppoc.youauth.YouAuthManager
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import kotlin.random.Random
 
 @Composable
-fun OwnerPage(authenticationManager: AuthenticationManager) {
+fun WebsocketPage(authenticationManager: AuthenticationManager) {
     var odinIdentity by remember { mutableStateOf("frodo.dotyou.cloud") }
     var password by remember { mutableStateOf("a") }
 
@@ -91,15 +88,15 @@ fun OwnerPage(authenticationManager: AuthenticationManager) {
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Owner",
+            text = "WebSocket",
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center
         )
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Always show the authenticated owner card
-        AuthenticatedOwnerCard(
+        // Always show the authenticated websocket card
+        AuthenticatedWebsocketCard(
             authenticatedState = if (authState is AuthState.Authenticated) authState as AuthState.Authenticated else null,
             modifier = Modifier.padding(horizontal = 16.dp)
         )
@@ -195,8 +192,8 @@ fun OwnerPage(authenticationManager: AuthenticationManager) {
 
 @Preview
 @Composable
-fun OwnerPagePreview() {
+fun WebsocketPagePreview() {
     MaterialTheme {
-        OwnerPage(AuthenticationManager())
+        WebsocketPage(AuthenticationManager())
     }
 }

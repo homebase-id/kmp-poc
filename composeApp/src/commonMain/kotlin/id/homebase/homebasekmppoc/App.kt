@@ -18,6 +18,7 @@ import id.homebase.homebasekmppoc.pages.app.AppPage
 import id.homebase.homebasekmppoc.pages.db.DbPage
 import id.homebase.homebasekmppoc.pages.owner.OwnerPage
 import id.homebase.homebasekmppoc.pages.domain.DomainPage
+import id.homebase.homebasekmppoc.pages.ws.WebsocketPage
 import id.homebase.homebasekmppoc.youauth.YouAuthManager
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -26,10 +27,11 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 fun App() {
     MaterialTheme {
         var selectedTabIndex by remember { mutableStateOf(0) }
-        val tabs = listOf("Owner", "Domain", "App", "db")
+        val tabs = listOf("Owner", "Domain", "App", "db", "ws")
 
         // Hoist YouAuthManager to App level so it survives tab navigation
         val authenticationManager = remember { AuthenticationManager() }
+        val wsAuthenticationManager = remember { AuthenticationManager() }
         val domainYouAuthManager = remember { YouAuthManager() }
         val appYouAuthManager = remember { YouAuthManager() }
 
@@ -59,6 +61,7 @@ fun App() {
                     1 -> DomainPage(domainYouAuthManager)
                     2 -> AppPage(appYouAuthManager)
                     3 -> DbPage()
+                    4 -> WebsocketPage(wsAuthenticationManager)
                 }
             }
         }
