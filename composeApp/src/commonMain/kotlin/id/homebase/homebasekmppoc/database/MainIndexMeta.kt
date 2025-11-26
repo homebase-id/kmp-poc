@@ -1,5 +1,6 @@
 package id.homebase.homebasekmppoc.database
 
+import id.homebase.homebasekmppoc.drives.query.QueryBatchCursor
 import kotlin.uuid.Uuid
 
 /**
@@ -64,7 +65,8 @@ class FileMetadataProcessor(
     fun BaseUpsertEntryZapZap(
         driveMainIndex: DriveMainIndex,
         tagIndexRecords: List<DriveTagIndex>,
-        localTagIndexRecords: List<DriveLocalTagIndex>
+        localTagIndexRecords: List<DriveLocalTagIndex>,
+        cursor : QueryBatchCursor?
     ) {
         
         // Extract tag IDs from both index types
@@ -93,6 +95,12 @@ class FileMetadataProcessor(
                     fileId = localTagRecord.fileId,
                     tagId = localTagRecord.tagId
                 )
+            }
+
+            if (cursor != null)
+            {
+                val cursorSync = CursorSync(database)
+                cursorSync.saveCursor(cursor)
             }
         }
     }
