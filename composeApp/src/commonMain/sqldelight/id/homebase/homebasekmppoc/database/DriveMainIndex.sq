@@ -40,11 +40,15 @@ CREATE INDEX IF NOT EXISTS Idx2DriveMainIndex ON DriveMainIndex(identityId,drive
 -- Upsert a record
 upsertDriveMainIndex:
 INSERT INTO DriveMainIndex (
-   identityId,driveId,fileId,globalTransitId,fileState,requiredSecurityGroup,
-   fileSystemType,userDate,fileType,dataType,archivalStatus,historyStatus,
-   senderId,groupId,uniqueId,byteCount,hdrEncryptedKeyHeader,hdrVersionTag,
-   hdrAppData,hdrLocalVersionTag,hdrLocalAppData,hdrReactionSummary,hdrServerData,
-   hdrTransferHistory,hdrFileMetaData,created,modified)
+   identityId,driveId,fileId,globalTransitId,
+   fileState,requiredSecurityGroup,fileSystemType,
+   userDate,fileType,dataType,archivalStatus,historyStatus,
+   senderId,groupId,uniqueId,byteCount,
+   hdrEncryptedKeyHeader,hdrVersionTag,hdrAppData,
+   hdrLocalVersionTag,hdrLocalAppData,
+   hdrReactionSummary,hdrServerData,
+   hdrTransferHistory,hdrFileMetaData,
+   created,modified)
 VALUES (
    ?,?,?,?,?,
    ?,?,?,?,?,?,?,
@@ -52,7 +56,8 @@ VALUES (
    ?,?,?,?,?,?,
    ?, ?, ?)
 ON CONFLICT (identityId,driveId,fileId) DO UPDATE
-SET globalTransitId = excluded.globalTransitId,fileState = excluded.fileState,requiredSecurityGroup = excluded.requiredSecurityGroup,
+SET globalTransitId = excluded.globalTransitId,
+    fileState = excluded.fileState,requiredSecurityGroup = excluded.requiredSecurityGroup,
     fileSystemType = excluded.fileSystemType,
     userDate = excluded.userDate,fileType = excluded.fileType,dataType = excluded.dataType,
     archivalStatus = excluded.archivalStatus,historyStatus = excluded.historyStatus,senderId = excluded.senderId,groupId = excluded.groupId,
@@ -62,7 +67,7 @@ SET globalTransitId = excluded.globalTransitId,fileState = excluded.fileState,re
     hdrFileMetaData = excluded.hdrFileMetaData,
     modified = excluded.modified;
 
--- Select by identity and drive and file - get single row
+-- Select by identity and drive and file (get single row)
 selectByIdentityAndDriveAndFile:
 SELECT * FROM DriveMainIndex
 WHERE identityId = ? AND driveId = ? AND fileId = ?;

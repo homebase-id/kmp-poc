@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS KeyValue(
+   key BLOB PRIMARY KEY,
+   value BLOB NOT NULL
+);
+
+-- Upsert a value
+upsertValue:
+INSERT INTO KeyValue(key, value)
+VALUES (?,?)
+ON CONFLICT(key) DO UPDATE
+SET value = excluded.value;
+
+
+-- Select a value
+selectByKey:
+SELECT * FROM KeyValue
+WHERE key = ?;
+
+-- Delete a value
+deleteByKey:
+DELETE FROM KeyValue
+WHERE key = ?;
