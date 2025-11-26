@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc.core
+package id.homebase.homebasekmppoc.core.time
 
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -7,13 +7,15 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import kotlinx.datetime.Instant
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Instant
 
 /**
  * Represents a Unix timestamp in UTC with millisecond precision
+ *
+ * Ported from C# Odin.Core.Time.UnixTimeUtc
  */
 
 object UnixTimeUtcSerializer : KSerializer<UnixTimeUtc> {
@@ -30,7 +32,7 @@ object UnixTimeUtcSerializer : KSerializer<UnixTimeUtc> {
 }
 
 @Serializable(with = UnixTimeUtcSerializer::class)
-data class UnixTimeUtc(val milliseconds: Long) {
+data class UnixTimeUtc(val milliseconds: Long) : Comparable<UnixTimeUtc> {
 
     constructor() : this(Clock.System.now().toEpochMilliseconds())
 
@@ -90,7 +92,7 @@ data class UnixTimeUtc(val milliseconds: Long) {
      * Convert to Instant
      */
     fun toInstant(): Instant {
-        return Instant.Companion.fromEpochMilliseconds(milliseconds)
+        return Instant.fromEpochMilliseconds(milliseconds)
     }
 
     /**
@@ -119,7 +121,7 @@ data class UnixTimeUtc(val milliseconds: Long) {
         return (milliseconds - other.milliseconds).milliseconds
     }
 
-    operator fun compareTo(other: UnixTimeUtc): Int {
+    override fun compareTo(other: UnixTimeUtc): Int {
         return milliseconds.compareTo(other.milliseconds)
     }
 }

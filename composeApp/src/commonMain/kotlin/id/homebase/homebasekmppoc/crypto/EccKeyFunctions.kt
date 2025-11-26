@@ -4,7 +4,7 @@ import dev.whyoleg.cryptography.CryptographyProvider
 import dev.whyoleg.cryptography.algorithms.EC
 import dev.whyoleg.cryptography.algorithms.ECDH
 import id.homebase.homebasekmppoc.core.SecureByteArray
-import id.homebase.homebasekmppoc.core.UnixTimeUtc
+import id.homebase.homebasekmppoc.core.time.UnixTimeUtc
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 

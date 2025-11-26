@@ -67,8 +67,9 @@ class PayloadPlayground(private val authenticated: AuthState.Authenticated) {
         val client = OdinHttpClient(authenticated)
         val drives = client.get<PagedResult<DriveDefinition>>(uri)
 
+        Logger.d("PayloadPlayground") { "Drives:" }
         drives.results.forEach {
-            Logger.d("PayloadPlayground") { "Drive: Alias=${it.targetDriveInfo.alias} Type=${it.targetDriveInfo.type} Name=${it.name}" }
+            Logger.d("PayloadPlayground") { "  drive: Alias=${it.targetDriveInfo.alias} Type=${it.targetDriveInfo.type} Name=${it.name}" }
         }
 
         return drives

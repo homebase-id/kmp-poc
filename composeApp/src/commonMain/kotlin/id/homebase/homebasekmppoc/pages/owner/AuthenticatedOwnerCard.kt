@@ -32,6 +32,7 @@ import co.touchlab.kermit.Logger
 import homebasekmppoc.composeapp.generated.resources.Res
 import homebasekmppoc.composeapp.generated.resources.compose_multiplatform
 import id.homebase.homebasekmppoc.authentication.AuthState
+import id.homebase.homebasekmppoc.drives.SystemDriveConstants
 import id.homebase.homebasekmppoc.http.OdinHttpClient
 import id.homebase.homebasekmppoc.http.PayloadPlayground
 import id.homebase.homebasekmppoc.util.toImageBitmap
@@ -63,7 +64,7 @@ fun AuthenticatedOwnerCard(
                 verifytokenReponse = client.verifyOwnerToken()
 
                 val payloadPlayground = PayloadPlayground(authenticatedState)
-                // val drives = payloadPlayground.getEverything()
+                val drives = payloadPlayground.getDrivesByType(SystemDriveConstants.publicPostChannelDrive.type)
                 imageBytes = payloadPlayground.getImage()
 
                 isLoading = false
