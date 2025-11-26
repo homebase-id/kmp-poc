@@ -87,7 +87,7 @@ kotlin {
             implementation("io.ktor:ktor-client-content-negotiation:3.3.2")
             implementation("io.ktor:ktor-serialization-kotlinx-json:3.3.2")
             implementation("io.ktor:ktor-client-websockets:3.3.2")
-// SQLDelight
+            // SQLDelight
             implementation("app.cash.sqldelight:runtime:2.2.1")
             implementation("app.cash.sqldelight:coroutines-extensions:2.2.1")
         }
@@ -101,13 +101,13 @@ kotlin {
             implementation("androidx.browser:browser:1.9.0")
             // Ktor Android engine
             implementation("io.ktor:ktor-client-okhttp:3.3.2")
-// SQLDelight Android driver
+            // SQLDelight Android driver
             implementation("app.cash.sqldelight:android-driver:2.2.1")
         }
         iosMain.dependencies {
             // Ktor iOS engine
             implementation("io.ktor:ktor-client-darwin:3.3.2")
-// SQLDelight iOS driver
+            // SQLDelight iOS driver
             implementation("app.cash.sqldelight:native-driver:2.2.1")
         }
         val desktopMain by getting {
@@ -119,7 +119,7 @@ kotlin {
                 implementation("io.ktor:ktor-server-core:3.3.2")
                 implementation("io.ktor:ktor-server-cio:3.3.2")
                 implementation("io.ktor:ktor-server-html-builder:3.3.2")
-// SQLDelight Desktop driver
+                // SQLDelight Desktop driver
                 implementation("app.cash.sqldelight:sqlite-driver:2.2.1")
             }
         }
@@ -128,13 +128,13 @@ kotlin {
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1")
             implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
         }
-androidUnitTest.dependencies {
+        androidUnitTest.dependencies {
             implementation("app.cash.sqldelight:sqlite-driver:2.2.1")
         }
-iosTest.dependencies {
+        iosTest.dependencies {
             implementation("app.cash.sqldelight:native-driver:2.2.1")
         }
-val desktopTest by getting {
+        val desktopTest by getting {
             dependencies {
                 implementation("app.cash.sqldelight:sqlite-driver:2.2.1")
             }
