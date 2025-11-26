@@ -240,6 +240,11 @@ class MainIndexMetaTest {
             loadedCursor.nextBoundaryCursor!!.rowId,
             "Next boundary cursor row ID should match"
         )
+
+        processor.deleteEntryDriveMainIndex(db, identityId, driveId, fileId);
+        assertEquals(db.driveMainIndexQueries.countAll().executeAsOne(), 0L)
+        assertEquals(db.driveTagIndexQueries.countAll().executeAsOne(), 0L)
+        assertEquals(db.driveLocalTagIndexQueries.countAll().executeAsOne(), 0L)
     }
 
     @Test

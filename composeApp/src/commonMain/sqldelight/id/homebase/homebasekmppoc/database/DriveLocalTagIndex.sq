@@ -23,3 +23,6 @@ WHERE identityId = ? AND driveId = ? AND fileId = ?;
 deleteByFile:
 DELETE FROM DriveLocalTagIndex
 WHERE identityId = ? AND driveId = ? AND fileId = ?;
+
+countAll:
+SELECT count(*) FROM DriveLocalTagIndex;
