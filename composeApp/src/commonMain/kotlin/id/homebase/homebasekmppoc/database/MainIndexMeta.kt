@@ -7,10 +7,9 @@ import kotlin.uuid.Uuid
  * Helper functions for DriveMainIndex operations
  */
 object MainIndexMetaHelpers {
-    
-    /**
-     * Helper upsert function that takes a DriveMainIndex record and calls database.upsertDriveMainIndex()
-     * with all the individual members extracted from the record
+   /**
+     * Helper upsert function that takes a DriveMainIndex record and calls
+     * database.upsertDriveMainIndex() with all the members.
      */
     fun upsertDriveMainIndex(
         database: OdinDatabase,
@@ -55,12 +54,27 @@ object MainIndexMetaHelpers {
 class FileMetadataProcessor(
     private val database: OdinDatabase
 ) {
-    
+
+    fun deleteEntryDriveMainIndex(
+        database: OdinDatabase,
+        identityId : Uuid,
+        driveId : Uuid,
+        fileId : Uuid
+    ) {
+        database.transaction {
+            database.driveMainIndexQueries.deleteBy(identityId, driveId, fileId);
+            database.driveTagIndexQueries.deleteByFile(identityId,driveId,fileId);
+            database.driveLocalTagIndexQueries.deleteByFile(identityId,driveId,fileId);
+        }
+    }
+
+
     /**
-     * Process file metadata with tags
+     * Stores driveMainIndex and tags and optionally a cursor in one commit
      * @param driveMainIndex The main file record
      * @param tagIndexRecords List of tag index records for this file
      * @param localTagIndexRecords List of local tag index records for this file
+     * @param cursor Optional current cursor to be saved
      */
     fun BaseUpsertEntryZapZap(
         driveMainIndex: DriveMainIndex,
