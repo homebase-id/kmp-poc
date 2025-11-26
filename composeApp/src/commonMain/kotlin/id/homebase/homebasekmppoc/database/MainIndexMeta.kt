@@ -68,11 +68,6 @@ class FileMetadataProcessor(
         localTagIndexRecords: List<DriveLocalTagIndex>,
         cursor : QueryBatchCursor?
     ) {
-        
-        // Extract tag IDs from both index types
-        val tagIds = tagIndexRecords.map { it.tagId }.toSet()
-        val localTagIds = localTagIndexRecords.map { it.tagId }.toSet()
-
         database.transaction {
             MainIndexMetaHelpers.upsertDriveMainIndex(database, driveMainIndex);
 
