@@ -87,9 +87,9 @@ kotlin {
             implementation("io.ktor:ktor-client-content-negotiation:3.3.2")
             implementation("io.ktor:ktor-serialization-kotlinx-json:3.3.2")
             implementation("io.ktor:ktor-client-websockets:3.3.2")
-            // SQLDelight
-            implementation("app.cash.sqldelight:runtime:2.0.2")
-            implementation("app.cash.sqldelight:coroutines-extensions:2.0.2")
+// SQLDelight
+            implementation("app.cash.sqldelight:runtime:2.2.1")
+            implementation("app.cash.sqldelight:coroutines-extensions:2.2.1")
         }
         androidMain.dependencies {
             implementation(compose.preview)
@@ -101,14 +101,14 @@ kotlin {
             implementation("androidx.browser:browser:1.9.0")
             // Ktor Android engine
             implementation("io.ktor:ktor-client-okhttp:3.3.2")
-            // SQLDelight Android driver
-            implementation("app.cash.sqldelight:android-driver:2.0.2")
+// SQLDelight Android driver
+            implementation("app.cash.sqldelight:android-driver:2.2.1")
         }
         iosMain.dependencies {
             // Ktor iOS engine
             implementation("io.ktor:ktor-client-darwin:3.3.2")
-            // SQLDelight iOS driver
-            implementation("app.cash.sqldelight:native-driver:2.0.2")
+// SQLDelight iOS driver
+            implementation("app.cash.sqldelight:native-driver:2.2.1")
         }
         val desktopMain by getting {
             dependencies {
@@ -119,8 +119,8 @@ kotlin {
                 implementation("io.ktor:ktor-server-core:3.3.2")
                 implementation("io.ktor:ktor-server-cio:3.3.2")
                 implementation("io.ktor:ktor-server-html-builder:3.3.2")
-                // SQLDelight Desktop driver
-                implementation("app.cash.sqldelight:sqlite-driver:2.0.2")
+// SQLDelight Desktop driver
+                implementation("app.cash.sqldelight:sqlite-driver:2.2.1")
             }
         }
         commonTest.dependencies {
@@ -128,15 +128,15 @@ kotlin {
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1")
             implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
         }
-        androidUnitTest.dependencies {
-            implementation("app.cash.sqldelight:sqlite-driver:2.0.2")
+androidUnitTest.dependencies {
+            implementation("app.cash.sqldelight:sqlite-driver:2.2.1")
         }
-        iosTest.dependencies {
-            implementation("app.cash.sqldelight:native-driver:2.0.2")
+iosTest.dependencies {
+            implementation("app.cash.sqldelight:native-driver:2.2.1")
         }
-        val desktopTest by getting {
+val desktopTest by getting {
             dependencies {
-                implementation("app.cash.sqldelight:sqlite-driver:2.0.2")
+                implementation("app.cash.sqldelight:sqlite-driver:2.2.1")
             }
         }
     }
@@ -194,7 +194,7 @@ sqldelight {
             packageName.set("id.homebase.homebasekmppoc.database")
             // This is important to get the right SQLite version so that
             // ON CONFLICT and RETURNING are supported
-            dialect("app.cash.sqldelight:sqlite-3-38-dialect:2.0.2")
+            dialect("app.cash.sqldelight:sqlite-3-38-dialect:2.2.1")
         }
     }
 }
