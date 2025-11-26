@@ -17,39 +17,10 @@ class CursorSyncTest {
     private lateinit var db: OdinDatabase
     private lateinit var cursorSync: CursorSync
 
-    @BeforeTest
+@BeforeTest
     fun setup() {
         driver = createInMemoryDatabase()
-        
-        // Create adapters for UUID columns
-        val driveTagIndexAdapter = DriveTagIndex.Adapter(
-            identityIdAdapter = UuidAdapter,
-            driveIdAdapter = UuidAdapter,
-            fileIdAdapter = UuidAdapter,
-            tagIdAdapter = UuidAdapter
-        )
-        
-        val driveLocalTagIndexAdapter = DriveLocalTagIndex.Adapter(
-            identityIdAdapter = UuidAdapter,
-            driveIdAdapter = UuidAdapter,
-            fileIdAdapter = UuidAdapter,
-            tagIdAdapter = UuidAdapter
-        )
-        
-        val driveMainIndexAdapter = DriveMainIndex.Adapter(
-            identityIdAdapter = UuidAdapter,
-            driveIdAdapter = UuidAdapter,
-            fileIdAdapter = UuidAdapter,
-            globalTransitIdAdapter = UuidAdapter,
-            groupIdAdapter = UuidAdapter,
-            uniqueIdAdapter = UuidAdapter
-        )
-        
-        val keyValueAdapter = KeyValue.Adapter(
-            keyAdapter = UuidAdapter
-        )
-        
-        db = OdinDatabase(driver!!, driveLocalTagIndexAdapter, driveMainIndexAdapter, driveTagIndexAdapter, keyValueAdapter)
+        db = TestDatabaseFactory.createTestDatabase(driver)
         cursorSync = CursorSync(db)
     }
 

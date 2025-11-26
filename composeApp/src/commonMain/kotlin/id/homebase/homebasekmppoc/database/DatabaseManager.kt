@@ -35,11 +35,16 @@ object DatabaseManager {
                 uniqueIdAdapter = UuidAdapter
             )
             
-            val keyValueAdapter = KeyValue.Adapter(
+val keyValueAdapter = KeyValue.Adapter(
                 keyAdapter = UuidAdapter
             )
             
-            database = OdinDatabase(driver, driveLocalTagIndexAdapter, driveMainIndexAdapter, driveTagIndexAdapter, keyValueAdapter)
+            val appNotificationsAdapter = AppNotifications.Adapter(
+                identityIdAdapter = UuidAdapter,
+                notificationIdAdapter = UuidAdapter
+            )
+            
+            database = OdinDatabase(driver, appNotificationsAdapter, driveLocalTagIndexAdapter, driveMainIndexAdapter, driveTagIndexAdapter, keyValueAdapter)
             logger.i { "Database initialized successfully" }
         } else {
             logger.w { "Database already initialized" }
