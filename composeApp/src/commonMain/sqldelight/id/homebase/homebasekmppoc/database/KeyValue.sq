@@ -1,5 +1,7 @@
+import kotlin.uuid.Uuid;
+
 CREATE TABLE IF NOT EXISTS KeyValue(
-   key BLOB PRIMARY KEY,
+   key BLOB AS Uuid PRIMARY KEY,
    value BLOB NOT NULL
 );
 

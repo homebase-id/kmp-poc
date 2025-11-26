@@ -24,6 +24,7 @@ import id.homebase.homebasekmppoc.database.DatabaseManager
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import kotlin.random.Random
+import kotlin.uuid.Uuid
 
 @Composable
 fun DbPage() {
@@ -52,12 +53,12 @@ fun DbPage() {
                     try {
                         val db = DatabaseManager.getDatabase()
 
-                        // Test data - create sample byte arrays
+// Test data - create sample UUIDs
                         val randomId = Random.nextLong()
                         val currentTime = randomId // Use random ID as timestamp for testing
-                        val identityId = "test-identity".encodeToByteArray()
-                        val driveId = "test-drive".encodeToByteArray()
-                        val fileId = "test-file-$currentTime".encodeToByteArray()
+                        val identityId = Uuid.random()
+                        val driveId = Uuid.random()
+                        val fileId = Uuid.random()
                         val versionTag = "version-tag-$randomId".encodeToByteArray()
                         val driveAlias = "alias".encodeToByteArray()
                         val driveType = "type".encodeToByteArray()
@@ -78,7 +79,7 @@ fun DbPage() {
                             historyStatus = 0L,
                             senderId = "sender@example.com",
                             groupId = null,
-                            uniqueId = "unique-$currentTime".encodeToByteArray(),
+                            uniqueId = Uuid.random(),
                             byteCount = 1024L,
                             hdrEncryptedKeyHeader = "{}",
                             hdrVersionTag = versionTag,
@@ -97,7 +98,7 @@ fun DbPage() {
                         val records = db.driveMainIndexQueries.selectAll().executeAsList()
                         val count = db.driveMainIndexQueries.countAll().executeAsOne()
 
-                        dbTestResult = "Success!\nWrote 1 record\nTotal records: $count\nLast record fileId: ${records.lastOrNull()?.fileId?.decodeToString()}"
+                        dbTestResult = "Success!\nWrote 1 record\nTotal records: $count\nLast record fileId: ${records.lastOrNull()?.fileId}"
                     } catch (e: Exception) {
                         dbTestResult = "Error: ${e.message}\n${e.stackTraceToString()}"
                     }

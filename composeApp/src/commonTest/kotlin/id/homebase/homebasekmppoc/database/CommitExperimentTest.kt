@@ -6,6 +6,8 @@ import kotlin.test.Test
 import kotlin.random.Random
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
+import kotlin.time.Clock
+import kotlin.uuid.Uuid
 
 class CommitExperimentTest {
     private var driver: SqlDriver? = null
@@ -14,7 +16,36 @@ class CommitExperimentTest {
     @BeforeTest
     fun setup() {
         driver = createInMemoryDatabase()
-        db = OdinDatabase(driver!!)
+        
+        // Create adapters for UUID columns
+        val driveTagIndexAdapter = DriveTagIndex.Adapter(
+            identityIdAdapter = UuidAdapter,
+            driveIdAdapter = UuidAdapter,
+            fileIdAdapter = UuidAdapter,
+            tagIdAdapter = UuidAdapter
+        )
+        
+        val driveLocalTagIndexAdapter = DriveLocalTagIndex.Adapter(
+            identityIdAdapter = UuidAdapter,
+            driveIdAdapter = UuidAdapter,
+            fileIdAdapter = UuidAdapter,
+            tagIdAdapter = UuidAdapter
+        )
+        
+        val driveMainIndexAdapter = DriveMainIndex.Adapter(
+            identityIdAdapter = UuidAdapter,
+            driveIdAdapter = UuidAdapter,
+            fileIdAdapter = UuidAdapter,
+            globalTransitIdAdapter = UuidAdapter,
+            groupIdAdapter = UuidAdapter,
+            uniqueIdAdapter = UuidAdapter
+        )
+        
+        val keyValueAdapter = KeyValue.Adapter(
+            keyAdapter = UuidAdapter
+        )
+        
+        db = OdinDatabase(driver!!, driveLocalTagIndexAdapter, driveMainIndexAdapter, driveTagIndexAdapter, keyValueAdapter)
     }
 
     @AfterTest
@@ -23,17 +54,16 @@ class CommitExperimentTest {
     }
 
 
-    @Test
+@Test
     fun testInsertSelectDeleteTag() = runTest {
-        // Test data - create sample byte arrays
-        val randomId = Random.nextLong()
-        val currentTime = randomId
-        val identityId = "test-identity".encodeToByteArray()
-        val driveId = "test-drive".encodeToByteArray()
-        val fileId = "test-file-$currentTime".encodeToByteArray()
-        val tagId = "test-tag-$randomId".encodeToByteArray()
+        // Test data - create sample UUIDs
+        val identityId = Uuid.random()
+        val driveId = Uuid.random()
+        val fileId = Uuid.random()
+        val tagId = Uuid.random()
+        val currentTime = Random.nextLong()
 
-        // Start a transaction here
+    // Start a transaction here
 
         // Insert a tag1
         db.driveTagIndexQueries.insertTag(
@@ -44,7 +74,7 @@ class CommitExperimentTest {
         )
 
         // Insert a tag2 with different tagId
-        val tagId2 = "test-tag-$randomId-2".encodeToByteArray()
+        val tagId2 = Uuid.random()
         db.driveTagIndexQueries.insertTag(
             identityId = identityId,
             driveId = driveId,
@@ -52,12 +82,12 @@ class CommitExperimentTest {
             tagId = tagId2
         )
 
-        // Insert a driveMainIndex record
+// Insert a driveMainIndex record
         db.driveMainIndexQueries.upsertDriveMainIndex(
-            identityId = "test-identity-delete".encodeToByteArray(),
-            driveId = "test-drive-delete".encodeToByteArray(),
-            fileId = "file-to-delete".encodeToByteArray(),
-            globalTransitId = "transit-delete".encodeToByteArray(),
+            identityId = identityId,
+            driveId = driveId,
+            fileId = fileId,
+            globalTransitId = Uuid.random(),
             fileState = 1L,
             requiredSecurityGroup = 1L,
             fileSystemType = 1L,
@@ -68,7 +98,7 @@ class CommitExperimentTest {
             historyStatus = 1L,
             senderId = "sender-delete",
             groupId = null,
-            uniqueId = "unique-delete".encodeToByteArray(),
+            uniqueId = Uuid.random(),
             byteCount = 100L,
             hdrEncryptedKeyHeader = "key-delete",
             hdrVersionTag = "version-delete".encodeToByteArray(),

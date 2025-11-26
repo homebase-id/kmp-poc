@@ -10,7 +10,36 @@ object DatabaseManager {
         if (database == null) {
             logger.i { "Initializing database..." }
             val driver = driverFactory.createDriver()
-            database = OdinDatabase(driver)
+            
+            // Create adapters for UUID columns
+            val driveTagIndexAdapter = DriveTagIndex.Adapter(
+                identityIdAdapter = UuidAdapter,
+                driveIdAdapter = UuidAdapter,
+                fileIdAdapter = UuidAdapter,
+                tagIdAdapter = UuidAdapter
+            )
+            
+            val driveLocalTagIndexAdapter = DriveLocalTagIndex.Adapter(
+                identityIdAdapter = UuidAdapter,
+                driveIdAdapter = UuidAdapter,
+                fileIdAdapter = UuidAdapter,
+                tagIdAdapter = UuidAdapter
+            )
+            
+            val driveMainIndexAdapter = DriveMainIndex.Adapter(
+                identityIdAdapter = UuidAdapter,
+                driveIdAdapter = UuidAdapter,
+                fileIdAdapter = UuidAdapter,
+                globalTransitIdAdapter = UuidAdapter,
+                groupIdAdapter = UuidAdapter,
+                uniqueIdAdapter = UuidAdapter
+            )
+            
+            val keyValueAdapter = KeyValue.Adapter(
+                keyAdapter = UuidAdapter
+            )
+            
+            database = OdinDatabase(driver, driveLocalTagIndexAdapter, driveMainIndexAdapter, driveTagIndexAdapter, keyValueAdapter)
             logger.i { "Database initialized successfully" }
         } else {
             logger.w { "Database already initialized" }

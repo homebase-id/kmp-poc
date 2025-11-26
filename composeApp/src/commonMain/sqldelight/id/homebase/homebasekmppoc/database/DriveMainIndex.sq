@@ -1,9 +1,11 @@
+import kotlin.uuid.Uuid;
+
 CREATE TABLE IF NOT EXISTS DriveMainIndex(
    rowId INTEGER PRIMARY KEY AUTOINCREMENT,
-   identityId BLOB NOT NULL,
-   driveId BLOB NOT NULL,
-   fileId BLOB NOT NULL,
-   globalTransitId BLOB,
+   identityId BLOB AS Uuid NOT NULL,
+   driveId BLOB AS Uuid NOT NULL,
+   fileId BLOB AS Uuid NOT NULL,
+   globalTransitId BLOB AS Uuid ,
    fileState INTEGER NOT NULL,
    requiredSecurityGroup INTEGER NOT NULL,
    fileSystemType INTEGER NOT NULL,
@@ -13,8 +15,8 @@ CREATE TABLE IF NOT EXISTS DriveMainIndex(
    archivalStatus INTEGER NOT NULL,
    historyStatus INTEGER NOT NULL,
    senderId TEXT,
-   groupId BLOB,
-   uniqueId BLOB,
+   groupId BLOB AS Uuid,
+   uniqueId BLOB AS Uuid,
    byteCount INTEGER NOT NULL,
    hdrEncryptedKeyHeader TEXT NOT NULL,
    hdrVersionTag BLOB NOT NULL,
