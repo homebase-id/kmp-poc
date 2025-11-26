@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS AppNotifications(
    modified INTEGER NOT NULL,
    UNIQUE(identityId,notificationId)
 );
-   CREATE INDEX IF NOT EXISTS Idx0AppNotifications ON AppNotifications(identityId,created);
+CREATE INDEX IF NOT EXISTS Idx0AppNotifications ON AppNotifications(identityId,created);
 
 -- Insert a notification
 insertNotification:
