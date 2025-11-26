@@ -2,15 +2,15 @@ import kotlin.uuid.Uuid;
 
 CREATE TABLE IF NOT EXISTS KeyValue(
    key BLOB AS Uuid PRIMARY KEY,
-   value BLOB NOT NULL
+   data BLOB NOT NULL
 );
 
 -- Upsert a value
 upsertValue:
-INSERT INTO KeyValue(key, value)
+INSERT INTO KeyValue(key, data)
 VALUES (?,?)
 ON CONFLICT(key) DO UPDATE
-SET value = excluded.value;
+SET data = excluded.data;
 
 
 -- Select a value
