@@ -1,0 +1,28 @@
+CREATE TABLE IF NOT EXISTS Outbox(
+   rowId INTEGER PRIMARY KEY AUTOINCREMENT,
+   lastAttempt INTEGER NOT NULL,
+   attemptCount INTEGER NOT NULL,
+   data BLOB NOT NULL,
+   files BLOB
+);
+
+-- Insert into outbox
+insert:
+INSERT INTO Outbox(lastAttempt, attemptCount, data, files)
+VALUES (?,?, ?, ?);
+
+
+-- Get next item to send (must be sent sequentially)
+selectNext:
+SELECT * FROM Outbox
+ORDER BY rowId ASC
+LIMIT 1;
+
+-- Delete a value
+delete:
+DELETE FROM Outbox
+WHERE rowId = ?;
+
+-- Get count
+count:
+SELECT count(*) FROM Outbox;

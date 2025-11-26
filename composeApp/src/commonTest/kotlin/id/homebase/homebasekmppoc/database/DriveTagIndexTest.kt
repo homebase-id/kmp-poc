@@ -8,6 +8,7 @@ import kotlin.test.assertTrue
 import kotlin.random.Random
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
+import kotlin.uuid.Uuid
 
 class DriveTagIndexTest {
     private var driver: SqlDriver? = null
@@ -16,7 +17,36 @@ class DriveTagIndexTest {
     @BeforeTest
     fun setup() {
         driver = createInMemoryDatabase()
-        db = OdinDatabase(driver!!)
+        
+        // Create adapters for UUID columns
+        val driveTagIndexAdapter = DriveTagIndex.Adapter(
+            identityIdAdapter = UuidAdapter,
+            driveIdAdapter = UuidAdapter,
+            fileIdAdapter = UuidAdapter,
+            tagIdAdapter = UuidAdapter
+        )
+        
+        val driveLocalTagIndexAdapter = DriveLocalTagIndex.Adapter(
+            identityIdAdapter = UuidAdapter,
+            driveIdAdapter = UuidAdapter,
+            fileIdAdapter = UuidAdapter,
+            tagIdAdapter = UuidAdapter
+        )
+        
+        val driveMainIndexAdapter = DriveMainIndex.Adapter(
+            identityIdAdapter = UuidAdapter,
+            driveIdAdapter = UuidAdapter,
+            fileIdAdapter = UuidAdapter,
+            globalTransitIdAdapter = UuidAdapter,
+            groupIdAdapter = UuidAdapter,
+            uniqueIdAdapter = UuidAdapter
+        )
+        
+        val keyValueAdapter = KeyValue.Adapter(
+            keyAdapter = UuidAdapter
+        )
+        
+        db = OdinDatabase(driver!!, driveLocalTagIndexAdapter, driveMainIndexAdapter, driveTagIndexAdapter, keyValueAdapter)
     }
 
     @AfterTest
@@ -25,16 +55,14 @@ class DriveTagIndexTest {
     }
 
 
-    @Test
+@Test
     fun testInsertSelectDeleteTag() = runTest {
 
-        // Test data - create sample byte arrays
-        val randomId = Random.nextLong()
-        val currentTime = randomId
-        val identityId = "test-identity".encodeToByteArray()
-        val driveId = "test-drive".encodeToByteArray()
-        val fileId = "test-file-$currentTime".encodeToByteArray()
-        val tagId = "test-tag-$randomId".encodeToByteArray()
+        // Test data - create sample UUIDs
+        val identityId = Uuid.random()
+        val driveId = Uuid.random()
+        val fileId = Uuid.random()
+        val tagId = Uuid.random()
 
         // Clean up any existing data for this file
         db.driveTagIndexQueries.deleteByFile(
@@ -58,15 +86,15 @@ class DriveTagIndexTest {
             fileId = fileId
         ).executeAsList()
 
-        // Verify insertion
+// Verify insertion
         assertEquals(1, tags.size, "Should have exactly one tag")
-        assertEquals(identityId.toList(), tags[0].identityId.toList())
-        assertEquals(driveId.toList(), tags[0].driveId.toList())
-        assertEquals(fileId.toList(), tags[0].fileId.toList())
-        assertEquals(tagId.toList(), tags[0].tagId.toList())
+        assertEquals(identityId, tags[0].identityId)
+        assertEquals(driveId, tags[0].driveId)
+        assertEquals(fileId, tags[0].fileId)
+        assertEquals(tagId, tags[0].tagId)
 
         // Insert another tag for the same file
-        val tagId2 = "test-tag-2-$randomId".encodeToByteArray()
+        val tagId2 = Uuid.random()
         db.driveTagIndexQueries.insertTag(
             identityId = identityId,
             driveId = driveId,
@@ -100,13 +128,13 @@ class DriveTagIndexTest {
         assertTrue(tagsAfterDelete.isEmpty(), "Should have no tags after deletion")
     }
 
-    @Test
+@Test
     fun testSelectByFileWithNoTags() = runTest {
 
         // Test data for non-existent file
-        val identityId = "non-existent-identity".encodeToByteArray()
-        val driveId = "non-existent-drive".encodeToByteArray()
-        val fileId = "non-existent-file".encodeToByteArray()
+        val identityId = Uuid.random()
+        val driveId = Uuid.random()
+        val fileId = Uuid.random()
 
         // Select tags for non-existent file
         val tags = db.driveTagIndexQueries.selectByFile(
@@ -119,15 +147,14 @@ class DriveTagIndexTest {
         assertTrue(tags.isEmpty(), "Should have no tags for non-existent file")
     }
 
-    @Test
+@Test
     fun testUniqueConstraint() = runTest {
 
         // Test data
-        val randomId = Random.nextLong()
-        val identityId = "test-identity-unique".encodeToByteArray()
-        val driveId = "test-drive-unique".encodeToByteArray()
-        val fileId = "test-file-unique-$randomId".encodeToByteArray()
-        val tagId = "test-tag-unique".encodeToByteArray()
+        val identityId = Uuid.random()
+        val driveId = Uuid.random()
+        val fileId = Uuid.random()
+        val tagId = Uuid.random()
 
         // Clean up any existing data
         db.driveTagIndexQueries.deleteByFile(

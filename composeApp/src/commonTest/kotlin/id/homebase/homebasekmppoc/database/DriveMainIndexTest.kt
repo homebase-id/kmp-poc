@@ -5,20 +5,49 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import kotlin.test.assertNotNull
 import kotlin.random.Random
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
+import kotlin.uuid.Uuid
 
 class DriveMainIndexTest {
 
     private var driver: SqlDriver? = null
     private lateinit var db: OdinDatabase
 
-    @BeforeTest
+@BeforeTest
     fun setup() {
         driver = createInMemoryDatabase()
-        db = OdinDatabase(driver!!)
+        
+// Create adapters for UUID columns
+        val driveTagIndexAdapter = DriveTagIndex.Adapter(
+            identityIdAdapter = UuidAdapter,
+            driveIdAdapter = UuidAdapter,
+            fileIdAdapter = UuidAdapter,
+            tagIdAdapter = UuidAdapter
+        )
+        
+        val driveLocalTagIndexAdapter = DriveLocalTagIndex.Adapter(
+            identityIdAdapter = UuidAdapter,
+            driveIdAdapter = UuidAdapter,
+            fileIdAdapter = UuidAdapter,
+            tagIdAdapter = UuidAdapter
+        )
+        
+        val driveMainIndexAdapter = DriveMainIndex.Adapter(
+            identityIdAdapter = UuidAdapter,
+            driveIdAdapter = UuidAdapter,
+            fileIdAdapter = UuidAdapter,
+            globalTransitIdAdapter = UuidAdapter,
+            groupIdAdapter = UuidAdapter,
+            uniqueIdAdapter = UuidAdapter
+        )
+        
+        val keyValueAdapter = KeyValue.Adapter(
+            keyAdapter = UuidAdapter
+        )
+        
+        db = OdinDatabase(driver!!, driveLocalTagIndexAdapter, driveMainIndexAdapter, driveTagIndexAdapter, keyValueAdapter)
     }
 
     @AfterTest
@@ -30,14 +59,14 @@ class DriveMainIndexTest {
     fun testUpsertSelectByIdentityAndDriveAndFile() = runTest {
 
         // Test data - create sample byte arrays and values
-        val randomId = Random.nextLong()
+val randomId = Random.nextLong()
         val currentTime = Random.nextLong()
-        val identityId = "test-identity".encodeToByteArray()
-        val driveId = "test-drive".encodeToByteArray()
-        val fileId = "test-file-$currentTime".encodeToByteArray()
-        val globalTransitId = "global-transit-$randomId".encodeToByteArray()
-        val uniqueId = "unique-id-$randomId".encodeToByteArray()
-        val groupId = "group-$randomId".encodeToByteArray()
+        val identityId = Uuid.random()
+        val driveId = Uuid.random()
+        val fileId = Uuid.random()
+        val globalTransitId = Uuid.random()
+        val uniqueId = Uuid.random()
+        val groupId = Uuid.random()
         val hdrVersionTag = "hdr-version-$randomId".encodeToByteArray()
         val hdrLocalVersionTag = "hdr-local-version-$randomId".encodeToByteArray()
 
@@ -100,11 +129,11 @@ class DriveMainIndexTest {
             fileId = fileId
         ).executeAsOne()
 
-        // Verify all fields match
-        assertEquals(identityId.toList(), selectedRecord.identityId.toList())
-        assertEquals(driveId.toList(), selectedRecord.driveId.toList())
-        assertEquals(fileId.toList(), selectedRecord.fileId.toList())
-        assertEquals(globalTransitId.toList(), selectedRecord.globalTransitId?.toList())
+// Verify all fields match
+        assertEquals(identityId, selectedRecord.identityId)
+        assertEquals(driveId, selectedRecord.driveId)
+        assertEquals(fileId, selectedRecord.fileId)
+        assertEquals(globalTransitId, selectedRecord.globalTransitId)
         assertEquals(fileState.toLong(), selectedRecord.fileState)
         assertEquals(requiredSecurityGroup.toLong(), selectedRecord.requiredSecurityGroup)
         assertEquals(fileSystemType.toLong(), selectedRecord.fileSystemType)
@@ -114,8 +143,8 @@ class DriveMainIndexTest {
         assertEquals(archivalStatus.toLong(), selectedRecord.archivalStatus)
         assertEquals(historyStatus.toLong(), selectedRecord.historyStatus)
         assertEquals(senderId, selectedRecord.senderId)
-        assertEquals(groupId.toList(), selectedRecord.groupId?.toList())
-        assertEquals(uniqueId.toList(), selectedRecord.uniqueId?.toList())
+assertEquals(groupId, selectedRecord.groupId)
+        assertEquals(uniqueId, selectedRecord.uniqueId)
         assertEquals(byteCount, selectedRecord.byteCount)
         assertEquals(hdrEncryptedKeyHeader, selectedRecord.hdrEncryptedKeyHeader)
         assertEquals(hdrVersionTag.toList(), selectedRecord.hdrVersionTag.toList())
@@ -135,11 +164,11 @@ class DriveMainIndexTest {
 
         // Test data
         val currentTime = Random.nextLong()
-        val identityId = "test-identity-update".encodeToByteArray()
-        val driveId = "test-drive-update".encodeToByteArray()
-        val fileId = "test-file-update".encodeToByteArray()
-        val globalTransitId = "global-transit-original".encodeToByteArray()
-        val uniqueId = "unique-id-original".encodeToByteArray()
+val identityId = Uuid.random()
+        val driveId = Uuid.random()
+        val fileId = Uuid.random()
+        val globalTransitId = Uuid.random()
+        val uniqueId = Uuid.random()
         val hdrVersionTag = "hdr-version-original".encodeToByteArray()
 
         // Insert initial record
@@ -173,10 +202,10 @@ class DriveMainIndexTest {
             modified = currentTime
         )
 
-        // Update the record with new values
+// Update the record with new values
         val updatedTime = currentTime + 5000
-        val updatedGlobalTransitId = "global-transit-updated".encodeToByteArray()
-        val updatedUniqueId = "unique-id-updated".encodeToByteArray()
+        val updatedGlobalTransitId = Uuid.random()
+        val updatedUniqueId = Uuid.random()
 
         db.driveMainIndexQueries.upsertDriveMainIndex(
             identityId = identityId,
@@ -192,7 +221,7 @@ class DriveMainIndexTest {
             archivalStatus = 66L,
             historyStatus = 77L,
             senderId = "updated-sender",
-            groupId = "updated-group".encodeToByteArray(),
+            groupId = Uuid.random(),
             uniqueId = updatedUniqueId,
             byteCount = 2048L,
             hdrEncryptedKeyHeader = "updated-key-header",
@@ -215,10 +244,10 @@ class DriveMainIndexTest {
             fileId = fileId
         ).executeAsOne()
 
-        assertEquals(updatedGlobalTransitId.toList(), updatedRecord.globalTransitId?.toList())
+assertEquals(updatedGlobalTransitId, updatedRecord.globalTransitId)
         assertEquals(11L, updatedRecord.fileState)
         assertEquals("updated-sender", updatedRecord.senderId)
-        assertEquals(updatedUniqueId.toList(), updatedRecord.uniqueId?.toList())
+        assertEquals(updatedUniqueId, updatedRecord.uniqueId)
         assertEquals(2048L, updatedRecord.byteCount)
         assertEquals("updated-app-data", updatedRecord.hdrAppData)
         assertEquals(updatedTime, updatedRecord.modified)
@@ -229,9 +258,9 @@ class DriveMainIndexTest {
     fun testSelectByIdentityAndDriveAndFileWithNonExistentRecord() = runTest {
 
         // Test data for non-existent record
-        val identityId = "non-existent-identity".encodeToByteArray()
-        val driveId = "non-existent-drive".encodeToByteArray()
-        val fileId = "non-existent-file".encodeToByteArray()
+val identityId = Uuid.random()
+        val driveId = Uuid.random()
+        val fileId = Uuid.random()
 
         // Try to select non-existent record
         val records = db.driveMainIndexQueries.selectByIdentityAndDriveAndFile(
@@ -252,15 +281,15 @@ class DriveMainIndexTest {
 
         // Insert some test records
         val currentTime = Random.nextLong()
-        val identityId = "test-identity-count".encodeToByteArray()
-        val driveId = "test-drive-count".encodeToByteArray()
+val identityId = Uuid.random()
+        val driveId = Uuid.random()
 
         for (i in 1..3) {
             db.driveMainIndexQueries.upsertDriveMainIndex(
                 identityId = identityId,
                 driveId = driveId,
-                fileId = "file-$i".encodeToByteArray(),
-                globalTransitId = "transit-$i".encodeToByteArray(),
+fileId = Uuid.random(),
+                globalTransitId = Uuid.random(),
                 fileState = i.toLong(),
                 requiredSecurityGroup = 1L,
                 fileSystemType = 1L,
@@ -271,7 +300,7 @@ class DriveMainIndexTest {
                 historyStatus = 1L,
                 senderId = "sender-$i",
                 groupId = null,
-                uniqueId = "unique-$i".encodeToByteArray(),
+uniqueId = Uuid.random(),
                 byteCount = i * 100L,
                 hdrEncryptedKeyHeader = "key-$i",
                 hdrVersionTag = "version-$i".encodeToByteArray(),
@@ -294,11 +323,9 @@ class DriveMainIndexTest {
         val allRecords = db.driveMainIndexQueries.selectAll().executeAsList()
         assertEquals(3, allRecords.size, "Should have exactly 3 records")
 
-        // Verify the records have different fileIds
-        val fileIds = allRecords.map { it.fileId.decodeToString() }
-        assertTrue(fileIds.contains("file-1"))
-        assertTrue(fileIds.contains("file-2"))
-        assertTrue(fileIds.contains("file-3"))
+// Verify the records have different fileIds
+        val fileIds = allRecords.map { it.fileId.toString() }
+        assertEquals(3, fileIds.toSet().size, "All fileIds should be different")
     }
 
     @Test
@@ -307,10 +334,10 @@ class DriveMainIndexTest {
         // Insert a test record first
         val currentTime = Random.nextLong()
         db.driveMainIndexQueries.upsertDriveMainIndex(
-            identityId = "test-identity-delete".encodeToByteArray(),
-            driveId = "test-drive-delete".encodeToByteArray(),
-            fileId = "file-to-delete".encodeToByteArray(),
-            globalTransitId = "transit-delete".encodeToByteArray(),
+identityId = Uuid.random(),
+            driveId = Uuid.random(),
+            fileId = Uuid.random(),
+            globalTransitId = Uuid.random(),
             fileState = 1L,
             requiredSecurityGroup = 1L,
             fileSystemType = 1L,
@@ -321,7 +348,7 @@ class DriveMainIndexTest {
             historyStatus = 1L,
             senderId = "sender-delete",
             groupId = null,
-            uniqueId = "unique-delete".encodeToByteArray(),
+            uniqueId = Uuid.random(),
             byteCount = 100L,
             hdrEncryptedKeyHeader = "key-delete",
             hdrVersionTag = "version-delete".encodeToByteArray(),
