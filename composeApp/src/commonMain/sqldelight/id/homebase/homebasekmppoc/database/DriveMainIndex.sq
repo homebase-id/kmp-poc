@@ -78,6 +78,11 @@ WHERE identityId = ? AND driveId = ? AND fileId = ?;
 deleteAll:
 DELETE FROM DriveMainIndex;
 
+-- Delete all records (for testing)
+deleteBy:
+DELETE FROM DriveMainIndex
+WHERE identityId = ? AND driveId = ? AND fileId = ?;
+
 -- Count all records - for TESTING
 countAll:
 SELECT count(*) FROM DriveMainIndex;
