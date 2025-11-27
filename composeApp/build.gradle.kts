@@ -50,7 +50,7 @@ kotlin {
         iosSimulatorArm64()
     ).forEach { iosTarget ->
         iosTarget.binaries.framework {
-            baseName = "ComposeApp"
+            baseName = "Homebase Starter"
             isStatic = true
             // Link SQLite for SQLDelight
             linkerOpts("-lsqlite3")
@@ -65,7 +65,11 @@ kotlin {
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
-            implementation("androidx.browser:browser:1.9.0")
+            implementation(libs.androidx.browser)
+            // Ktor Android engine
+            implementation(libs.ktor.client.okhttp)
+            // SQLDelight Android driver
+            implementation(libs.sqldelight.android.driver)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -76,67 +80,56 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
-            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
-            implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
-            implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.8.0")
-            implementation("dev.whyoleg.cryptography:cryptography-core:0.5.0")
-            implementation("dev.whyoleg.cryptography:cryptography-provider-optimal:0.5.0")
-            implementation("co.touchlab:kermit:2.0.8")
+//            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0") -- We use Serialization via Ktor
+            implementation(libs.kotlinx.datetime)
+            implementation(libs.kotlinx.io.core)
+            implementation(libs.kermit)
             // Ktor HTTP client
-            implementation("io.ktor:ktor-client-core:3.3.2")
-            implementation("io.ktor:ktor-client-content-negotiation:3.3.2")
-            implementation("io.ktor:ktor-serialization-kotlinx-json:3.3.2")
-            implementation("io.ktor:ktor-client-websockets:3.3.2")
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
+            implementation(libs.kotlinx.coroutines.core)
+
+            // Cryptography
+            implementation(libs.cryptography.core)
+            implementation(libs.cryptography.provider.optimal)
             // SQLDelight
-            implementation("app.cash.sqldelight:runtime:2.2.1")
-            implementation("app.cash.sqldelight:coroutines-extensions:2.2.1")
-        }
-        androidMain.dependencies {
-            implementation(compose.preview)
-            implementation(compose.foundation)
-            implementation(compose.ui)
-            implementation(compose.components.resources)
-            implementation(compose.components.uiToolingPreview)
-            implementation(libs.androidx.activity.compose)
-            implementation("androidx.browser:browser:1.9.0")
-            // Ktor Android engine
-            implementation("io.ktor:ktor-client-okhttp:3.3.2")
-            // SQLDelight Android driver
-            implementation("app.cash.sqldelight:android-driver:2.2.1")
+            implementation(libs.sqldelight.runtime)
+            implementation(libs.sqldelight.coroutines.extensions)
         }
         iosMain.dependencies {
             // Ktor iOS engine
-            implementation("io.ktor:ktor-client-darwin:3.3.2")
+            implementation(libs.ktor.client.darwin)
             // SQLDelight iOS driver
-            implementation("app.cash.sqldelight:native-driver:2.2.1")
+            implementation(libs.sqldelight.native.driver)
         }
         val desktopMain by getting {
             dependencies {
                 implementation(compose.desktop.currentOs)
                 // Ktor Desktop client engine
-                implementation("io.ktor:ktor-client-cio:3.3.2")
+                implementation(libs.ktor.client.cio)
                 // Ktor Server for OAuth callback handling
-                implementation("io.ktor:ktor-server-core:3.3.2")
-                implementation("io.ktor:ktor-server-cio:3.3.2")
-                implementation("io.ktor:ktor-server-html-builder:3.3.2")
+                implementation(libs.ktor.server.core)
+                implementation(libs.ktor.server.cio)
+                implementation(libs.ktor.server.html.builder)
                 // SQLDelight Desktop driver
-                implementation("app.cash.sqldelight:sqlite-driver:2.2.1")
+                implementation(libs.sqldelight.sqlite.driver)
             }
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
-            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1")
-            implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
+            implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.kotlinx.datetime)
         }
         androidUnitTest.dependencies {
-            implementation("app.cash.sqldelight:sqlite-driver:2.2.1")
+            implementation(libs.sqldelight.sqlite.driver)
         }
         iosTest.dependencies {
-            implementation("app.cash.sqldelight:native-driver:2.2.1")
+            implementation(libs.sqldelight.native.driver)
         }
         val desktopTest by getting {
             dependencies {
-                implementation("app.cash.sqldelight:sqlite-driver:2.2.1")
+                implementation(libs.sqldelight.sqlite.driver)
             }
         }
     }
@@ -165,9 +158,6 @@ android {
         versionName = "1.0"
     }
 
-    lint {
-        baseline = file("lint-baseline.xml")
-    }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -194,8 +184,7 @@ sqldelight {
             packageName.set("id.homebase.homebasekmppoc.lib.database")
             // This is important to get the right SQLite version so that
             // ON CONFLICT and RETURNING are supported
-            dialect("app.cash.sqldelight:sqlite-3-38-dialect:2.2.1")
+            dialect(libs.sqldelight.sqlite338.dialect)
         }
     }
 }
-
