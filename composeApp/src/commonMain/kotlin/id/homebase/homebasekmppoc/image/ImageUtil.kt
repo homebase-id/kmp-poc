@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc.util
+package id.homebase.homebasekmppoc.image
 
 import androidx.compose.ui.graphics.ImageBitmap
 

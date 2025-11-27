@@ -4,7 +4,6 @@ package id.homebase.homebasekmppoc.http
 
 import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.authentication.AuthState
-import id.homebase.homebasekmppoc.crypto.CryptoHelper
 import id.homebase.homebasekmppoc.drives.DriveDefinition
 import id.homebase.homebasekmppoc.drives.GetDrivesByTypeRequest
 import id.homebase.homebasekmppoc.drives.SharedSecretEncryptedFileHeader
@@ -13,7 +12,6 @@ import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.headers
 import io.ktor.http.contentLength
-import io.ktor.utils.io.core.toByteArray
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -49,7 +47,7 @@ class PayloadPlayground(private val authenticated: AuthState.Authenticated) {
         val payloadBytes = getPayloadBytes(fileHeader, fileSystemType)
 
         Logger.d("PayloadPlayground") { "getImage: Verifying image format..." }
-        id.homebase.homebasekmppoc.util.ImageFormatDetector.logImageInfo(payloadBytes, "PayloadPlayground")
+        id.homebase.homebasekmppoc.image.ImageFormatDetector.logImageInfo(payloadBytes, "PayloadPlayground")
 
         return payloadBytes
     }

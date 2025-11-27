@@ -35,9 +35,8 @@ import id.homebase.homebasekmppoc.authentication.AuthState
 import id.homebase.homebasekmppoc.drives.SystemDriveConstants
 import id.homebase.homebasekmppoc.http.OdinHttpClient
 import id.homebase.homebasekmppoc.http.PayloadPlayground
-import id.homebase.homebasekmppoc.util.toImageBitmap
+import id.homebase.homebasekmppoc.image.toImageBitmap
 import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
  * A card component that displays authenticated owner information with data from backend.
