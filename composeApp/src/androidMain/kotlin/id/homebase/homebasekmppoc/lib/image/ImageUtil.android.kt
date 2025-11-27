@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import co.touchlab.kermit.Logger
 import java.io.ByteArrayOutputStream
+import androidx.core.graphics.scale
 
 /**
  * Android implementation: Convert ByteArray to ImageBitmap using Android's BitmapFactory
@@ -76,6 +77,7 @@ actual object ImageUtils {
         return stream.toByteArray()
     }
 
+    @RequiresApi(Build.VERSION_CODES.R)
     actual fun resizePreserveAspect(
         srcBytes: ByteArray,
         maxWidth: Int,
@@ -101,7 +103,7 @@ actual object ImageUtils {
         }
 
         // Resize the bitmap
-        val resized = Bitmap.createScaledBitmap(srcBitmap, targetW, targetH, true)
+        val resized = srcBitmap.scale(targetW, targetH)
         val encoded = encodeBitmap(resized, outputFormat, quality)
 
         srcBitmap.recycle()
