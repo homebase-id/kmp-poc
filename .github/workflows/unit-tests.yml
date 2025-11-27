@@ -1,0 +1,57 @@
+name: Unit Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            name: Android & Desktop
+            test-command: |
+              ./gradlew testDebugUnitTest
+              ./gradlew desktopTest
+          - os: macos-latest
+            name: iOS
+            test-command: ./run-ios-tests-ci.sh
+      fail-fast: false
+    name: ${{ matrix.name }} Tests on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Gradle Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+        
+      - name: Make test scripts executable
+        run: |
+          chmod +x ./run-all-tests.sh
+          chmod +x ./run-ios-tests.sh
+          chmod +x ./run-ios-tests-ci.sh
+          chmod +x ./gradlew-clean-build.sh
+          
+      - name: Run tests
+        run: ${{ matrix.test-command }}

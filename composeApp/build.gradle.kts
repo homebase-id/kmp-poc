@@ -54,6 +54,8 @@ kotlin {
             isStatic = true
             // Link SQLite for SQLDelight
             linkerOpts("-lsqlite3")
+            // Specify bundle ID to avoid warnings
+            freeCompilerArgs += listOf("-Xbinary=bundleId=id.homebase.homebasekmppoc")
         }
     }
     
@@ -123,6 +125,7 @@ kotlin {
         }
         androidUnitTest.dependencies {
             implementation(libs.sqldelight.sqlite.driver)
+            implementation(libs.robolectric)
         }
         iosTest.dependencies {
             implementation(libs.sqldelight.native.driver)
