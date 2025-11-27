@@ -4,6 +4,7 @@ import id.homebase.homebasekmppoc.lib.encodeUrl
 import id.homebase.homebasekmppoc.lib.http.SharedSecretEncryptedPayload
 import id.homebase.homebasekmppoc.lib.serialization.OdinSystemSerializer
 import id.homebase.homebasekmppoc.lib.toBase64
+import io.ktor.util.encodeBase64
 import kotlin.io.encoding.Base64
 
 /**
@@ -19,6 +20,10 @@ object CryptoHelper {
         return queryStrings
             .filter { it.isNotEmpty() }
             .joinToString("&")
+    }
+
+    fun generateIv(): ByteArray {
+        return ByteArrayUtil.getRndByteArray(16)
     }
 
     /**
@@ -79,6 +84,17 @@ object CryptoHelper {
 
         return "$path?ss=$encodedPayload"
     }
+
+    suspend fun encryptData(plainText: String, sharedSecret: ByteArray): SharedSecretEncryptedPayload {
+        val iv = generateIv()
+        val encryptedBytes = AesCbc.encrypt(plainText.encodeToByteArray(), sharedSecret, iv)
+
+        return SharedSecretEncryptedPayload(
+            iv = iv.encodeBase64(),
+            data = encryptedBytes.encodeBase64()
+        )
+    }
+
 
     /**
      * Decrypts content and deserializes to type T
