@@ -21,13 +21,13 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import kotlinx.coroutines.launch
-import id.homebase.homebasekmppoc.authentication.AuthenticationManager
-import id.homebase.homebasekmppoc.pages.app.AppPage
-import id.homebase.homebasekmppoc.pages.db.DbPage
-import id.homebase.homebasekmppoc.pages.owner.OwnerPage
-import id.homebase.homebasekmppoc.pages.domain.DomainPage
-import id.homebase.homebasekmppoc.pages.ws.WebsocketPage
-import id.homebase.homebasekmppoc.youauth.YouAuthManager
+import id.homebase.homebasekmppoc.lib.authentication.AuthenticationManager
+import id.homebase.homebasekmppoc.ui.app.AppPage
+import id.homebase.homebasekmppoc.ui.db.DbPage
+import id.homebase.homebasekmppoc.ui.owner.OwnerPage
+import id.homebase.homebasekmppoc.ui.domain.DomainPage
+import id.homebase.homebasekmppoc.ui.ws.WebsocketPage
+import id.homebase.homebasekmppoc.lib.youauth.YouAuthManager
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)

@@ -191,7 +191,7 @@ dependencies {
 sqldelight {
     databases {
         create("OdinDatabase") {
-            packageName.set("id.homebase.homebasekmppoc.database")
+            packageName.set("id.homebase.homebasekmppoc.lib.database")
             // This is important to get the right SQLite version so that
             // ON CONFLICT and RETURNING are supported
             dialect("app.cash.sqldelight:sqlite-3-38-dialect:2.2.1")
