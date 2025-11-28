@@ -84,11 +84,6 @@ The app implements browser-based OAuth2-like authentication:
 - **Android**: Intent filters in `AndroidManifest.xml` for `youauth://` scheme
 - **iOS**: URL scheme in `Info.plist` for `youauth://` scheme
 
-**Key Files:**
-
-- `composeApp/src/commonMain/kotlin/id/homebase/homebasekmppoc/youauth/` - YouAuth implementation
-- `composeApp/src/commonMain/kotlin/id/homebase/homebasekmppoc/DomainPage.kt` - Authentication UI
-
 ### UI Architecture
 
 The app uses a tab-based navigation with three main screens:
@@ -101,34 +96,13 @@ Main UI entry point: `App.kt` with `PrimaryTabRow` for navigation.
 
 ### Cryptography Implementation
 
-The project uses [cryptography-kotlin](https://github.com/whyoleg/cryptography-kotlin) v0.5.0 for cross-platform cryptographic operations.
-
-**Current Status:**
-All cryptography is implemented in common code using cryptography-kotlin:
-
-- `Crc32c.kt` - CRC32C checksum calculation
-- `SensitiveByteArray.kt` - Secure memory handling for sensitive data
-- `UnixTimeUtc.kt` - Unix timestamp utilities
-- `AesCbc.kt` - AES-CBC encryption/decryption
-- `HashUtil.kt` - SHA-256 hashing and HKDF key derivation
-- `EccKeyData.kt` - ECC key generation, ECDH key agreement, JWK/DER conversions
-- `ByteArrayUtil.kt` - Byte array utilities and Base64 encoding
-- `Base64UrlEncoder.kt` - Base64 URL-safe encoding/decoding
+The project uses [cryptography-kotlin](https://github.com/whyoleg/cryptography-kotlin) for cross-platform cryptographic operations.
 
 **Cryptography Provider:**
 
 - Uses `cryptography-provider-optimal` which automatically selects the best provider per platform:
   - **Android**: JDK provider
   - **iOS**: CryptoKit provider (with Apple CommonCrypto fallback)
-
-**Key Implementation Notes:**
-
-- All crypto operations are `suspend` functions (async)
-- ECC operations support P-256 and P-384 curves
-- Keys can be encoded/decoded in DER, RAW (uncompressed EC points) formats
-- JWK format is handled manually as CryptoKit doesn't support it natively
-- HKDF uses SHA-256 for key derivation
-- No platform-specific native code required
 
 ## Dependencies
 
@@ -205,5 +179,6 @@ Key dependencies (defined in `gradle/libs.versions.toml` and `build.gradle.kts`)
 - iOS console may show harmless warnings about duplicate Objective-C classes from system frameworks
 - CryptoKit provider on iOS doesn't support JWK format natively - we use RAW uncompressed EC point format instead
 - All crypto operations are async (suspend functions) due to cryptography-kotlin API design
-- always compile when you're done making changes
-- always prefer stable, well-documented and well-tested third-party libraries over custom implementations when necessary
+- Always compile when you're done making changes
+- When possible, always prefer stable, currently maintained, well-documented and well-tested third-party libraries over custom implementations
+- When possible, always prefer creating platorm shared code over creating platform-specific code
