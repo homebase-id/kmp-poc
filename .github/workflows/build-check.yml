@@ -16,7 +16,7 @@ jobs:
             name: Android & Desktop
             build-command: |
               ./gradlew assembleDebug
-              ./gradlew assembleDist
+              ./gradlew createDistributable
           - os: macos-latest
             name: iOS
             build-command: ./gradlew linkDebugFrameworkIosArm64
@@ -69,14 +69,14 @@ jobs:
 
       - name: Verify Desktop build artifact
         if: ${{ matrix.name == 'Android & Desktop' }}
-        run: find composeApp/build/distributions -name "*.zip" | grep -q ".zip$"
+        run: find composeApp/build/compose/binaries/main/dist -name "*.zip" | grep -q ".zip$"
 
       - name: Upload Desktop artifact
         if: ${{ matrix.name == 'Android & Desktop' }}
         uses: actions/upload-artifact@v4
         with:
           name: desktop-dist
-          path: composeApp/build/distributions/*.zip
+          path: composeApp/build/compose/binaries/main/dist/*.zip
 
       - name: Verify iOS build artifact
         if: ${{ matrix.name == 'iOS' }}
