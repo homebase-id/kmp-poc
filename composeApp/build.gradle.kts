@@ -127,6 +127,13 @@ kotlin {
             implementation(libs.sqldelight.sqlite.driver)
             implementation(libs.robolectric)
         }
+        androidInstrumentedTest.dependencies {
+            implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.androidx.test.runner)
+            implementation(libs.androidx.test.core)
+            implementation(libs.androidx.junit)
+        }
         iosTest.dependencies {
             implementation(libs.sqldelight.native.driver)
         }
@@ -181,6 +188,20 @@ android {
         unitTests {
             isIncludeAndroidResources = true
             isReturnDefaultValues = true
+            all {
+                it.testLogging {
+                    events("passed", "skipped", "failed", "standardOut", "standardError")
+                    showStandardStreams = true
+                    showExceptions = true
+                    showCauses = true
+                    showStackTraces = true
+                }
+
+                // Add system property to ensure Robolectric uses the correct SDK
+                it.systemProperty("robolectric.enabledSdks", "33")
+                // Enable native graphics mode for full BitmapFactory support
+                it.systemProperty("robolectric.graphicsMode", "NATIVE")
+            }
         }
     }
 }

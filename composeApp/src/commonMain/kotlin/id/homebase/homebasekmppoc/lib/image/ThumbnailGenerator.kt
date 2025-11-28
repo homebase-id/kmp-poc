@@ -58,18 +58,25 @@ suspend fun createThumbnails(
     thumbSizes: List<ThumbnailInstruction>? = null
 ): Triple<ImageSize, EmbeddedThumb, List<ThumbnailFile>> = withContext(Dispatchers.Default) {
 
-    // Determine natural size using ImageUtils
-    val naturalSize = ImageUtils.getNaturalSize(imageBytes)
-
     // GIF and SVG handling: for SVG files we expect bytes to be svg xml; for GIFs we treat them specially
-    // Here we try simple detection by header bytes
+    // Check these FIRST before trying to decode, as Skia can't decode SVG
     val header = imageBytes.take(16).toByteArray().decodeToString().lowercase()
     val isSvg = header.contains("<svg") || header.contains("<?xml")
     val isGif = imageBytes.size >= 3 && imageBytes[0] == 0x47.toByte() /* G */ && imageBytes[1] == 0x49.toByte() /* I */ && imageBytes[2] == 0x46.toByte() /* F */
 
     if (isSvg) {
         // For SVG, we return the original vector format
-        val vectorThumb = ThumbnailFile(pixelWidth = 50, pixelHeight = 50, payload = imageBytes, key = payloadKey)
+        // Try to get dimensions from SVG, fallback to default
+        val naturalSize = getSvgDimensions(imageBytes) ?: ImageSize(320, 320)
+
+        val vectorThumb = ThumbnailFile(
+            pixelWidth = naturalSize.pixelWidth,
+            pixelHeight = naturalSize.pixelHeight,
+            payload = imageBytes,
+            key = payloadKey,
+            contentType = "image/svg+xml",
+            quality = 100
+        )
         val embedded = EmbeddedThumb(
             pixelWidth = naturalSize.pixelWidth,
             pixelHeight = naturalSize.pixelHeight,
@@ -80,30 +87,19 @@ suspend fun createThumbnails(
         return@withContext Triple(naturalSize, embedded, listOf(vectorThumb))
     }
 
+    // Determine natural size using ImageUtils (for non-SVG images)
+    val naturalSize = ImageUtils.getNaturalSize(imageBytes)
+
     if (isGif) {
-        // For GIF, create tiny thumb only (webp) and possibly include original if < 1MB
+        // For GIF, create tiny thumb only (webp), no additional thumbnails
         val tinyThumbFile = createImageThumbnail(imageBytes, payloadKey, tinyThumbSize, isTinyThumb = true)
-        val includeOriginal = imageBytes.size < 1024 * 1024
-        val additional = mutableListOf<ThumbnailFile>()
-        if (includeOriginal) {
-            additional.add(
-                ThumbnailFile(
-                    pixelWidth = naturalSize.pixelWidth,
-                    pixelHeight = naturalSize.pixelHeight,
-                    payload = imageBytes,
-                    key = payloadKey,
-                    contentType = "image/gif",
-                    quality = 100
-                )
-            )
-        }
         val embeddedTiny = EmbeddedThumb(
             pixelWidth = naturalSize.pixelWidth,
             pixelHeight = naturalSize.pixelHeight,
             contentType = "image/webp",
             contentBase64 = toBase64(tinyThumbFile.payload)
         )
-        return@withContext Triple(naturalSize, embeddedTiny, additional)
+        return@withContext Triple(naturalSize, embeddedTiny, emptyList())
     }
 
     // general image case
@@ -112,15 +108,11 @@ suspend fun createThumbnails(
     val requestedSizes = thumbSizes ?: baseThumbSizes
     val applicableThumbs = getRevisedThumbs(naturalSize, requestedSizes)
 
-    // Create additional thumbnails (tiny + requested ones)
-    val additional = mutableListOf<ThumbnailFile>()
-    additional.add(tinyThumbFile)
-
-    val produced = applicableThumbs.map { instr ->
+    // Create additional thumbnails (NOT including tiny thumb - only the applicable thumbs)
+    val additional = applicableThumbs.map { instr ->
         // create with no tiny flag
         createImageThumbnail(imageBytes, payloadKey, instr, isTinyThumb = false)
     }
-    additional.addAll(produced)
 
     val embeddedTiny = EmbeddedThumb(
         pixelWidth = tinyThumbFile.pixelWidth,
@@ -151,6 +143,25 @@ suspend fun createImageThumbnail(
 
     var quality = instruction.quality.coerceIn(1, 100)
     var currentInputBytes = imageBytes
+
+    // Check if image is already at perfect size and doesn't need processing
+    val naturalSize = ImageUtils.getNaturalSize(imageBytes)
+    val naturalMax = max(naturalSize.pixelWidth, naturalSize.pixelHeight)
+
+    // If image is already at exact target size and within size limit, return as-is
+    // This optimization avoids unnecessary re-encoding
+    if (naturalMax == maxDim &&
+        imageBytes.size <= instruction.maxBytes &&
+        !isTinyThumb) {
+        return@withContext ThumbnailFile(
+            pixelWidth = naturalSize.pixelWidth,
+            pixelHeight = naturalSize.pixelHeight,
+            payload = imageBytes,
+            key = payloadKey,
+            contentType = "image/${targetFormat.name.lowercase()}",
+            quality = quality
+        )
+    }
 
     // First resize attempt
     var result = ImageUtils.resizePreserveAspect(
@@ -215,3 +226,34 @@ suspend fun createImageThumbnail(
 
     return@withContext thumb
 }
+
+/**
+ * Attempts to extract dimensions from SVG data using basic string parsing
+ */
+private fun getSvgDimensions(svgData: ByteArray): ImageSize? {
+    return try {
+        val svgContent = svgData.decodeToString()
+
+        // Look for width and height attributes in the SVG tag
+        // Match numbers with optional px/pt/etc suffix
+        val widthRegex = """width\s*=\s*["']?(\d+)(?:px)?""".toRegex()
+        val heightRegex = """height\s*=\s*["']?(\d+)(?:px)?""".toRegex()
+
+        val widthMatch = widthRegex.find(svgContent)
+        val heightMatch = heightRegex.find(svgContent)
+
+        if (widthMatch != null && heightMatch != null) {
+            val width = widthMatch.groupValues[1].toIntOrNull()
+            val height = heightMatch.groupValues[1].toIntOrNull()
+
+            if (width != null && height != null) {
+                return ImageSize(width, height)
+            }
+        }
+
+        null
+    } catch (_: Exception) {
+        null
+    }
+}
+

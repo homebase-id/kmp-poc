@@ -116,6 +116,7 @@ actual object ImageUtils {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.R)
     actual fun compressOnly(
         srcBytes: ByteArray,
         outputFormat: ImageFormat,
@@ -134,6 +135,7 @@ actual object ImageUtils {
         return result
     }
 
+    @RequiresApi(Build.VERSION_CODES.R)
     actual fun crop(
         srcBytes: ByteArray,
         x: Int,
@@ -165,6 +167,7 @@ actual object ImageUtils {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.R)
     actual fun rotate(
         srcBytes: ByteArray,
         degrees: Int,

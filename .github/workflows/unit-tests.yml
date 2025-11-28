@@ -15,8 +15,9 @@ jobs:
           - os: ubuntu-latest
             name: Android & Desktop
             test-command: |
-              ./gradlew testDebugUnitTest
+              ./gradlew testDebugUnitTest --info | tee test-output.log
               ./gradlew desktopTest
+            verify-robolectric: true
           - os: macos-latest
             name: iOS
             test-command: ./run-ios-tests-ci.sh
@@ -55,3 +56,46 @@ jobs:
           
       - name: Run tests
         run: ${{ matrix.test-command }}
+
+      - name: Verify Robolectric Usage
+        if: matrix.verify-robolectric == true
+        run: |
+          echo "🔍 Verifying Robolectric was used in tests..."
+          if [ -f test-output.log ]; then
+            # Check if RobolectricVerificationTest ran
+            if grep -q "RobolectricVerificationTest" test-output.log; then
+              echo "✅ RobolectricVerificationTest was executed"
+            else
+              echo "❌ ERROR: RobolectricVerificationTest was not found in test output"
+              exit 1
+            fi
+            
+            # Check for Robolectric-specific output
+            if grep -q "Robolectric" test-output.log; then
+              echo "✅ Robolectric framework detected in test output"
+            else
+              echo "⚠️  WARNING: Robolectric not explicitly mentioned in logs"
+            fi
+            
+            # Check if ImageUtilsAndroidTest ran (which uses Robolectric)
+            if grep -q "ImageUtilsAndroidTest\|ImageUtilsTestConfig" test-output.log; then
+              echo "✅ Robolectric-dependent tests were executed"
+            fi
+            
+            echo "✅ Robolectric verification passed!"
+          else
+            echo "❌ ERROR: test-output.log not found"
+            exit 1
+          fi
+
+      - name: Upload Test Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-${{ matrix.os }}
+          path: |
+            composeApp/build/reports/tests/
+            composeApp/build/test-results/
+            test-output.log
+          retention-days: 30
+
