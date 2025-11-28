@@ -12,18 +12,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.interop.UIKitView
 import androidx.compose.ui.unit.dp
 import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.addressOf
+import kotlinx.cinterop.usePinned
 import platform.AVFoundation.AVPlayer
 import platform.AVFoundation.AVPlayerLayer
+import platform.AVFoundation.AVLayerVideoGravityResizeAspect
+import platform.AVFoundation.play
 import platform.AVKit.AVPlayerViewController
-import platform.Foundation.NSData
-import platform.Foundation.NSFileManager
-import platform.Foundation.NSURL
-import platform.Foundation.create
+import platform.CoreGraphics.CGRectMake
+import platform.Foundation.*
 import platform.QuartzCore.CATransaction
 import platform.QuartzCore.kCATransactionDisableActions
 import platform.UIKit.UIView
+import platform.darwin.NSObject
+import platform.posix.memcpy
 
-@OptIn(ExperimentalForeignApi::class)
+@OptIn(ExperimentalForeignApi::class, kotlinx.cinterop.BetaInteropApi::class)
 @Composable
 actual fun VideoPlayer(
     videoData: ByteArray,
@@ -32,16 +36,31 @@ actual fun VideoPlayer(
     // Create a temporary file URL from the byte array
     val videoUrl = remember(videoData) {
         try {
-            val tempDir = NSFileManager.defaultManager.temporaryDirectory
-            val fileUrl = tempDir.URLByAppendingPathComponent("video_${System.currentTimeMillis()}.mp4")
+            val tempDir = NSTemporaryDirectory()
+            val timestamp = platform.Foundation.NSDate().timeIntervalSince1970.toLong()
+            val fileName = "video_${timestamp}.mp4"
+            val filePath = "${tempDir}${fileName}"
+            val fileUrl = NSURL.fileURLWithPath(filePath)
 
-            val nsData = NSData.create(
-                bytes = videoData.toUByteArray().refTo(0),
-                length = videoData.size.toULong()
-            )
-            nsData.writeToURL(fileUrl!!, atomically = true)
-            fileUrl
+            // Create NSData from ByteArray
+            val success = videoData.usePinned { pinned ->
+                val nsData = NSData.create(
+                    bytes = pinned.addressOf(0),
+                    length = videoData.size.toULong()
+                )
+
+                // Write to file using NSFileManager
+                NSFileManager.defaultManager.createFileAtPath(
+                    path = filePath,
+                    contents = nsData,
+                    attributes = null
+                )
+            }
+
+            println("Video file created at: $filePath, success: $success, size: ${videoData.size}")
+            if (success) fileUrl else null
         } catch (e: Exception) {
+            println("Error creating video file: ${e.message}")
             null
         }
     }
@@ -50,7 +69,10 @@ actual fun VideoPlayer(
         onDispose {
             videoUrl?.let { url ->
                 try {
-                    NSFileManager.defaultManager.removeItemAtURL(url, null)
+                    val path = url.path
+                    if (path != null) {
+                        NSFileManager.defaultManager.removeItemAtPath(path, null)
+                    }
                 } catch (e: Exception) {
                     // Ignore cleanup errors
                 }
@@ -67,26 +89,19 @@ actual fun VideoPlayer(
         if (videoUrl != null) {
             UIKitView(
                 factory = {
-                    val player = AVPlayer(uRL = videoUrl)
-                    val playerLayer = AVPlayerLayer()
-                    playerLayer.player = player
+                    println("Creating AVPlayerViewController with URL: $videoUrl")
+                    val player = AVPlayer.playerWithURL(videoUrl)
 
-                    val view = UIView()
-                    view.layer.addSublayer(playerLayer)
+                    val playerViewController = AVPlayerViewController()
+                    playerViewController.player = player
+                    playerViewController.showsPlaybackControls = true
 
+                    // Start playback
                     player.play()
 
-                    view
+                    playerViewController.view
                 },
-                modifier = Modifier.matchParentSize(),
-                update = { view ->
-                    CATransaction.begin()
-                    CATransaction.setValue(true, kCATransactionDisableActions)
-                    view.layer.sublayers?.firstOrNull()?.let { layer ->
-                        layer.frame = view.layer.bounds
-                    }
-                    CATransaction.commit()
-                }
+                modifier = Modifier.matchParentSize()
             )
         }
     }
