@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to AI agents when working with code in this repository.
 
 ## Project Overview
 
@@ -11,6 +11,7 @@ This is a Kotlin Multiplatform (KMP) project targeting Android and iOS, built wi
 ## Build Commands
 
 ### Android
+
 ```bash
 ./gradlew :composeApp:assembleDebug          # Build debug APK
 ./gradlew :composeApp:assembleRelease        # Build release APK
@@ -18,6 +19,7 @@ This is a Kotlin Multiplatform (KMP) project targeting Android and iOS, built wi
 ```
 
 ### Testing
+
 ```bash
 ./gradlew test                                # Run all tests
 ./gradlew :composeApp:testDebugUnitTest      # Run Android unit tests
@@ -25,6 +27,7 @@ This is a Kotlin Multiplatform (KMP) project targeting Android and iOS, built wi
 ```
 
 ### Other Commands
+
 ```bash
 ./gradlew lint                                # Lint code
 ./gradlew lintFix                             # Auto-fix lint issues
@@ -38,16 +41,19 @@ This is a Kotlin Multiplatform (KMP) project targeting Android and iOS, built wi
 The project follows standard KMP structure with platform-specific and shared code:
 
 - **`composeApp/src/commonMain/kotlin`**: Shared code for all platforms
+
   - Core UI components (Compose Multiplatform)
   - Business logic
   - YouAuth authentication flow
   - Cryptography utilities (in `crypto/` folder)
 
 - **`composeApp/src/androidMain/kotlin`**: Android-specific implementations
+
   - `MainActivity.kt`: Entry point with deeplink handling
   - `Platform.android.kt`: Android platform implementations (Custom Tabs)
 
 - **`composeApp/src/iosMain/kotlin`**: iOS-specific implementations
+
   - `MainViewController.kt`: iOS entry point with ASWebAuthenticationSession
   - `Platform.ios.kt`: iOS platform implementations
 
@@ -55,13 +61,11 @@ The project follows standard KMP structure with platform-specific and shared cod
 
 ### Expect/Actual Pattern
 
-The project uses Kotlin's `expect`/`actual` mechanism for platform-specific implementations:
+The project uses Kotlin's `expect`/`actual` mechanism for platform-specific implementations.
 
 ```kotlin
 // commonMain
 expect fun getPlatform(): Platform
-expect fun launchCustomTabs(url: String)
-expect fun showMessage(title: String, message: String)
 
 // androidMain and iosMain provide actual implementations
 ```
@@ -76,16 +80,19 @@ The app implements browser-based OAuth2-like authentication:
 4. App receives deeplink and processes the auth code
 
 **Deeplink Configuration:**
+
 - **Android**: Intent filters in `AndroidManifest.xml` for `youauth://` scheme
 - **iOS**: URL scheme in `Info.plist` for `youauth://` scheme
 
 **Key Files:**
+
 - `composeApp/src/commonMain/kotlin/id/homebase/homebasekmppoc/youauth/` - YouAuth implementation
 - `composeApp/src/commonMain/kotlin/id/homebase/homebasekmppoc/DomainPage.kt` - Authentication UI
 
 ### UI Architecture
 
 The app uses a tab-based navigation with three main screens:
+
 - **Home**: Main landing page
 - **Domain**: Authentication/domain entry
 - **App**: Application features
@@ -98,6 +105,7 @@ The project uses [cryptography-kotlin](https://github.com/whyoleg/cryptography-k
 
 **Current Status:**
 All cryptography is implemented in common code using cryptography-kotlin:
+
 - `Crc32c.kt` - CRC32C checksum calculation
 - `SensitiveByteArray.kt` - Secure memory handling for sensitive data
 - `UnixTimeUtc.kt` - Unix timestamp utilities
@@ -108,11 +116,13 @@ All cryptography is implemented in common code using cryptography-kotlin:
 - `Base64UrlEncoder.kt` - Base64 URL-safe encoding/decoding
 
 **Cryptography Provider:**
+
 - Uses `cryptography-provider-optimal` which automatically selects the best provider per platform:
   - **Android**: JDK provider
   - **iOS**: CryptoKit provider (with Apple CommonCrypto fallback)
 
 **Key Implementation Notes:**
+
 - All crypto operations are `suspend` functions (async)
 - ECC operations support P-256 and P-384 curves
 - Keys can be encoded/decoded in DER, RAW (uncompressed EC points) formats
@@ -123,6 +133,7 @@ All cryptography is implemented in common code using cryptography-kotlin:
 ## Dependencies
 
 Key dependencies (defined in `gradle/libs.versions.toml` and `build.gradle.kts`):
+
 - Kotlin 2.2.20
 - Compose Multiplatform 1.9.1
 - Android minSdk: 27, targetSdk: 36
@@ -137,6 +148,7 @@ Key dependencies (defined in `gradle/libs.versions.toml` and `build.gradle.kts`)
 ## Code Style
 
 ### Naming Conventions
+
 - **Packages**: lowercase with dots (e.g., `id.homebase.homebasekmppoc`)
 - **Classes/Interfaces**: PascalCase (e.g., `YouAuthAuthorizeRequest`, `EccPublicKeyData`)
 - **Functions/Methods**: camelCase (e.g., `launchCustomTabs()`, `buildAuthorizeUrl()`)
@@ -144,6 +156,7 @@ Key dependencies (defined in `gradle/libs.versions.toml` and `build.gradle.kts`)
 - **Constants**: UPPER_SNAKE_CASE
 
 ### Import Organization
+
 1. AndroidX Compose imports
 2. Other AndroidX imports
 3. org.jetbrains imports
@@ -151,6 +164,7 @@ Key dependencies (defined in `gradle/libs.versions.toml` and `build.gradle.kts`)
 5. Use single imports, not wildcard imports
 
 ### Composable UI Guidelines
+
 - Use `@Composable` annotation for UI functions
 - Apply `MaterialTheme` wrapper for consistent theming
 - Use `remember` for state that survives recomposition
@@ -166,11 +180,13 @@ Key dependencies (defined in `gradle/libs.versions.toml` and `build.gradle.kts`)
 ## Platform-Specific Notes
 
 ### Android
+
 - Uses Custom Tabs (`androidx.browser:browser`) for in-app browsing
 - Deeplinks handled in `MainActivity.onNewIntent()`
 - Entry point: `MainActivity.kt`
 
 ### iOS
+
 - Uses `ASWebAuthenticationSession` for secure in-app authentication
 - Deeplinks configured via URL schemes in Info.plist
 - Entry point: `MainViewController()` function
@@ -190,3 +206,4 @@ Key dependencies (defined in `gradle/libs.versions.toml` and `build.gradle.kts`)
 - CryptoKit provider on iOS doesn't support JWK format natively - we use RAW uncompressed EC point format instead
 - All crypto operations are async (suspend functions) due to cryptography-kotlin API design
 - always compile when you're done making changes
+- always prefer stable, well-documented and well-tested third-party libraries over custom implementations when necessary
