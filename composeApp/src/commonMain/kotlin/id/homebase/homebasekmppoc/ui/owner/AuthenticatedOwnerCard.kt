@@ -56,9 +56,11 @@ fun AuthenticatedOwnerCard(
     modifier: Modifier = Modifier
 ) {
     var verifytokenReponse by remember { mutableStateOf<String?>(null) }
-    var imageBytes by remember { mutableStateOf<ByteArray?>(null) }
-    var videoHeaders by remember { mutableStateOf<List<SharedSecretEncryptedFileHeader>?>(null) }
 
+    var imageHeaders by remember { mutableStateOf<List<SharedSecretEncryptedFileHeader>?>(null) }
+    var imageBytes by remember { mutableStateOf<ByteArray?>(null) }
+
+    var videoHeaders by remember { mutableStateOf<List<SharedSecretEncryptedFileHeader>?>(null) }
 
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(authenticatedState != null) }
@@ -71,8 +73,17 @@ fun AuthenticatedOwnerCard(
                 verifytokenReponse = client.verifyOwnerToken()
 
                 val payloadPlayground = PayloadPlayground(authenticatedState)
-                val drives = payloadPlayground.getDrivesByType(SystemDriveConstants.publicPostChannelDrive.type)
-                imageBytes = payloadPlayground.getImage()
+                // val drives = payloadPlayground.getDrivesByType(SystemDriveConstants.publicPostChannelDrive.type)
+
+                imageHeaders = payloadPlayground.getImagesOnDrive(
+                    PublicPostsChannelDrive.alias,
+                    PublicPostsChannelDrive.type)
+                imageHeaders?.size?.let {
+                    if (it > 0) {
+                        val header = imageHeaders?.get(0)
+                        imageBytes = payloadPlayground.getImage(header!!)
+                    }
+                }
 
                 videoHeaders = payloadPlayground.getVideosOnDrive(
                     PublicPostsChannelDrive.alias,
