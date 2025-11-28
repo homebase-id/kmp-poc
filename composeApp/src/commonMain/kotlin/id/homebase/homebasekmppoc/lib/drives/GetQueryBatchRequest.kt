@@ -4,6 +4,7 @@ package id.homebase.homebasekmppoc.lib.drives
 
 import id.homebase.homebasekmppoc.lib.core.time.UnixTimeUtc
 import id.homebase.homebasekmppoc.lib.core.time.UnixTimeUtcRange
+import id.homebase.homebasekmppoc.lib.encodeUrl
 import id.homebase.homebasekmppoc.lib.serialization.UuidSerializer
 import kotlinx.serialization.Serializable
 import kotlin.uuid.ExperimentalUuidApi
@@ -87,5 +88,41 @@ data class GetQueryBatchRequest(
                 sorting = this.sorting
             )
         )
+    }
+
+    fun toQueryString(): String {
+        val params = mutableListOf<String>()
+
+        // Required fields
+        params.add("alias=${encodeUrl(alias.toString())}")
+        params.add("type=${encodeUrl(type.toString())}")
+
+        // Optional list fields
+        fileType?.forEach { params.add("fileType=${encodeUrl(it.toString())}") }
+        dataType?.forEach { params.add("dataType=${encodeUrl(it.toString())}") }
+        fileState?.forEach { params.add("fileState=${encodeUrl(it.name)}") }
+        archivalStatus?.forEach { params.add("archivalStatus=${encodeUrl(it.toString())}") }
+        sender?.forEach { params.add("sender=${encodeUrl(it)}") }
+        groupId?.forEach { params.add("groupId=${encodeUrl(it.toString())}") }
+        clientUniqueIdAtLeastOne?.forEach { params.add("clientUniqueIdAtLeastOne=${encodeUrl(it.toString())}") }
+        tagsMatchAtLeastOne?.forEach { params.add("tagsMatchAtLeastOne=${encodeUrl(it.toString())}") }
+        tagsMatchAll?.forEach { params.add("tagsMatchAll=${encodeUrl(it.toString())}") }
+        localTagsMatchAll?.forEach { params.add("localTagsMatchAll=${encodeUrl(it.toString())}") }
+        localTagsMatchAtLeastOne?.forEach { params.add("localTagsMatchAtLeastOne=${encodeUrl(it.toString())}") }
+        globalTransitId?.forEach { params.add("globalTransitId=${encodeUrl(it.toString())}") }
+
+        // Optional date range fields
+        userDateStart?.let { params.add("userDateStart=${encodeUrl(it.toString())}") }
+        userDateEnd?.let { params.add("userDateEnd=${encodeUrl(it.toString())}") }
+
+        // Result options fields
+        cursorState?.let { if (it.isNotEmpty()) params.add("cursorState=${encodeUrl(it)}") }
+        params.add("maxRecords=${encodeUrl(maxRecords.toString())}")
+        params.add("includeMetadataHeader=${encodeUrl(includeMetadataHeader.toString())}")
+        params.add("includeTransferHistory=${encodeUrl(includeTransferHistory.toString())}")
+        ordering?.let { params.add("ordering=${encodeUrl(it.name)}") }
+        sorting?.let { params.add("sorting=${encodeUrl(it.name)}") }
+
+        return params.joinToString("&")
     }
 }

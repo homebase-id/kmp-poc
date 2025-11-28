@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to AI agents when working with code in this repository.
 
 ## Project Overview
 
@@ -11,6 +11,7 @@ This is a Kotlin Multiplatform (KMP) project targeting Android and iOS, built wi
 ## Build Commands
 
 ### Android
+
 ```bash
 ./gradlew :composeApp:assembleDebug          # Build debug APK
 ./gradlew :composeApp:assembleRelease        # Build release APK
@@ -18,6 +19,7 @@ This is a Kotlin Multiplatform (KMP) project targeting Android and iOS, built wi
 ```
 
 ### Testing
+
 ```bash
 ./gradlew test                                # Run all tests
 ./gradlew :composeApp:testDebugUnitTest      # Run Android unit tests
@@ -25,6 +27,7 @@ This is a Kotlin Multiplatform (KMP) project targeting Android and iOS, built wi
 ```
 
 ### Other Commands
+
 ```bash
 ./gradlew lint                                # Lint code
 ./gradlew lintFix                             # Auto-fix lint issues
@@ -38,16 +41,19 @@ This is a Kotlin Multiplatform (KMP) project targeting Android and iOS, built wi
 The project follows standard KMP structure with platform-specific and shared code:
 
 - **`composeApp/src/commonMain/kotlin`**: Shared code for all platforms
+
   - Core UI components (Compose Multiplatform)
   - Business logic
   - YouAuth authentication flow
   - Cryptography utilities (in `crypto/` folder)
 
 - **`composeApp/src/androidMain/kotlin`**: Android-specific implementations
+
   - `MainActivity.kt`: Entry point with deeplink handling
   - `Platform.android.kt`: Android platform implementations (Custom Tabs)
 
 - **`composeApp/src/iosMain/kotlin`**: iOS-specific implementations
+
   - `MainViewController.kt`: iOS entry point with ASWebAuthenticationSession
   - `Platform.ios.kt`: iOS platform implementations
 
@@ -55,13 +61,11 @@ The project follows standard KMP structure with platform-specific and shared cod
 
 ### Expect/Actual Pattern
 
-The project uses Kotlin's `expect`/`actual` mechanism for platform-specific implementations:
+The project uses Kotlin's `expect`/`actual` mechanism for platform-specific implementations.
 
 ```kotlin
 // commonMain
 expect fun getPlatform(): Platform
-expect fun launchCustomTabs(url: String)
-expect fun showMessage(title: String, message: String)
 
 // androidMain and iosMain provide actual implementations
 ```
@@ -76,16 +80,14 @@ The app implements browser-based OAuth2-like authentication:
 4. App receives deeplink and processes the auth code
 
 **Deeplink Configuration:**
+
 - **Android**: Intent filters in `AndroidManifest.xml` for `youauth://` scheme
 - **iOS**: URL scheme in `Info.plist` for `youauth://` scheme
-
-**Key Files:**
-- `composeApp/src/commonMain/kotlin/id/homebase/homebasekmppoc/youauth/` - YouAuth implementation
-- `composeApp/src/commonMain/kotlin/id/homebase/homebasekmppoc/DomainPage.kt` - Authentication UI
 
 ### UI Architecture
 
 The app uses a tab-based navigation with three main screens:
+
 - **Home**: Main landing page
 - **Domain**: Authentication/domain entry
 - **App**: Application features
@@ -94,25 +96,16 @@ Main UI entry point: `App.kt` with `PrimaryTabRow` for navigation.
 
 ### Cryptography Implementation
 
-The project uses [cryptography-kotlin](https://github.com/whyoleg/cryptography-kotlin) v0.5.0 for cross-platform cryptographic operations.
-
-**Current Status:**
-All cryptography is implemented in common code using cryptography-kotlin:
-- `Crc32c.kt` - CRC32C checksum calculation
-- `SensitiveByteArray.kt` - Secure memory handling for sensitive data
-- `UnixTimeUtc.kt` - Unix timestamp utilities
-- `AesCbc.kt` - AES-CBC encryption/decryption
-- `HashUtil.kt` - SHA-256 hashing and HKDF key derivation
-- `EccKeyData.kt` - ECC key generation, ECDH key agreement, JWK/DER conversions
-- `ByteArrayUtil.kt` - Byte array utilities and Base64 encoding
-- `Base64UrlEncoder.kt` - Base64 URL-safe encoding/decoding
+The project uses [cryptography-kotlin](https://github.com/whyoleg/cryptography-kotlin) for cross-platform cryptographic operations.
 
 **Cryptography Provider:**
+
 - Uses `cryptography-provider-optimal` which automatically selects the best provider per platform:
   - **Android**: JDK provider
   - **iOS**: CryptoKit provider (with Apple CommonCrypto fallback)
 
 **Key Implementation Notes:**
+
 - All crypto operations are `suspend` functions (async)
 - ECC operations support P-256 and P-384 curves
 - Keys can be encoded/decoded in DER, RAW (uncompressed EC points) formats
@@ -161,41 +154,41 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.datetime)
         }
-        
+
         // 2. ANDROID ONLY
         androidMain.dependencies {
             implementation(libs.new.library.android)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.browser)
         }
-        
+
         // 3. IOS ONLY
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
         }
-        
+
         // 4. DESKTOP ONLY
         desktopMain.dependencies {
             implementation(libs.ktor.client.cio)
             implementation(libs.kotlinx.coroutinesSwing)
         }
-        
+
         // 5. COMMON TEST (Test dependencies for all platforms)
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
         }
-        
+
         // 6. ANDROID UNIT TEST (Android-specific tests)
         androidUnitTest.dependencies {
             implementation(libs.robolectric)
         }
-        
+
         // 7. IOS TEST
         iosTest.dependencies {
             // iOS-specific test dependencies
         }
-        
+
         // 8. DESKTOP TEST
         val desktopTest by getting {
             dependencies {
@@ -233,6 +226,7 @@ Does the library support Kotlin Multiplatform?
 ### Common Dependencies Reference
 
 #### Currently Used (DO NOT DUPLICATE)
+
 ```toml
 # Core
 kotlin = "2.2.21"
@@ -268,6 +262,7 @@ junit = "4.13.2"
 **Example: Adding kotlinx-serialization**
 
 1. **Add version to `libs.versions.toml`:**
+
 ```toml
 [versions]
 kotlinx-serialization = "1.7.3"
@@ -278,6 +273,7 @@ kotlinx-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 ```
 
 2. **Add plugin if needed (in project `build.gradle.kts`):**
+
 ```kotlin
 plugins {
     alias(libs.plugins.kotlinMultiplatform).apply(false)
@@ -286,6 +282,7 @@ plugins {
 ```
 
 3. **Apply plugin in `composeApp/build.gradle.kts`:**
+
 ```kotlin
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -294,6 +291,7 @@ plugins {
 ```
 
 4. **Add dependency:**
+
 ```kotlin
 kotlin {
     sourceSets {
@@ -309,6 +307,7 @@ kotlin {
 **Example: Adding ExoPlayer**
 
 1. **Add to `libs.versions.toml`:**
+
 ```toml
 [versions]
 exoplayer = "2.19.1"
@@ -318,6 +317,7 @@ androidx-exoplayer = { module = "com.google.android.exoplayer:exoplayer", versio
 ```
 
 2. **Add to `androidMain`:**
+
 ```kotlin
 kotlin {
     sourceSets {
@@ -333,6 +333,7 @@ kotlin {
 **Example: Adding MockK**
 
 1. **Add to `libs.versions.toml`:**
+
 ```toml
 [versions]
 mockk = "1.13.8"
@@ -342,6 +343,7 @@ mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 ```
 
 2. **Add to test dependencies:**
+
 ```kotlin
 kotlin {
     sourceSets {
@@ -355,6 +357,7 @@ kotlin {
 ### Dependency Rules (MUST FOLLOW)
 
 #### DO ✅
+
 - **Always use version catalog** - Define in `libs.versions.toml`
 - **Use semantic versioning** - Check for stable releases
 - **Prefer multiplatform libraries** - Add to `commonMain` when possible
@@ -368,6 +371,7 @@ kotlin {
 - **Update gradle wrapper** - `./gradlew wrapper --gradle-version=8.14.3`
 
 #### DON'T ❌
+
 - **Don't hardcode versions** - Always use version catalog
 - **Don't add duplicate dependencies** - Check existing libs first
 - **Don't add platform-specific to common** - Will cause build errors
@@ -396,7 +400,8 @@ After adding dependencies:
 ### Troubleshooting Dependencies
 
 **Problem:** "Unresolved reference" after adding dependency
-**Solution:** 
+**Solution:**
+
 1. Check dependency is in correct sourceSet (commonMain vs androidMain)
 2. Run `./gradlew --refresh-dependencies`
 3. Invalidate caches in IDE
@@ -406,6 +411,7 @@ After adding dependencies:
 
 **Problem:** Version conflict
 **Solution:** Use BOM (Bill of Materials) or force specific version:
+
 ```kotlin
 configurations.all {
     resolutionStrategy {
@@ -431,6 +437,7 @@ configurations.all {
 ```
 
 Key dependencies (defined in `gradle/libs.versions.toml` and `build.gradle.kts`):
+
 - Kotlin 2.2.20
 - Compose Multiplatform 1.9.1
 - Android minSdk: 27, targetSdk: 36
@@ -445,6 +452,7 @@ Key dependencies (defined in `gradle/libs.versions.toml` and `build.gradle.kts`)
 ## Code Style
 
 ### Naming Conventions
+
 - **Packages**: lowercase with dots (e.g., `id.homebase.homebasekmppoc`)
 - **Classes/Interfaces**: PascalCase (e.g., `YouAuthAuthorizeRequest`, `EccPublicKeyData`)
 - **Functions/Methods**: camelCase (e.g., `launchCustomTabs()`, `buildAuthorizeUrl()`)
@@ -452,6 +460,7 @@ Key dependencies (defined in `gradle/libs.versions.toml` and `build.gradle.kts`)
 - **Constants**: UPPER_SNAKE_CASE
 
 ### Import Organization
+
 1. AndroidX Compose imports
 2. Other AndroidX imports
 3. org.jetbrains imports
@@ -459,6 +468,7 @@ Key dependencies (defined in `gradle/libs.versions.toml` and `build.gradle.kts`)
 5. Use single imports, not wildcard imports
 
 ### Composable UI Guidelines
+
 - Use `@Composable` annotation for UI functions
 - Apply `MaterialTheme` wrapper for consistent theming
 - Use `remember` for state that survives recomposition
@@ -524,20 +534,20 @@ import kotlinx.coroutines.test.runTest  // For async tests
  * MUST be 'open class' to allow platform-specific extension
  */
 open class FeatureTest {
-    
+
     @Test
     fun basicTest_withValidInput_returnsExpectedResult() {
         // Arrange
         val input = "test"
-        
+
         // Act
         val result = someFunction(input)
-        
+
         // Assert
         assertNotNull(result)
         assertEquals("expected", result)
     }
-    
+
     @Test
     fun asyncTest_withSuspendFunction_works() = runTest {
         // For suspend functions, wrap in runTest
@@ -548,6 +558,7 @@ open class FeatureTest {
 ```
 
 **Key Rules:**
+
 - ✅ **MUST** be `open class` (allows Android Robolectric to extend)
 - ✅ **MUST** use `kotlin.test.*` assertions
 - ✅ **MUST** use `runTest { }` for suspend functions
@@ -574,6 +585,7 @@ class FeatureAndroidTest : FeatureTest()
 ```
 
 **When to Use:**
+
 - Tests use `BitmapFactory`, `Context`, `AssetManager`
 - Tests need Android-specific behavior
 - Android implementation differs from iOS/Desktop
@@ -613,7 +625,7 @@ actual object TestResourceLoader {
         }
         throw IllegalArgumentException("Resource not found: $filename")
     }
-    
+
     actual fun resourceExists(filename: String): Boolean {
         return SystemFileSystem.exists(
             Path("composeApp/src/commonTest/resources/$filename")
@@ -672,18 +684,18 @@ kotlin {
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.kotlinx.datetime)
         }
-        
+
         // Android-specific test dependencies
         androidUnitTest.dependencies {
             implementation(libs.robolectric)  // For Android framework APIs
             implementation(libs.sqldelight.sqlite.driver)
         }
-        
+
         // iOS-specific test dependencies
         iosTest.dependencies {
             implementation(libs.sqldelight.native.driver)
         }
-        
+
         // Desktop-specific test dependencies
         val desktopTest by getting {
             dependencies {
@@ -724,6 +736,7 @@ open composeApp/build/reports/tests/testDebugUnitTest/index.html
 ### Test Best Practices
 
 #### DO ✅
+
 - **Write tests in `commonTest` first** - Share tests across platforms
 - **Use `open class`** - Allows platform-specific extension
 - **Use descriptive names** - `functionName_condition_expectedResult`
@@ -741,6 +754,7 @@ open composeApp/build/reports/tests/testDebugUnitTest/index.html
   ```
 
 #### DON'T ❌
+
 - **Don't use `class FeatureTest`** - Use `open class FeatureTest`
 - **Don't use JUnit directly** - Use `kotlin.test` framework
 - **Don't use Java File API** - Use Kotlin IO (`kotlinx.io.files`)
@@ -752,6 +766,7 @@ open composeApp/build/reports/tests/testDebugUnitTest/index.html
 ### Example: Complete Test Structure
 
 **Common Test:**
+
 ```kotlin
 package id.homebase.homebasekmppoc.lib.image
 
@@ -766,13 +781,13 @@ open class ImageUtilsTest {
         assertTrue(size.pixelWidth > 0)
         assertTrue(size.pixelHeight > 0)
     }
-    
+
     @Test
     fun resizeImage_withAspectRatio_preservesAspectRatio() = runTest {
         val imageData = loadTestImageOrSkip("sample.png")
         val result = ImageUtils.resizePreserveAspect(
-            imageData, 
-            maxWidth = 100, 
+            imageData,
+            maxWidth = 100,
             maxHeight = 100
         )
         assertNotNull(result)
@@ -782,6 +797,7 @@ open class ImageUtilsTest {
 ```
 
 **Android Wrapper:**
+
 ```kotlin
 package id.homebase.homebasekmppoc.lib.image
 
@@ -797,6 +813,7 @@ class ImageUtilsAndroidTest : ImageUtilsTest()
 ### Test Coverage Guidelines
 
 Aim for:
+
 - ✅ **80%+ code coverage** for business logic
 - ✅ **Test happy paths** - Normal usage
 - ✅ **Test edge cases** - Null, empty, boundary values
@@ -824,6 +841,7 @@ Aim for:
 ## Testing
 
 ### Test Framework
+
 - Use `kotlin.test` framework for common tests
 - Place shared test logic in `commonTest`
 - Use descriptive test names that explain behavior
@@ -832,11 +850,13 @@ Aim for:
 ## Platform-Specific Notes
 
 ### Android
+
 - Uses Custom Tabs (`androidx.browser:browser`) for in-app browsing
 - Deeplinks handled in `MainActivity.onNewIntent()`
 - Entry point: `MainActivity.kt`
 
 ### iOS
+
 - Uses `ASWebAuthenticationSession` for secure in-app authentication
 - Deeplinks configured via URL schemes in Info.plist
 - Entry point: `MainViewController()` function
@@ -855,4 +875,6 @@ Aim for:
 - iOS console may show harmless warnings about duplicate Objective-C classes from system frameworks
 - CryptoKit provider on iOS doesn't support JWK format natively - we use RAW uncompressed EC point format instead
 - All crypto operations are async (suspend functions) due to cryptography-kotlin API design
-- always compile when you're done making changes
+- Always compile when you're done making changes
+- When possible, always prefer stable, currently maintained, well-documented and well-tested third-party libraries over custom implementations
+- When possible, always prefer creating platorm shared code over creating platform-specific code
