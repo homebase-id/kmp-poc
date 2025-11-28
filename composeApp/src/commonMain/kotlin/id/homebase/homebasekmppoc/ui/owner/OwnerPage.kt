@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import id.homebase.homebasekmppoc.lib.authentication.AuthState
 import id.homebase.homebasekmppoc.lib.authentication.AuthenticationManager
 import id.homebase.homebasekmppoc.lib.database.DatabaseManager
+import id.homebase.homebasekmppoc.lib.drives.SharedSecretEncryptedFileHeader
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthManager
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -43,6 +44,8 @@ fun OwnerPage(authenticationManager: AuthenticationManager) {
     var showResultDialog by remember { mutableStateOf(false) }
     var resultMessage by remember { mutableStateOf("") }
     var isSuccess by remember { mutableStateOf(false) }
+
+    var selectedVideo by remember { mutableStateOf<SharedSecretEncryptedFileHeader?>(null) }
 
     val authState by authenticationManager.authState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
@@ -82,27 +85,36 @@ fun OwnerPage(authenticationManager: AuthenticationManager) {
         )
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.primaryContainer)
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = "Owner",
-            style = MaterialTheme.typography.headlineMedium,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Always show the authenticated owner card
-        AuthenticatedOwnerCard(
+    // Show video player if a video is selected
+    if (selectedVideo != null) {
+        OwnerVideoPlayer(
             authenticatedState = if (authState is AuthState.Authenticated) authState as AuthState.Authenticated else null,
-            modifier = Modifier.padding(horizontal = 16.dp)
+            videoHeader = selectedVideo!!,
+            onBack = { selectedVideo = null }
         )
+    } else {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.primaryContainer)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "Owner",
+                style = MaterialTheme.typography.headlineMedium,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Always show the authenticated owner card
+            AuthenticatedOwnerCard(
+                authenticatedState = if (authState is AuthState.Authenticated) authState as AuthState.Authenticated else null,
+                onVideoClick = { header -> selectedVideo = header },
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -189,6 +201,7 @@ fun OwnerPage(authenticationManager: AuthenticationManager) {
                     Text("Try again")
                 }
             }
+        }
         }
     }
 }

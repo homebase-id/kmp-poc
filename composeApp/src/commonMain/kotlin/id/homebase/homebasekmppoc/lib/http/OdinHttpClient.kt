@@ -5,6 +5,9 @@ import id.homebase.homebasekmppoc.lib.authentication.AuthState
 import id.homebase.homebasekmppoc.lib.crypto.AesCbc
 import id.homebase.homebasekmppoc.lib.crypto.ByteArrayUtil
 import id.homebase.homebasekmppoc.lib.crypto.CryptoHelper
+import id.homebase.homebasekmppoc.lib.drives.GetQueryBatchRequest
+import id.homebase.homebasekmppoc.lib.drives.QueryBatchRequest
+import id.homebase.homebasekmppoc.lib.drives.QueryBatchResponse
 import id.homebase.homebasekmppoc.lib.encodeUrl
 import id.homebase.homebasekmppoc.lib.serialization.OdinSystemSerializer
 import id.homebase.homebasekmppoc.lib.toBase64
@@ -18,6 +21,8 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentLength
 import io.ktor.serialization.kotlinx.json.json
 import kotlin.io.encoding.Base64
+
+// SEB:TODO use OdinClient instead of this once backend V2 is stable on main
 
 /**
  * HTTP client for making authenticated requests to Odin backend
@@ -74,6 +79,10 @@ class OdinHttpClient(
                     append("Cookie", "XT32=$clientAuthToken")
                 }
             }
+        }
+
+        if (response.status != HttpStatusCode.OK) {
+            throw Exception("HTTP request failed with status: ${response.status}. Body: ${response.body<String>()}")
         }
 
         val cipherJson = response.body<String>()
@@ -174,17 +183,15 @@ class OdinHttpClient(
 
     //
 
+    suspend fun queryBatch(request: GetQueryBatchRequest, fileSystemType: String = "128"): QueryBatchResponse {
+        val uri = "/api/owner/v1/drive/query/batch?${request.toQueryString()}&xfst=${encodeUrl(fileSystemType)}"
+        val response = get<QueryBatchResponse>(uri)
+        return response
+    }
 
     //
 
-    /**
-     * Create HTTP client with JSON serialization support
-     */
-    private fun createHttpClient() = HttpClient {
-        install(ContentNegotiation) {
-            json(OdinSystemSerializer.json)
-        }
-    }
+
 }
 
 /**
