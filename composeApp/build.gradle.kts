@@ -50,7 +50,7 @@ kotlin {
         iosSimulatorArm64()
     ).forEach { iosTarget ->
         iosTarget.binaries.framework {
-            baseName = "Homebase Starter"
+            baseName = "ComposeApp"
             isStatic = true
             // Link SQLite for SQLDelight
             linkerOpts("-lsqlite3")
