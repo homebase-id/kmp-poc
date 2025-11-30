@@ -54,6 +54,8 @@ kotlin {
             isStatic = true
             // Link SQLite for SQLDelight
             linkerOpts("-lsqlite3")
+            // Specify bundle ID to avoid warnings
+            freeCompilerArgs += listOf("-Xbinary=bundleId=id.homebase.homebasekmppoc")
         }
     }
     
@@ -123,6 +125,14 @@ kotlin {
         }
         androidUnitTest.dependencies {
             implementation(libs.sqldelight.sqlite.driver)
+            implementation(libs.robolectric)
+        }
+        androidInstrumentedTest.dependencies {
+            implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.androidx.test.runner)
+            implementation(libs.androidx.test.core)
+            implementation(libs.androidx.junit)
         }
         iosTest.dependencies {
             implementation(libs.sqldelight.native.driver)
@@ -171,6 +181,28 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    // Configure unit tests to use Robolectric
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            isReturnDefaultValues = true
+            all {
+                it.testLogging {
+                    events("passed", "skipped", "failed", "standardOut", "standardError")
+                    showStandardStreams = true
+                    showExceptions = true
+                    showCauses = true
+                    showStackTraces = true
+                }
+
+                // Add system property to ensure Robolectric uses the correct SDK
+                it.systemProperty("robolectric.enabledSdks", "33")
+                // Enable native graphics mode for full BitmapFactory support
+                it.systemProperty("robolectric.graphicsMode", "NATIVE")
+            }
+        }
     }
 }
 
