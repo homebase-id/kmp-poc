@@ -7,6 +7,6 @@ class DesktopPlatformTest {
 
     @Test
     fun desktopTestPasses() {
-        assertTrue(true, "Desktop platform test should pass")
+        assertTrue(false, "Desktop platform test should pass")
     }
 }

@@ -7,6 +7,6 @@ class AndroidPlatformTest {
 
     @Test
     fun androidTestPasses() {
-        assertTrue(true, "Android platform test should pass")
+        assertTrue(false, "Android platform test should pass")
     }
 }

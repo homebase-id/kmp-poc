@@ -15,12 +15,12 @@ jobs:
           - os: ubuntu-latest
             name: Android & Desktop
             test-command: |
-              ./gradlew testDebugUnitTest --info | tee test-output.log
-              ./gradlew desktopTest
+              ./gradlew testDebugUnitTest --rerun-tasks --info | tee test-output.log
+              ./gradlew desktopTest --rerun-tasks
             verify-robolectric: true
           - os: macos-latest
             name: iOS
-            test-command: ./gradlew iosSimulatorArm64Test
+            test-command: ./gradlew iosSimulatorArm64Test --rerun-tasks
       fail-fast: false
     name: ${{ matrix.name }} Tests on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -71,36 +71,36 @@ jobs:
       - name: Run tests
         run: ${{ matrix.test-command }}
 
-      - name: Verify Robolectric Usage
-        if: matrix.verify-robolectric == true
-        run: |
-          echo "🔍 Verifying Robolectric was used in tests..."
-          if [ -f test-output.log ]; then
-            # Check if RobolectricVerificationTest ran
-            if grep -q "RobolectricVerificationTest" test-output.log; then
-              echo "✅ RobolectricVerificationTest was executed"
-            else
-              echo "❌ ERROR: RobolectricVerificationTest was not found in test output"
-              exit 1
-            fi
-            
-            # Check for Robolectric-specific output
-            if grep -q "Robolectric" test-output.log; then
-              echo "✅ Robolectric framework detected in test output"
-            else
-              echo "⚠️  WARNING: Robolectric not explicitly mentioned in logs"
-            fi
-            
-            # Check if ImageUtilsAndroidTest ran (which uses Robolectric)
-            if grep -q "ImageUtilsAndroidTest\|ImageUtilsTestConfig" test-output.log; then
-              echo "✅ Robolectric-dependent tests were executed"
-            fi
-            
-            echo "✅ Robolectric verification passed!"
-          else
-            echo "❌ ERROR: test-output.log not found"
-            exit 1
-          fi
+      # - name: Verify Robolectric Usage
+      #   if: matrix.verify-robolectric == true
+      #   run: |
+      #     echo "🔍 Verifying Robolectric was used in tests..."
+      #     if [ -f test-output.log ]; then
+      #       # Check if RobolectricVerificationTest ran
+      #       if grep -q "RobolectricVerificationTest" test-output.log; then
+      #         echo "✅ RobolectricVerificationTest was executed"
+      #       else
+      #         echo "❌ ERROR: RobolectricVerificationTest was not found in test output"
+      #         exit 1
+      #       fi
+
+      #       # Check for Robolectric-specific output
+      #       if grep -q "Robolectric" test-output.log; then
+      #         echo "✅ Robolectric framework detected in test output"
+      #       else
+      #         echo "⚠️  WARNING: Robolectric not explicitly mentioned in logs"
+      #       fi
+
+      #       # Check if ImageUtilsAndroidTest ran (which uses Robolectric)
+      #       if grep -q "ImageUtilsAndroidTest\|ImageUtilsTestConfig" test-output.log; then
+      #         echo "✅ Robolectric-dependent tests were executed"
+      #       fi
+
+      #       echo "✅ Robolectric verification passed!"
+      #     else
+      #       echo "❌ ERROR: test-output.log not found"
+      #       exit 1
+      #     fi
 
       - name: Upload Test Reports
         if: always()

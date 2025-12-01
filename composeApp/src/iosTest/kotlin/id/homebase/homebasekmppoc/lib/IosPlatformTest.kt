@@ -7,6 +7,6 @@ class IosPlatformTest {
 
     @Test
     fun iosTestPasses() {
-        assertTrue(true, "iOS platform test should pass")
+        assertTrue(false, "iOS platform test should pass")
     }
 }
