@@ -133,6 +133,7 @@ kotlin {
 // Inject TEST_IMAGES_DIR into all ios test tasks
 tasks.withType<org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest>().configureEach {
     environment("TEST_IMAGES_DIR", testImagesDir)
+    environment("SIMCTL_CHILD_TEST_IMAGES_DIR", testImagesDir)
 }
 
 tasks.named<Test>("desktopTest") {
