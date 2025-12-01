@@ -15,6 +15,7 @@ jobs:
           - os: ubuntu-latest
             name: Android & Desktop
             test-command: |
+              set -o pipefail
               ./gradlew testDebugUnitTest --rerun-tasks --info | tee test-output.log
               ./gradlew desktopTest --rerun-tasks
             verify-robolectric: true
