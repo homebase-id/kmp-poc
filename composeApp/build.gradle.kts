@@ -10,8 +10,10 @@ plugins {
     kotlin("plugin.serialization") version "2.2.21"
 }
 
+val testImagesDir = project.file("src/commonTest/resources/test-images").absolutePath
+
 kotlin {
-    // Global opt-ins for all targets
+    // Global opt-ins
     sourceSets.all {
         languageSettings.apply {
             optIn("kotlin.uuid.ExperimentalUuidApi")
@@ -21,7 +23,6 @@ kotlin {
             optIn("dev.whyoleg.cryptography.DelicateCryptographyApi")
         }
     }
-
     // Suppress expect/actual classes Beta warning
     targets.all {
         compilations.all {
@@ -38,13 +39,11 @@ kotlin {
             jvmTarget.set(JvmTarget.JVM_11)
         }
     }
-
     jvm("desktop") {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_11)
         }
     }
-
     listOf(
         iosArm64(),
         iosSimulatorArm64()
@@ -52,13 +51,11 @@ kotlin {
         iosTarget.binaries.framework {
             baseName = "ComposeApp"
             isStatic = true
-            // Link SQLite for SQLDelight
             linkerOpts("-lsqlite3")
-            // Specify bundle ID to avoid warnings
             freeCompilerArgs += listOf("-Xbinary=bundleId=id.homebase.homebasekmppoc")
         }
     }
-    
+
     sourceSets {
         androidMain.dependencies {
             implementation(compose.preview)
@@ -68,9 +65,7 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.browser)
-            // Ktor Android engine
             implementation(libs.ktor.client.okhttp)
-            // SQLDelight Android driver
             implementation(libs.sqldelight.android.driver)
         }
         commonMain.dependencies {
@@ -82,39 +77,29 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
-//            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0") -- We use Serialization via Ktor
             implementation(libs.kotlinx.datetime)
             implementation(libs.kotlinx.io.core)
             implementation(libs.kermit)
-            // Ktor HTTP client
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.kotlinx.coroutines.core)
-
-            // Cryptography
             implementation(libs.cryptography.core)
             implementation(libs.cryptography.provider.optimal)
-            // SQLDelight
             implementation(libs.sqldelight.runtime)
             implementation(libs.sqldelight.coroutines.extensions)
         }
         iosMain.dependencies {
-            // Ktor iOS engine
             implementation(libs.ktor.client.darwin)
-            // SQLDelight iOS driver
             implementation(libs.sqldelight.native.driver)
         }
         val desktopMain by getting {
             dependencies {
                 implementation(compose.desktop.currentOs)
-                // Ktor Desktop client engine
                 implementation(libs.ktor.client.cio)
-                // Ktor Server for OAuth callback handling
                 implementation(libs.ktor.server.core)
                 implementation(libs.ktor.server.cio)
                 implementation(libs.ktor.server.html.builder)
-                // SQLDelight Desktop driver
                 implementation(libs.sqldelight.sqlite.driver)
             }
         }
@@ -145,8 +130,14 @@ kotlin {
     }
 }
 
-// Configure Desktop test task for better output
+// Inject TEST_IMAGES_DIR into all ios test tasks
+tasks.withType<org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest>().configureEach {
+    environment("TEST_IMAGES_DIR", testImagesDir)
+}
+
 tasks.named<Test>("desktopTest") {
+    environment("TEST_IMAGES_DIR", testImagesDir)
+
     testLogging {
         events("passed", "skipped", "failed", "standardOut", "standardError")
         showStandardStreams = true
@@ -155,9 +146,6 @@ tasks.named<Test>("desktopTest") {
         showStackTraces = true
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     }
-
-    // Run each test class in separate JVM to prevent state pollution
-    // (Consistent with Android test configuration)
     forkEvery = 1
     maxParallelForks = Runtime.getRuntime().availableProcessors()
 }
@@ -176,7 +164,6 @@ compose.desktop {
 android {
     namespace = "id.homebase.homebasekmppoc"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
-
     defaultConfig {
         applicationId = "id.homebase.homebasekmppoc"
         minSdk = libs.versions.android.minSdk.get().toInt()
@@ -184,7 +171,6 @@ android {
         versionCode = 1
         versionName = "1.0"
     }
-
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -199,13 +185,14 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-
-    // Configure unit tests to use Robolectric
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
             isReturnDefaultValues = true
             all {
+                // 4. INJECT PATH INTO ANDROID (ROBOLECTRIC)
+                it.environment("TEST_IMAGES_DIR", testImagesDir)
+
                 it.testLogging {
                     events("passed", "skipped", "failed", "standardOut", "standardError")
                     showStandardStreams = true
@@ -213,19 +200,8 @@ android {
                     showCauses = true
                     showStackTraces = true
                 }
-
-                // Add system property to ensure Robolectric uses the correct SDK
                 it.systemProperty("robolectric.enabledSdks", "33")
-                // Enable native graphics mode for full BitmapFactory support
                 it.systemProperty("robolectric.graphicsMode", "NATIVE")
-
-                // CRITICAL: Run each test class in a separate JVM to prevent state pollution
-                // This prevents Robolectric's Conscrypt from breaking non-Robolectric crypto tests
-                // Robolectric loads Android's Conscrypt crypto provider which:
-                // 1. Replaces JVM's default crypto providers globally
-                // 2. Doesn't support AES-192 (only AES-128 and AES-256)
-                // 3. Pollutes state for all tests that run after it
-                // Running in separate JVMs ensures each test gets a clean environment
                 it.forkEvery = 1
                 it.maxParallelForks = Runtime.getRuntime().availableProcessors()
             }
@@ -241,8 +217,6 @@ sqldelight {
     databases {
         create("OdinDatabase") {
             packageName.set("id.homebase.homebasekmppoc.lib.database")
-            // This is important to get the right SQLite version so that
-            // ON CONFLICT and RETURNING are supported
             dialect(libs.sqldelight.sqlite338.dialect)
         }
     }
