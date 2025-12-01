@@ -145,6 +145,23 @@ kotlin {
     }
 }
 
+// Configure Desktop test task for better output
+tasks.named<Test>("desktopTest") {
+    testLogging {
+        events("passed", "skipped", "failed", "standardOut", "standardError")
+        showStandardStreams = true
+        showExceptions = true
+        showCauses = true
+        showStackTraces = true
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
+
+    // Run each test class in separate JVM to prevent state pollution
+    // (Consistent with Android test configuration)
+    forkEvery = 1
+    maxParallelForks = Runtime.getRuntime().availableProcessors()
+}
+
 compose.desktop {
     application {
         mainClass = "id.homebase.homebasekmppoc.MainKt"
@@ -201,6 +218,16 @@ android {
                 it.systemProperty("robolectric.enabledSdks", "33")
                 // Enable native graphics mode for full BitmapFactory support
                 it.systemProperty("robolectric.graphicsMode", "NATIVE")
+
+                // CRITICAL: Run each test class in a separate JVM to prevent state pollution
+                // This prevents Robolectric's Conscrypt from breaking non-Robolectric crypto tests
+                // Robolectric loads Android's Conscrypt crypto provider which:
+                // 1. Replaces JVM's default crypto providers globally
+                // 2. Doesn't support AES-192 (only AES-128 and AES-256)
+                // 3. Pollutes state for all tests that run after it
+                // Running in separate JVMs ensures each test gets a clean environment
+                it.forkEvery = 1
+                it.maxParallelForks = Runtime.getRuntime().availableProcessors()
             }
         }
     }

@@ -5,8 +5,11 @@ import kotlin.test.*
 
 /**
  * Common tests for ThumbnailGenerator that run on all platforms (Android, iOS, Desktop)
+ *
+ * The class is abstract and platform-specific subclasses provide the test runners,
+ * otherwise Robolectric would try to run this directly and fail.
  */
-open class ThumbnailGeneratorTest {
+abstract class ThumbnailGeneratorTest {
 
     // ========== GetRevisedThumbs Tests ==========
 

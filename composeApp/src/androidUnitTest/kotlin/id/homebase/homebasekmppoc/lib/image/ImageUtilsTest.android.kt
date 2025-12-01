@@ -5,9 +5,11 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Android-specific test runner for ThumbnailGenerator using Robolectric
+ * Android-specific test runner using Robolectric
+ * This allows Android framework APIs (like BitmapFactory) to work in JVM unit tests
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33], manifest = Config.NONE)
-class ThumbnailGeneratorAndroidTest : ThumbnailGeneratorTest()
+@Config(sdk = [33])
+class ImageUtilsAndroidTest : ImageUtilsTest()
+
 

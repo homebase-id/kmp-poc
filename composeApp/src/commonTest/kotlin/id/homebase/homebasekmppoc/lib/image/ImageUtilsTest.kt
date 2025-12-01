@@ -7,8 +7,11 @@ import kotlin.test.*
  *
  * Note: Android tests require Robolectric to provide Android framework APIs in JVM tests.
  * This is configured in the platform-specific test source sets.
+ *
+ * The class is abstract and platform-specific subclasses provide the test runners,
+ * otherwise Robolectric would try to run this directly and fail.
  */
-open class ImageUtilsTest {
+abstract class ImageUtilsTest {
 
     @Test
     fun getNaturalSize_withValidJpegImage_returnsCorrectSize() {

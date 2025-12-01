@@ -15,18 +15,18 @@ echo -e "${BLUE}========================================${NC}\n"
 
 # Desktop/JVM Tests
 echo -e "${BLUE}[1/3] Running Desktop/JVM Tests...${NC}"
-./gradlew desktopTest
+./gradlew desktopTest --rerun-tasks
 echo -e "${GREEN}✓ Desktop tests completed${NC}\n"
 
 # Android Unit Tests
 echo -e "${BLUE}[2/3] Running Android Unit Tests...${NC}"
-./gradlew testDebugUnitTest
+./gradlew testDebugUnitTest --rerun-tasks
 echo -e "${GREEN}✓ Android tests completed${NC}\n"
 
 # iOS Simulator Tests (only on macOS)
 echo -e "${BLUE}[3/3] Running iOS Simulator Tests...${NC}"
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    ./gradlew iosSimulatorArm64Test
+    ./gradlew iosSimulatorArm64Test --rerun-tasks
     echo -e "${GREEN}✓ iOS tests completed${NC}\n"
     # Run iOS Simulator tests directly, bypassing Gradle's broken test result collector
     # SEB:NOTE figure out if we can make gradle work properly here
