@@ -2,9 +2,9 @@ name: Unit Tests
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   test:
@@ -20,7 +20,7 @@ jobs:
             verify-robolectric: true
           - os: macos-latest
             name: iOS
-            test-command: ./run-ios-tests-ci.sh
+            test-command: ./gradlew iosSimulatorArm64Test
       fail-fast: false
     name: ${{ matrix.name }} Tests on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -31,8 +31,8 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          java-version: "17"
+          distribution: "temurin"
 
       - name: Gradle Cache
         uses: actions/cache@v4
@@ -46,14 +46,28 @@ jobs:
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
-        
+
       - name: Make test scripts executable
         run: |
           chmod +x ./run-all-tests.sh
           chmod +x ./run-ios-tests.sh
           chmod +x ./run-ios-tests-ci.sh
           chmod +x ./gradlew-clean-build.sh
-          
+
+      - name: Boot iOS Simulator
+        if: matrix.os == 'macos-latest'
+        run: |
+          echo "Listing available devices..."
+          xcrun simctl list devices available
+
+          echo "Booting iPhone 15..."
+          # Try to boot iPhone 15 (standard on macos-14/15 runners)
+          # The '|| true' prevents failure if it's already booted
+          xcrun simctl boot "iPhone 15" || true
+
+          # Optional: Wait for it to be ready (prevents race conditions)
+          xcrun simctl bootstatus "iPhone 15" -b || true
+
       - name: Run tests
         run: ${{ matrix.test-command }}
 
@@ -98,4 +112,3 @@ jobs:
             composeApp/build/test-results/
             test-output.log
           retention-days: 30
-
