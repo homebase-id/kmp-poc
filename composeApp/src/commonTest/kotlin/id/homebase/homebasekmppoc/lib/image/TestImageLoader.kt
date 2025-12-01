@@ -26,7 +26,7 @@ expect object TestImageLoader {
 /**
  * Gets all available test image filenames from the test-images directory
  */
-expect fun getAvailableTestImages(): List<String>
+// expect fun getAvailableTestImages(): List<String>
 
 /**
  * Checks if a file is a supported image format
