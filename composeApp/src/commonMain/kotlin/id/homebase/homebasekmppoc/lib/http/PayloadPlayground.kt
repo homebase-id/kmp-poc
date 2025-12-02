@@ -152,6 +152,7 @@ class PayloadPlayground(private val authenticated: AuthState.Authenticated) {
         Logger.d("PayloadPlayground") { "Payload key: $payloadKey" }
         Logger.d("PayloadPlayground") { "Payload IV (base64): $payloadIvBase64" }
 
+        // call backend DriveStorageControllerBase.GetPayloadStream
         val uri = "https://${authenticated.identity}/api/owner/v1/drive/files/payload?alias=$alias&type=$type&fileId=$fileId&key=$payloadKey&xfst=$fileSystemType"
 
         val odinClient = OdinHttpClient(authenticated)

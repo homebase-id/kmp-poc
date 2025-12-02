@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc.ui.components
+package id.homebase.homebasekmppoc.ui.video
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box

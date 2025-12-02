@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc.ui.components
+package id.homebase.homebasekmppoc.ui.video
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -15,17 +15,9 @@ import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.usePinned
 import platform.AVFoundation.AVPlayer
-import platform.AVFoundation.AVPlayerLayer
-import platform.AVFoundation.AVLayerVideoGravityResizeAspect
 import platform.AVFoundation.play
 import platform.AVKit.AVPlayerViewController
-import platform.CoreGraphics.CGRectMake
 import platform.Foundation.*
-import platform.QuartzCore.CATransaction
-import platform.QuartzCore.kCATransactionDisableActions
-import platform.UIKit.UIView
-import platform.darwin.NSObject
-import platform.posix.memcpy
 
 @OptIn(ExperimentalForeignApi::class, kotlinx.cinterop.BetaInteropApi::class)
 @Composable

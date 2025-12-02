@@ -23,11 +23,8 @@ import androidx.compose.ui.unit.dp
 import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.lib.authentication.AuthState
 import id.homebase.homebasekmppoc.lib.drives.SharedSecretEncryptedFileHeader
-import id.homebase.homebasekmppoc.lib.drives.SystemDriveConstants
-import id.homebase.homebasekmppoc.lib.http.OdinHttpClient
 import id.homebase.homebasekmppoc.lib.http.PayloadPlayground
-import id.homebase.homebasekmppoc.lib.http.PublicPostsChannelDrive
-import id.homebase.homebasekmppoc.ui.components.VideoPlayer
+import id.homebase.homebasekmppoc.ui.video.VideoPlayer
 
 /**
  * A video player page that displays video content.

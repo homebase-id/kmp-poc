@@ -1,6 +1,5 @@
-package id.homebase.homebasekmppoc.ui.components
+package id.homebase.homebasekmppoc.ui.video
 
-import android.media.MediaPlayer
 import android.net.Uri
 import android.widget.VideoView
 import androidx.compose.foundation.background

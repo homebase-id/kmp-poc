@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc.ui.components
+package id.homebase.homebasekmppoc.ui.video
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
