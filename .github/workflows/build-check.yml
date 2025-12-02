@@ -2,9 +2,9 @@ name: Build Check
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build:
@@ -30,8 +30,8 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          java-version: "17"
+          distribution: "temurin"
 
       - name: Gradle Cache
         uses: actions/cache@v4
@@ -45,7 +45,7 @@ jobs:
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
-        
+
       - name: Make shell scripts executable
         run: |
           chmod +x ./run-all-tests.sh
@@ -59,7 +59,7 @@ jobs:
       - name: Verify Android build artifact
         if: ${{ matrix.name == 'Android & Desktop' }}
         run: find composeApp/build/outputs/apk/debug -name "*.apk"
-      
+
       - name: Upload Android artifact
         if: ${{ matrix.name == 'Android & Desktop' }}
         uses: actions/upload-artifact@v4
@@ -69,14 +69,14 @@ jobs:
 
       - name: Verify Desktop build artifact
         if: ${{ matrix.name == 'Android & Desktop' }}
-        run: find composeApp/build/compose/binaries/main/dist -name "*.zip" | grep -q ".zip$"
+        run: test -d composeApp/build/compose/binaries/main/app && ls composeApp/build/compose/binaries/main/app
 
       - name: Upload Desktop artifact
         if: ${{ matrix.name == 'Android & Desktop' }}
         uses: actions/upload-artifact@v4
         with:
           name: desktop-dist
-          path: composeApp/build/compose/binaries/main/dist/*.zip
+          path: composeApp/build/compose/binaries/main/app/
 
       - name: Verify iOS build artifact
         if: ${{ matrix.name == 'iOS' }}
