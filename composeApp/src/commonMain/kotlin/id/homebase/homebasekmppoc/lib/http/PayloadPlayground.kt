@@ -7,8 +7,9 @@ import id.homebase.homebasekmppoc.lib.authentication.AuthState
 import id.homebase.homebasekmppoc.lib.drives.DriveDefinition
 import id.homebase.homebasekmppoc.lib.drives.FileState
 import id.homebase.homebasekmppoc.lib.drives.GetDrivesByTypeRequest
-import id.homebase.homebasekmppoc.lib.drives.GetQueryBatchRequest
+import id.homebase.homebasekmppoc.lib.drives.query.GetQueryBatchRequest
 import id.homebase.homebasekmppoc.lib.drives.SharedSecretEncryptedFileHeader
+import id.homebase.homebasekmppoc.lib.drives.query.PagedResult
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.headers

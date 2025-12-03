@@ -1,6 +1,4 @@
-// DEPRECATED: This file and all its contents are deprecated. Please use updated paging models.
-
-package id.homebase.homebasekmppoc.lib.http
+package id.homebase.homebasekmppoc.lib.drives.query
 
 import kotlinx.serialization.Serializable
 
@@ -8,39 +6,32 @@ import kotlinx.serialization.Serializable
  * Paging and cursor models for API responses.
  *
  * Ported from TypeScript paging interfaces
- *
- * @deprecated This file is deprecated. Use updated paging models instead.
  */
 
-@Deprecated("Use updated paging models")
 @Serializable
 data class PagedResult<T>(
     val totalPages: Int,
     val results: List<T>
 )
 
-@Deprecated("Use updated paging models")
 @Serializable
 data class CursoredResult<T>(
     val results: T,
     val cursorState: String
 )
 
-@Deprecated("Use updated paging models")
 @Serializable
 data class NumberCursoredResult<T>(
     val results: List<T>,
     val cursor: String? = null
 )
 
-@Deprecated("Use updated paging models")
 @Serializable
 data class MultiRequestCursoredResult<T>(
     val results: T,
     val cursorState: Map<String, String>
 )
 
-@Deprecated("Use updated paging models")
 @Serializable
 data class PagingOptions(
     val pageNumber: Int,

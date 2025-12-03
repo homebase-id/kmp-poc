@@ -29,7 +29,6 @@ data class TimeRowCursor(
 /**
  * Cursor for batch query pagination with boundary management
  *
- * Ported from C# Odin.Core.Storage.QueryBatchCursor
  */
 @Serializable
 data class QueryBatchCursor(

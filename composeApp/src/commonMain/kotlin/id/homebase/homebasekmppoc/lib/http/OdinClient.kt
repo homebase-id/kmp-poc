@@ -18,7 +18,7 @@ import io.ktor.serialization.kotlinx.json.*
 data class CreateHttpClientOptions (
     val  overrideEncryption: Boolean = false,
     val  headers: Map<String, String> = emptyMap(),
-    val  fileSystemType: FileSystemType = FileSystemType.Standard
+    val  fileSystemType: FileSystemType? = FileSystemType.Standard
 )
 
 /**
@@ -112,7 +112,10 @@ class OdinClient(
         return CryptoHelper.uriWithEncryptedQueryString(uri, sharedSecret)
     }
 
-
+    /**
+     * Verifies if the current token is valid by making a request to the verifytoken endpoint
+     * @return true if the token is valid, false otherwise
+     */
     suspend fun verifyToken(): Boolean {
         val ss = getSharedSecret() ?: return false
 

@@ -2,6 +2,7 @@
 
 package id.homebase.homebasekmppoc.lib.drives
 
+import id.homebase.homebasekmppoc.lib.core.time.UnixTimeUtc
 import id.homebase.homebasekmppoc.lib.core.time.UnixTimeUtcRange
 import id.homebase.homebasekmppoc.lib.serialization.UuidSerializer
 import kotlinx.serialization.Serializable
@@ -23,12 +24,15 @@ data class FileQueryParams(
     val sender: List<String>? = null,
     val groupId: List<@Serializable(with = UuidSerializer::class) Uuid>? = null,
     val userDate: UnixTimeUtcRange? = null,
+    val userDateStart: Long? = null,
+    val userDateEnd: Long? = null,
     val clientUniqueIdAtLeastOne: List<@Serializable(with = UuidSerializer::class) Uuid>? = null,
     val tagsMatchAtLeastOne: List<@Serializable(with = UuidSerializer::class) Uuid>? = null,
     val tagsMatchAll: List<@Serializable(with = UuidSerializer::class) Uuid>? = null,
     val localTagsMatchAtLeastOne: List<@Serializable(with = UuidSerializer::class) Uuid>? = null,
     val localTagsMatchAll: List<@Serializable(with = UuidSerializer::class) Uuid>? = null,
-    val globalTransitId: List<@Serializable(with = UuidSerializer::class) Uuid>? = null
+    val globalTransitId: List<@Serializable(with = UuidSerializer::class) Uuid>? = null,
+    val fileSystemType: FileSystemType? = null,
 ) {
     fun assertIsValid() {
         require(targetDrive.isValid()) { "Invalid target drive" }
@@ -43,3 +47,4 @@ data class FileQueryParams(
         }
     }
 }
+

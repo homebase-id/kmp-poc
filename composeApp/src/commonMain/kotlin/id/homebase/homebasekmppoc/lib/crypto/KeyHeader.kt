@@ -58,6 +58,18 @@ class KeyHeader(
     }
 
     /**
+     * Decrypts data using AES-CBC with this KeyHeader's IV
+     */
+    suspend fun decrypt(encryptedData: String): ByteArray {
+        var encryptedBytesData = encryptedData.encodeToByteArray()
+        return AesCbc.decrypt(
+            cipherText = encryptedBytesData,
+            key = aesKey,
+            iv = iv
+        )
+    }
+
+    /**
      * Decrypts data using AES-CBC with a custom IV
      * Used for payload decryption where each payload has its own IV
      */

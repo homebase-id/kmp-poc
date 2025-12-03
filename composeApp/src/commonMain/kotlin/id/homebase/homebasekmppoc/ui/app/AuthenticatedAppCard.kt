@@ -32,7 +32,7 @@ import co.touchlab.kermit.Logger
 import homebasekmppoc.composeapp.generated.resources.Res
 import homebasekmppoc.composeapp.generated.resources.compose_multiplatform
 import id.homebase.homebasekmppoc.lib.authentication.AuthState
-import id.homebase.homebasekmppoc.lib.drives.DriveQueryProvider
+import id.homebase.homebasekmppoc.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.lib.drives.QueryBatchResponse
 import id.homebase.homebasekmppoc.lib.http.OdinHttpClient
 import org.jetbrains.compose.resources.painterResource

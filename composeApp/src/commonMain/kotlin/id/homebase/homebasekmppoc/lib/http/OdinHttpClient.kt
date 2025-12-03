@@ -5,8 +5,8 @@ import id.homebase.homebasekmppoc.lib.authentication.AuthState
 import id.homebase.homebasekmppoc.lib.crypto.AesCbc
 import id.homebase.homebasekmppoc.lib.crypto.ByteArrayUtil
 import id.homebase.homebasekmppoc.lib.crypto.CryptoHelper
-import id.homebase.homebasekmppoc.lib.drives.GetQueryBatchRequest
-import id.homebase.homebasekmppoc.lib.drives.QueryBatchRequest
+import id.homebase.homebasekmppoc.lib.drives.query.GetQueryBatchRequest
+import id.homebase.homebasekmppoc.lib.drives.query.QueryBatchRequest
 import id.homebase.homebasekmppoc.lib.drives.QueryBatchResponse
 import id.homebase.homebasekmppoc.lib.encodeUrl
 import id.homebase.homebasekmppoc.lib.serialization.OdinSystemSerializer

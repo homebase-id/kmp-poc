@@ -51,6 +51,6 @@ data class QueryBatchResultOptionsRequest(
     }
 
     companion object {
-        val Default = QueryBatchResultOptionsRequest(maxRecords = 10)
+        val Default = QueryBatchResultOptionsRequest(maxRecords = 10, includeMetadataHeader = true)
     }
 }
