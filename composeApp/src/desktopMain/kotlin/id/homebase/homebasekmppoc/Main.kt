@@ -5,9 +5,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
-import id.homebase.homebasekmppoc.lib.MessageDialogHandler
-import id.homebase.homebasekmppoc.lib.database.DatabaseDriverFactory
-import id.homebase.homebasekmppoc.lib.database.DatabaseManager
+import id.homebase.homebasekmppoc.prototype.lib.MessageDialogHandler
+import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseDriverFactory
+import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
 
 fun main() = application {
     // Initialize database
