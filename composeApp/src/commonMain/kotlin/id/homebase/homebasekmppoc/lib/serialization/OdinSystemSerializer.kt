@@ -1,9 +1,7 @@
-package id.homebase.homebasekmppoc.prototype.lib.serialization
+package id.homebase.homebasekmppoc.lib.serialization
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.descriptors.SerialDescriptor
 
 /**

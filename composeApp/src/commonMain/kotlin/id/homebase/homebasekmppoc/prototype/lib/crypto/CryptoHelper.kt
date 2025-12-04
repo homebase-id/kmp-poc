@@ -2,7 +2,7 @@ package id.homebase.homebasekmppoc.prototype.lib.crypto
 
 import id.homebase.homebasekmppoc.prototype.lib.encodeUrl
 import id.homebase.homebasekmppoc.prototype.lib.http.SharedSecretEncryptedPayload
-import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
+import id.homebase.homebasekmppoc.lib.serialization.OdinSystemSerializer
 import id.homebase.homebasekmppoc.prototype.lib.toBase64
 import io.ktor.util.encodeBase64
 import kotlin.io.encoding.Base64

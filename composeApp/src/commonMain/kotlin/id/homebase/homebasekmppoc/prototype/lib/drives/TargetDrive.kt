@@ -2,7 +2,7 @@
 
 package id.homebase.homebasekmppoc.prototype.lib.drives
 
-import id.homebase.homebasekmppoc.prototype.lib.serialization.UuidSerializer
+import id.homebase.homebasekmppoc.lib.serialization.UuidSerializer
 import io.ktor.utils.io.charsets.Charsets
 import io.ktor.utils.io.core.toByteArray
 import kotlinx.serialization.Serializable

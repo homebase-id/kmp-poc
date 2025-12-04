@@ -18,7 +18,7 @@ import id.homebase.homebasekmppoc.prototype.lib.getRedirectUri
 import id.homebase.homebasekmppoc.prototype.lib.http.UriBuilder
 import id.homebase.homebasekmppoc.prototype.lib.http.createHttpClient
 import id.homebase.homebasekmppoc.prototype.lib.launchCustomTabs
-import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
+import id.homebase.homebasekmppoc.lib.serialization.OdinSystemSerializer
 import id.homebase.homebasekmppoc.prototype.lib.toBase64
 import io.ktor.client.call.body
 import io.ktor.client.request.post

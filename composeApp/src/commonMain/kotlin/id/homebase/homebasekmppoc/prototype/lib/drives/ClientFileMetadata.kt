@@ -3,7 +3,7 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives
 
 import id.homebase.homebasekmppoc.prototype.lib.core.time.UnixTimeUtc
-import id.homebase.homebasekmppoc.prototype.lib.serialization.UuidSerializer
+import id.homebase.homebasekmppoc.lib.serialization.UuidSerializer
 import kotlinx.serialization.Serializable
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid

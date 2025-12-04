@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc.prototype.lib.serialization
+package id.homebase.homebasekmppoc.lib.serialization
 
 import kotlinx.serialization.Serializable
 import kotlin.test.Test

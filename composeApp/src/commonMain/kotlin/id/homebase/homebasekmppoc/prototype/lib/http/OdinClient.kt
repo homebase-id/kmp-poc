@@ -3,7 +3,7 @@ package id.homebase.homebasekmppoc.prototype.lib.http
 import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.prototype.lib.crypto.CryptoHelper
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileSystemType
-import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
+import id.homebase.homebasekmppoc.lib.serialization.OdinSystemSerializer
 
 import io.ktor.client.*
 import io.ktor.client.plugins.*

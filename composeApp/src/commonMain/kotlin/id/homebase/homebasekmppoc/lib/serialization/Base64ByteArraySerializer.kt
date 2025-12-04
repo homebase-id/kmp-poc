@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc.prototype.lib.serialization
+package id.homebase.homebasekmppoc.lib.serialization
 
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.PrimitiveKind
@@ -17,12 +17,12 @@ object Base64ByteArraySerializer : KSerializer<ByteArray> {
         PrimitiveSerialDescriptor("Base64ByteArray", PrimitiveKind.STRING)
 
     override fun serialize(encoder: Encoder, value: ByteArray) {
-        val base64String = Base64.encode(value)
+        val base64String = Base64.Default.encode(value)
         encoder.encodeString(base64String)
     }
 
     override fun deserialize(decoder: Decoder): ByteArray {
         val base64String = decoder.decodeString()
-        return Base64.decode(base64String)
+        return Base64.Default.decode(base64String)
     }
 }
