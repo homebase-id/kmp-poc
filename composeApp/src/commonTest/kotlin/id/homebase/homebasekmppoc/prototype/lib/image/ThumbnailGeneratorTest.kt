@@ -135,8 +135,8 @@ abstract class ThumbnailGeneratorTest {
         // Quality should be reasonable (between 1 and 100) and all thumbnails should fit within maxBytes
         assertTrue(additionalThumbnails.all { it.quality in 1..100 })
         additionalThumbnails.forEachIndexed { index, thumb ->
-            if (index compareTo baseThumbSizes.size) {
-                assertTrue(thumb.payload.size compareTo baseThumbSizes[index].maxBytes,
+            if (index < baseThumbSizes.size) {
+                assertTrue(thumb.payload.size <= baseThumbSizes[index].maxBytes,
                     "Thumbnail $index size ${thumb.payload.size} exceeds max ${baseThumbSizes[index].maxBytes}")
             }
         }
@@ -159,7 +159,7 @@ abstract class ThumbnailGeneratorTest {
 
         for (i in 0..2) {
             assertTrue(
-                additionalThumbnails[i].payload.size compareTo baseThumbSizes[i].maxBytes,
+                additionalThumbnails[i].payload.size <= baseThumbSizes[i].maxBytes,
                 "Thumbnail $i size ${additionalThumbnails[i].payload.size} exceeds max ${baseThumbSizes[i].maxBytes}"
             )
             // Quality should be reasonable
@@ -187,7 +187,7 @@ abstract class ThumbnailGeneratorTest {
         assertEquals(1, additionalThumbnails.size, "Should be 1")
 
         assertTrue(
-            additionalThumbnails[0].payload.size.compareTo(customSizes[0].maxBytes),
+            additionalThumbnails[0].payload.size <= customSizes[0].maxBytes,
             "Too large"
         )
         // Quality must change!
@@ -196,7 +196,7 @@ abstract class ThumbnailGeneratorTest {
             additionalThumbnails[0].quality,
             "Quality unchanged"
         )
-        assertTrue(additionalThumbnails[0].quality compareTo 1, "Quality too small")
+        assertTrue(additionalThumbnails[0].quality >= 1, "Quality too small")
     }
 
     @Test
@@ -234,7 +234,7 @@ abstract class ThumbnailGeneratorTest {
 
         for (i in 0..2) {
             assertTrue(
-                additionalThumbnails[i].payload.size compareTo baseThumbSizes[i].maxBytes,
+                additionalThumbnails[i].payload.size <= baseThumbSizes[i].maxBytes,
                 "Too large"
             )
             assertEquals(
@@ -461,7 +461,7 @@ abstract class ThumbnailGeneratorTest {
         assertNotNull(additionalThumbnails)
 
         // Should contain at least 1 thumbnail
-        assertTrue(additionalThumbnails.size compareTo 1)
+        assertTrue(additionalThumbnails.size >= 1)
         assertTrue(additionalThumbnails.all { it.quality == 80 || it.quality == 90 })
         assertTrue(additionalThumbnails.all { it.key == payloadKey })
     }
@@ -504,7 +504,7 @@ abstract class ThumbnailGeneratorTest {
                     )
                     for (i in 0..2) {
                         assertTrue(
-                            additionalThumbnails[i].payload.size compareTo baseThumbSizes[i].maxBytes,
+                            additionalThumbnails[i].payload.size <= baseThumbSizes[i].maxBytes,
                             "Thumbnail $i for $format exceeds size limit: ${additionalThumbnails[i].payload.size} > ${baseThumbSizes[i].maxBytes}"
                         )
                         assertTrue(
