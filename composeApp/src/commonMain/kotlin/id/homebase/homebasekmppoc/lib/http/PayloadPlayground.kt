@@ -124,6 +124,13 @@ class PayloadPlayground(private val authenticated: AuthState.Authenticated) {
 
     //
 
+    suspend fun getVideoMetaData(header: SharedSecretEncryptedFileHeader) {
+        Logger.d("VideoPlayerTestPage") { "Getting video metadata for file: ${header.fileId}" }
+
+        // header.fileMetadata.payloads
+
+    }
+
     suspend fun getFileHeader(fileId: String, alias: String, type: String, fileSystemType: String): SharedSecretEncryptedFileHeader
     {
         val uri = "/api/owner/v1/drive/files/header?alias=$alias&type=$type&fileId=$fileId&xfst=$fileSystemType"

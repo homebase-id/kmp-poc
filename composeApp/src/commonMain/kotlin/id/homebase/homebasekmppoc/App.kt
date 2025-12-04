@@ -27,6 +27,7 @@ import id.homebase.homebasekmppoc.ui.db.DbPage
 import id.homebase.homebasekmppoc.ui.owner.OwnerPage
 import id.homebase.homebasekmppoc.ui.domain.DomainPage
 import id.homebase.homebasekmppoc.ui.ws.WebsocketPage
+import id.homebase.homebasekmppoc.ui.video.VideoPlayerTestPage
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthManager
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -35,14 +36,15 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 @Preview
 fun App() {
     MaterialTheme {
-        var selectedTabIndex by remember { mutableStateOf(0) }
-        val tabs = listOf("Owner", "Domain", "App", "db", "ws")
+        var selectedTabIndex by remember { mutableStateOf(5) }
+        val tabs = listOf("Owner", "Domain", "App", "db", "ws", "Video")
         val drawerState = rememberDrawerState(DrawerValue.Closed)
         val scope = rememberCoroutineScope()
 
         // Hoist YouAuthManager to App level so it survives tab navigation
         val authenticationManager = remember { AuthenticationManager() }
         val wsAuthenticationManager = remember { AuthenticationManager() }
+        val videoAuthenticationManager = remember { AuthenticationManager() }
         val domainYouAuthManager = remember { YouAuthManager() }
         val appYouAuthManager = remember { YouAuthManager() }
 
@@ -97,6 +99,7 @@ fun App() {
                         2 -> AppPage(appYouAuthManager)
                         3 -> DbPage()
                         4 -> WebsocketPage(wsAuthenticationManager)
+                        5 -> VideoPlayerTestPage(videoAuthenticationManager)
                     }
                 }
             }
