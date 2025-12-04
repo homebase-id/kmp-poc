@@ -35,7 +35,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 @Preview
 fun App() {
     MaterialTheme {
-        var selectedTabIndex by remember { mutableStateOf(5) }
+        var selectedTabIndex by remember { mutableStateOf(0) }
         val tabs = listOf("Owner", "Domain", "App", "db", "ws", "Video")
         val drawerState = rememberDrawerState(DrawerValue.Closed)
         val scope = rememberCoroutineScope()
