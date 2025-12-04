@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalUuidApi::class)
-
 package id.homebase.homebasekmppoc.lib.serialization
 
 import kotlinx.serialization.KSerializer
@@ -8,7 +6,6 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /**
@@ -23,6 +20,6 @@ object UuidSerializer : KSerializer<Uuid> {
     }
 
     override fun deserialize(decoder: Decoder): Uuid {
-        return Uuid.parse(decoder.decodeString())
+        return Uuid.Companion.parse(decoder.decodeString())
     }
 }

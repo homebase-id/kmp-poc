@@ -1,8 +1,8 @@
 package id.homebase.homebasekmppoc
 
 import androidx.compose.ui.window.ComposeUIViewController
-import id.homebase.homebasekmppoc.lib.database.DatabaseDriverFactory
-import id.homebase.homebasekmppoc.lib.database.DatabaseManager
+import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseDriverFactory
+import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
 import platform.UIKit.UIViewController
 import platform.darwin.NSObject
 

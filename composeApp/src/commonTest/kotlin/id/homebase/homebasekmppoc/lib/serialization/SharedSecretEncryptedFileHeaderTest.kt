@@ -1,6 +1,9 @@
 package id.homebase.homebasekmppoc.lib.serialization
 
-import id.homebase.homebasekmppoc.lib.drives.SharedSecretEncryptedFileHeader
+import id.homebase.homebasekmppoc.lib.serialization.OdinSystemSerializer
+import id.homebase.homebasekmppoc.prototype.lib.drives.FileState
+import id.homebase.homebasekmppoc.prototype.lib.drives.FileSystemType
+import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -91,8 +94,8 @@ class SharedSecretEncryptedFileHeaderTest {
         assertEquals(5402950L, header.fileByteCount)
 
         // Verify enum deserialization
-        assertEquals(id.homebase.homebasekmppoc.lib.drives.FileState.Active, header.fileState)
-        assertEquals(id.homebase.homebasekmppoc.lib.drives.FileSystemType.Standard, header.fileSystemType)
+        assertEquals(FileState.Active, header.fileState)
+        assertEquals(FileSystemType.Standard, header.fileSystemType)
 
         // Verify Base64 ByteArray deserialization
         assertNotNull(header.sharedSecretEncryptedKeyHeader.iv)
