@@ -1,6 +1,7 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives
 
-import id.homebase.homebasekmppoc.prototype.lib.crypto.CryptoHelper
+import id.homebase.homebasekmppoc.lib.crypto.CryptoHelper
+import id.homebase.homebasekmppoc.lib.drives.QueryBatchResponse
 import id.homebase.homebasekmppoc.prototype.lib.http.createHttpClient
 import id.homebase.homebasekmppoc.prototype.lib.encodeUrl
 import io.ktor.client.*

@@ -33,7 +33,7 @@ import homebasekmppoc.composeapp.generated.resources.Res
 import homebasekmppoc.composeapp.generated.resources.compose_multiplatform
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthState
 import id.homebase.homebasekmppoc.prototype.lib.drives.DriveQueryProvider
-import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResponse
+import id.homebase.homebasekmppoc.lib.drives.QueryBatchResponse
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 

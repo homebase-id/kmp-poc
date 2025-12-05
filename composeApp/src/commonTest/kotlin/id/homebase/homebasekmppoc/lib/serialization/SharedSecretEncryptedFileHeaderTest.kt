@@ -1,9 +1,9 @@
 package id.homebase.homebasekmppoc.lib.serialization
 
 import id.homebase.homebasekmppoc.lib.serialization.OdinSystemSerializer
-import id.homebase.homebasekmppoc.prototype.lib.drives.FileState
-import id.homebase.homebasekmppoc.prototype.lib.drives.FileSystemType
-import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
+import id.homebase.homebasekmppoc.lib.drives.FileState
+import id.homebase.homebasekmppoc.lib.drives.FileSystemType
+import id.homebase.homebasekmppoc.lib.drives.SharedSecretEncryptedFileHeader
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
