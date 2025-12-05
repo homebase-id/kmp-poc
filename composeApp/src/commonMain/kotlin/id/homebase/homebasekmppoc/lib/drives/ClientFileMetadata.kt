@@ -1,9 +1,8 @@
 @file:OptIn(ExperimentalUuidApi::class)
 
-package id.homebase.homebasekmppoc.prototype.lib.drives
+package id.homebase.homebasekmppoc.lib.drives
 
 import id.homebase.homebasekmppoc.lib.core.time.UnixTimeUtc
-import id.homebase.homebasekmppoc.lib.drives.TargetDrive
 import id.homebase.homebasekmppoc.lib.serialization.UuidSerializer
 import kotlinx.serialization.Serializable
 import kotlin.uuid.ExperimentalUuidApi

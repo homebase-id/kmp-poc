@@ -9,7 +9,7 @@ import id.homebase.homebasekmppoc.lib.core.SecureByteArray
 import id.homebase.homebasekmppoc.prototype.lib.drives.DriveDefinition
 import id.homebase.homebasekmppoc.lib.drives.FileState
 import id.homebase.homebasekmppoc.prototype.lib.drives.GetDrivesByTypeRequest
-import id.homebase.homebasekmppoc.prototype.lib.drives.GetQueryBatchRequest
+import id.homebase.homebasekmppoc.lib.drives.GetQueryBatchRequest
 import id.homebase.homebasekmppoc.lib.drives.SharedSecretEncryptedFileHeader
 import io.ktor.client.call.body
 import io.ktor.client.request.get

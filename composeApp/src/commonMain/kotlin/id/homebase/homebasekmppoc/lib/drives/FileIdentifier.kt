@@ -1,8 +1,7 @@
 @file:OptIn(ExperimentalUuidApi::class)
 
-package id.homebase.homebasekmppoc.prototype.lib.drives
+package id.homebase.homebasekmppoc.lib.drives
 
-import id.homebase.homebasekmppoc.lib.drives.TargetDrive
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 

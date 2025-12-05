@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc.prototype.lib.drives
+package id.homebase.homebasekmppoc.lib.drives
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

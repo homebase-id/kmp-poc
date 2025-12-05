@@ -1,7 +1,7 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives.query
 
-import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortField
-import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortOrder
+import id.homebase.homebasekmppoc.lib.drives.QueryBatchSortField
+import id.homebase.homebasekmppoc.lib.drives.QueryBatchSortOrder
 import kotlinx.serialization.Serializable
 
 /**
