@@ -1,5 +1,6 @@
 package id.homebase.homebasekmppoc.prototype.ui.video
 
+import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSchemeDataSource
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultHttpDataSource
@@ -26,6 +28,7 @@ import co.touchlab.kermit.Logger
  * Android HLS video player using ExoPlayer (Media3)
  * Supports HLS streaming with proper parsing and adaptive streaming
  */
+@OptIn(UnstableApi::class)
 @Composable
 actual fun HlsVideoPlayer(
     manifestUrl: String,
