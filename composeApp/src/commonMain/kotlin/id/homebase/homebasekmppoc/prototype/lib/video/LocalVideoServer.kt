@@ -17,7 +17,7 @@ import io.ktor.server.routing.routing
  *
  * This is fully common code - Ktor server works across all platforms!
  */
-class LocalVideoServer(private val defaultPort: Int = 3001) {
+class LocalVideoServer {
     private var server: EmbeddedServer<*, *>? = null
     private var serverUrl: String = ""
     private val contentRegistry = mutableMapOf<String, ContentData>()
@@ -28,19 +28,16 @@ class LocalVideoServer(private val defaultPort: Int = 3001) {
     )
 
     /**
-     * Start the server on the specified port
-     * @param port Port to use (0 = use defaultPort)
+     * Start the server on a random available port
      * @return The URL where the server is accessible
      */
-    suspend fun start(port: Int = 0): String {
+    suspend fun start(): String {
         if (server != null) {
             Logger.d("LocalVideoServer") { "Server already running at $serverUrl" }
             return serverUrl
         }
 
-        val actualPort = if (port == 0) defaultPort else port
-
-        server = embeddedServer(CIO, port = actualPort) {
+        server = embeddedServer(CIO, port = 0) {
             routing {
                 // Serve registered content by ID
                 get("/content/{id}") {
@@ -71,6 +68,8 @@ class LocalVideoServer(private val defaultPort: Int = 3001) {
             }
         }.start(wait = false)
 
+        // Get the actual port that was assigned by the system
+        val actualPort = server!!.engine.resolvedConnectors().first().port
         serverUrl = "http://localhost:$actualPort"
         Logger.i("LocalVideoServer") { "Video server started at $serverUrl" }
         return serverUrl

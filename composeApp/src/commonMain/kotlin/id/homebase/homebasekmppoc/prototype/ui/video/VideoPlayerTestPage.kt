@@ -72,7 +72,7 @@ fun VideoPlayerTestPage(authenticationManager: AuthenticationManager) {
                 if (serverStatus != "Running") {
                     try {
                         serverStatus = "Starting..."
-                        val url = videoServer.start(port = 0)
+                        val url = videoServer.start()
                         serverUrl = url
                         serverStatus = "Running"
                         Logger.i("VideoPlayerTestPage") { "Server auto-started at $url after login" }
@@ -413,7 +413,7 @@ fun VideoPlayerTestPage(authenticationManager: AuthenticationManager) {
                             scope.launch {
                                 try {
                                     serverStatus = "Starting..."
-                                    val url = videoServer.start(port = 0)
+                                    val url = videoServer.start()
                                     serverUrl = url
                                     serverStatus = "Running"
                                     Logger.i("VideoPlayerTestPage") { "Server started at $url" }
