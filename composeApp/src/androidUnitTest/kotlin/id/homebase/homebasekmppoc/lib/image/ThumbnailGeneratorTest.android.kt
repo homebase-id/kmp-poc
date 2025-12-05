@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc.prototype.lib.image
+package id.homebase.homebasekmppoc.lib.image
 
 import id.homebase.homebasekmppoc.lib.image.ThumbnailGeneratorTest
 import org.junit.runner.RunWith

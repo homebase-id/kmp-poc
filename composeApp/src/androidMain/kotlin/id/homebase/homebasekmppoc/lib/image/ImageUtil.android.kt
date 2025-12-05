@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc.prototype.lib.image
+package id.homebase.homebasekmppoc.lib.image
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -10,6 +10,10 @@ import androidx.compose.ui.graphics.asImageBitmap
 import co.touchlab.kermit.Logger
 import java.io.ByteArrayOutputStream
 import androidx.core.graphics.scale
+import id.homebase.homebasekmppoc.lib.image.ImageFormat
+import id.homebase.homebasekmppoc.lib.image.ImageResult
+import id.homebase.homebasekmppoc.lib.image.ImageSize
+import id.homebase.homebasekmppoc.lib.image.calculateTargetDimensions
 
 /**
  * Android implementation: Convert ByteArray to ImageBitmap using Android's BitmapFactory

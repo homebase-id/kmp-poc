@@ -20,13 +20,6 @@ data class TargetDrive(
     val type: Uuid
 ) {
 
-    fun clone(): TargetDrive {
-        return TargetDrive(
-            alias = alias,
-            type = type
-        )
-    }
-
     fun toKey(): ByteArray {
         // Combine type and alias as bytes
         val typeBytes = type.toString().toByteArray(Charsets.UTF_8)
@@ -35,7 +28,7 @@ data class TargetDrive(
     }
 
     fun isValid(): Boolean {
-        return alias != Uuid.Companion.NIL && type != Uuid.Companion.NIL
+        return alias != Uuid.NIL && type != Uuid.NIL
     }
 
     override fun toString(): String {
@@ -45,14 +38,14 @@ data class TargetDrive(
     companion object {
         fun newTargetDrive(): TargetDrive {
             return TargetDrive(
-                alias = Uuid.Companion.random(),
-                type = Uuid.Companion.random()
+                alias = Uuid.random(),
+                type = Uuid.random()
             )
         }
 
         fun newTargetDrive(type: Uuid): TargetDrive {
             return TargetDrive(
-                alias = Uuid.Companion.random(),
+                alias = Uuid.random(),
                 type = type
             )
         }

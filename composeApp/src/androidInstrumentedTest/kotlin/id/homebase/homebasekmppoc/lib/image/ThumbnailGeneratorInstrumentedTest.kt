@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc.prototype.lib.image
+package id.homebase.homebasekmppoc.lib.image
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry

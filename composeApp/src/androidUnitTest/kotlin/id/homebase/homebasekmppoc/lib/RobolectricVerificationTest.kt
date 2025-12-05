@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc.prototype.lib
+package id.homebase.homebasekmppoc.lib
 
 import android.os.Build
 import org.junit.Test
@@ -57,4 +57,3 @@ class RobolectricVerificationTest {
         }
     }
 }
-

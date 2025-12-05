@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc.prototype.lib.image
+package id.homebase.homebasekmppoc.lib.image
 
 import kotlinx.io.Buffer
 import kotlinx.io.files.Path
