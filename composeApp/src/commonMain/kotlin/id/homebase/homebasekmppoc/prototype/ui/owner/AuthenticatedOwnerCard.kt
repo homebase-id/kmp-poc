@@ -79,7 +79,7 @@ fun AuthenticatedOwnerCard(
                     PublicPostsChannelDrive.type)
                 imageHeaders?.size?.let {
                     if (it > 0) {
-                        imageBytes = imageHeaders!![0].getPayloadBytes(authenticatedState)
+                        imageBytes = imageHeaders!![0].getPayloadBytes()
                     }
                 }
 

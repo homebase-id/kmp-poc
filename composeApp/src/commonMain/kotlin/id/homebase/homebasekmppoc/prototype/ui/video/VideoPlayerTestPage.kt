@@ -17,6 +17,7 @@ import id.homebase.homebasekmppoc.prototype.lib.http.PayloadWrapper
 import id.homebase.homebasekmppoc.prototype.lib.http.PublicPostsChannelDrive
 import id.homebase.homebasekmppoc.prototype.lib.video.LocalVideoServer
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * Stub function to get video metadata from a video header
@@ -29,6 +30,8 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun VideoPlayerTestPage(authenticationManager: AuthenticationManager) {
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
     var odinIdentity by remember { mutableStateOf("frodo.dotyou.cloud") }
     var password by remember { mutableStateOf("a") }
 
@@ -106,6 +109,17 @@ fun VideoPlayerTestPage(authenticationManager: AuthenticationManager) {
             videoHeaders = null
             selectedVideoHeader = null
         }
+    }
+
+    if (errorMessage != null) {
+        AlertDialog(
+            onDismissRequest = { errorMessage = null },
+            title = { Text("Error") },
+            text = { Text(errorMessage!!) },
+            confirmButton = {
+                TextButton(onClick = { errorMessage = null }) { Text("OK") }
+            }
+        )
     }
 
     // Result dialog
@@ -295,7 +309,12 @@ fun VideoPlayerTestPage(authenticationManager: AuthenticationManager) {
                                     onClick = {
                                         Logger.i("VideoPlayerTestPage") { "Selected video ${index + 1}: ${header.header.fileId}" }
                                         scope.launch {
-                                            payloadPlayground?.getVideoMetaData(header)
+                                            try {
+                                                header.getVideoMetaData()
+                                            } catch (e: Exception) {
+                                                if (e is CancellationException) throw e
+                                                errorMessage = e.message ?: "Unknown error"
+                                            }
                                         }
                                     },
                                     modifier = Modifier.fillMaxWidth()

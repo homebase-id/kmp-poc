@@ -50,7 +50,7 @@ fun OwnerVideoPlayer(
         if (authenticatedState != null) {
             isLoading = true
             try {
-                videoBytes = videoHeader.getPayloadBytes(authenticatedState)
+                videoBytes = videoHeader.getPayloadBytes()
                 isLoading = false
             } catch (e: Exception) {
                 errorMessage = e.message ?: "Unknown error"
