@@ -48,6 +48,11 @@ fun VideoPlayerTestPage(authenticationManager: AuthenticationManager) {
     var isLoadingVideos by remember { mutableStateOf(false) }
     var videoErrorMessage by remember { mutableStateOf<String?>(null) }
 
+    // HLS player page state
+    var showHlsPlayerPage by remember { mutableStateOf(false) }
+    var hlsPlaylistUrl by remember { mutableStateOf<String?>(null) }
+    var selectedVideoTitle by remember { mutableStateOf("Video") }
+
     val authState by authenticationManager.authState.collectAsState()
     val scope = rememberCoroutineScope()
     val videoServer = remember { LocalVideoServer() }
@@ -140,16 +145,32 @@ fun VideoPlayerTestPage(authenticationManager: AuthenticationManager) {
         )
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text(
-            text = "Video Player Test",
-            style = MaterialTheme.typography.headlineMedium
+    // Show HLS player page if a video is selected
+    if (showHlsPlayerPage && hlsPlaylistUrl != null) {
+        val clientAuthToken = (authState as? AuthState.Authenticated)?.clientAuthToken
+        Logger.i("VideoPlayerTestPage") { "Opening HLS player with clientAuthToken: $clientAuthToken" }
+        HlsVideoPlayerPage(
+            hlsPlaylistUrl = hlsPlaylistUrl!!,
+            clientAuthToken = clientAuthToken,
+            videoTitle = selectedVideoTitle,
+            onBack = {
+                showHlsPlayerPage = false
+                hlsPlaylistUrl = null
+                Logger.i("VideoPlayerTestPage") { "Returned from HLS player page" }
+            }
         )
+    } else {
+        // Show video test page
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = "Video Player Test",
+                style = MaterialTheme.typography.headlineMedium
+            )
 
         // Authentication section
         Card(
@@ -310,10 +331,28 @@ fun VideoPlayerTestPage(authenticationManager: AuthenticationManager) {
                                         Logger.i("VideoPlayerTestPage") { "Selected video ${index + 1}: ${header.header.fileId}" }
                                         scope.launch {
                                             try {
-                                                header.getVideoMetaData()
+                                                // Get the HLS playlist/manifest URL
+                                                val hlsPlaylist = header.getVideoMetaData()
+                                                Logger.i("VideoPlayerTestPage") { "Got HLS playlist for video ${index + 1}" }
+
+                                                // Register the manifest with the local server
+                                                val manifestId = "video-${index + 1}-manifest"
+                                                videoServer.registerContent(
+                                                    id = manifestId,
+                                                    data = hlsPlaylist.encodeToByteArray(),
+                                                    contentType = "application/vnd.apple.mpegurl"
+                                                )
+
+                                                // Get the URL and show the HLS player page
+                                                hlsPlaylistUrl = videoServer.getContentUrl(manifestId)
+                                                selectedVideoTitle = "Video ${index + 1}"
+                                                showHlsPlayerPage = true
+
+                                                Logger.i("VideoPlayerTestPage") { "Starting HLS playback at: $hlsPlaylistUrl" }
                                             } catch (e: Exception) {
                                                 if (e is CancellationException) throw e
                                                 errorMessage = e.message ?: "Unknown error"
+                                                Logger.e("VideoPlayerTestPage", e) { "Failed to load video" }
                                             }
                                         }
                                     },
@@ -487,5 +526,6 @@ fun VideoPlayerTestPage(authenticationManager: AuthenticationManager) {
             }
         }
 
+        }
     }
 }
