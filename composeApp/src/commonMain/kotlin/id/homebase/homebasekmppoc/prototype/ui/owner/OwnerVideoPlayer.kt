@@ -24,6 +24,7 @@ import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthState
 import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
 import id.homebase.homebasekmppoc.prototype.lib.http.PayloadPlayground
+import id.homebase.homebasekmppoc.prototype.lib.http.PayloadWrapper
 import id.homebase.homebasekmppoc.prototype.ui.video.VideoPlayer
 
 /**
@@ -36,7 +37,7 @@ import id.homebase.homebasekmppoc.prototype.ui.video.VideoPlayer
 @Composable
 fun OwnerVideoPlayer(
     authenticatedState: AuthState.Authenticated?,
-    videoHeader: SharedSecretEncryptedFileHeader,
+    videoHeader: PayloadWrapper,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -49,8 +50,7 @@ fun OwnerVideoPlayer(
         if (authenticatedState != null) {
             isLoading = true
             try {
-                val payloadPlayground = PayloadPlayground(authenticatedState)
-                videoBytes = payloadPlayground.getVideo(videoHeader)
+                videoBytes = videoHeader.getPayloadBytes(authenticatedState)
                 isLoading = false
             } catch (e: Exception) {
                 errorMessage = e.message ?: "Unknown error"
@@ -76,7 +76,7 @@ fun OwnerVideoPlayer(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Video ID: ${videoHeader.fileId}",
+            text = "Video ID: ${videoHeader.header.fileId}",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center

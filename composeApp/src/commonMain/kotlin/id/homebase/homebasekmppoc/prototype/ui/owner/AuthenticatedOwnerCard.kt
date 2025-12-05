@@ -36,6 +36,7 @@ import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthState
 import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
 import id.homebase.homebasekmppoc.prototype.lib.http.OdinHttpClient
 import id.homebase.homebasekmppoc.prototype.lib.http.PayloadPlayground
+import id.homebase.homebasekmppoc.prototype.lib.http.PayloadWrapper
 import id.homebase.homebasekmppoc.prototype.lib.http.PublicPostsChannelDrive
 import id.homebase.homebasekmppoc.prototype.lib.image.toImageBitmap
 import org.jetbrains.compose.resources.painterResource
@@ -50,15 +51,15 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun AuthenticatedOwnerCard(
     authenticatedState: AuthState.Authenticated?,
-    onVideoClick: (SharedSecretEncryptedFileHeader) -> Unit = {},
+    onVideoClick: (PayloadWrapper) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var verifytokenReponse by remember { mutableStateOf<String?>(null) }
 
-    var imageHeaders by remember { mutableStateOf<List<SharedSecretEncryptedFileHeader>?>(null) }
+    var imageHeaders by remember { mutableStateOf<List<PayloadWrapper>?>(null) }
     var imageBytes by remember { mutableStateOf<ByteArray?>(null) }
 
-    var videoHeaders by remember { mutableStateOf<List<SharedSecretEncryptedFileHeader>?>(null) }
+    var videoHeaders by remember { mutableStateOf<List<PayloadWrapper>?>(null) }
 
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(authenticatedState != null) }
@@ -78,8 +79,7 @@ fun AuthenticatedOwnerCard(
                     PublicPostsChannelDrive.type)
                 imageHeaders?.size?.let {
                     if (it > 0) {
-                        val header = imageHeaders?.get(0)
-                        imageBytes = payloadPlayground.getImage(header!!)
+                        imageBytes = imageHeaders!![0].getPayloadBytes(authenticatedState)
                     }
                 }
 

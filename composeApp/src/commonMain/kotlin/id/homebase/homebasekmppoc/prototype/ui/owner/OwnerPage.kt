@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthState
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthenticationManager
 import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
+import id.homebase.homebasekmppoc.prototype.lib.http.PayloadWrapper
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -42,7 +43,7 @@ fun OwnerPage(authenticationManager: AuthenticationManager) {
     var resultMessage by remember { mutableStateOf("") }
     var isSuccess by remember { mutableStateOf(false) }
 
-    var selectedVideo by remember { mutableStateOf<SharedSecretEncryptedFileHeader?>(null) }
+    var selectedVideo by remember { mutableStateOf<PayloadWrapper?>(null) }
 
     val authState by authenticationManager.authState.collectAsState()
     val coroutineScope = rememberCoroutineScope()

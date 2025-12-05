@@ -13,6 +13,7 @@ import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthState
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthenticationManager
 import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
 import id.homebase.homebasekmppoc.prototype.lib.http.PayloadPlayground
+import id.homebase.homebasekmppoc.prototype.lib.http.PayloadWrapper
 import id.homebase.homebasekmppoc.prototype.lib.http.PublicPostsChannelDrive
 import id.homebase.homebasekmppoc.prototype.lib.video.LocalVideoServer
 import kotlinx.coroutines.launch
@@ -39,8 +40,8 @@ fun VideoPlayerTestPage(authenticationManager: AuthenticationManager) {
     var serverUrl by remember { mutableStateOf("") }
     var currentVideoUrl by remember { mutableStateOf<String?>(null) }
 
-    var videoHeaders by remember { mutableStateOf<List<SharedSecretEncryptedFileHeader>?>(null) }
-    var selectedVideoHeader by remember { mutableStateOf<SharedSecretEncryptedFileHeader?>(null) }
+    var videoHeaders by remember { mutableStateOf<List<PayloadWrapper>?>(null) }
+    var selectedVideoHeader by remember { mutableStateOf<PayloadWrapper?>(null) }
     var isLoadingVideos by remember { mutableStateOf(false) }
     var videoErrorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -292,7 +293,7 @@ fun VideoPlayerTestPage(authenticationManager: AuthenticationManager) {
                             videoHeaders!!.forEachIndexed { index, header ->
                                 Button(
                                     onClick = {
-                                        Logger.i("VideoPlayerTestPage") { "Selected video ${index + 1}: ${header.fileId}" }
+                                        Logger.i("VideoPlayerTestPage") { "Selected video ${index + 1}: ${header.header.fileId}" }
                                         scope.launch {
                                             payloadPlayground?.getVideoMetaData(header)
                                         }
