@@ -72,15 +72,15 @@ class FileMetadataProcessor(
      * @param cursor Optional current cursor to be saved
      */
     fun BaseUpsertEntryZapZap(
-        jsonHeader: String,
         identityId: Uuid,
         driveId: Uuid,
+        jsonHeader: String,
         tagIndexRecords: List<DriveTagIndex>,
         localTagIndexRecords: List<DriveLocalTagIndex>,
         cursor : QueryBatchCursor?
     ) {
         // Parse JSON header to extract DriveMainIndex fields
-        val driveMainIndex = parseJsonFileheaderToDriveMainIndex(jsonHeader, identityId, driveId)
+        val driveMainIndex = parseJsonHeaderToDriveMainIndex(identityId, driveId,jsonHeader)
 
         database.transaction {
             MainIndexMetaHelpers.upsertDriveMainIndex(database, driveMainIndex);

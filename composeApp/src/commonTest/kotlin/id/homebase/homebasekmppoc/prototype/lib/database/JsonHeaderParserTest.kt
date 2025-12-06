@@ -66,7 +66,7 @@ open class JsonHeaderParserTest {
         val identityId = Uuid.random()
         val driveId = Uuid.random()
         
-        val result = parseJsonFileheaderToDriveMainIndex(jsonHeader, identityId, driveId)
+        val result = parseJsonHeaderToDriveMainIndex(identityId, driveId, jsonHeader)
         
         assertEquals(identityId, result.identityId)
         assertEquals(driveId, result.driveId)
@@ -108,7 +108,7 @@ open class JsonHeaderParserTest {
         val identityId = Uuid.random()
         val driveId = Uuid.random()
         
-        val result = parseJsonFileheaderToDriveMainIndex(jsonHeader, identityId, driveId)
+        val result = parseJsonHeaderToDriveMainIndex(identityId, driveId,jsonHeader)
         
         assertEquals(identityId, result.identityId)
         assertEquals(driveId, result.driveId)
@@ -134,7 +134,7 @@ open class JsonHeaderParserTest {
         """.trimIndent()
         
         assertFailsWith<IllegalArgumentException>("Missing required field: fileId") {
-            parseJsonFileheaderToDriveMainIndex(jsonHeader, Uuid.random(), Uuid.random())
+            parseJsonHeaderToDriveMainIndex(Uuid.random(), Uuid.random(), jsonHeader)
         }
     }
     
@@ -147,7 +147,7 @@ open class JsonHeaderParserTest {
         """.trimIndent()
         
         assertFailsWith<IllegalArgumentException>("Missing required field: fileMetadata") {
-            parseJsonFileheaderToDriveMainIndex(jsonHeader, Uuid.random(), Uuid.random())
+            parseJsonHeaderToDriveMainIndex(Uuid.random(), Uuid.random(), jsonHeader)
         }
     }
     
@@ -156,7 +156,7 @@ open class JsonHeaderParserTest {
         val jsonHeader = "{ invalid json }"
         
         assertFailsWith<IllegalArgumentException>() {
-            parseJsonFileheaderToDriveMainIndex(jsonHeader, Uuid.random(), Uuid.random())
+            parseJsonHeaderToDriveMainIndex(Uuid.random(), Uuid.random(), jsonHeader)
         }
     }
 }

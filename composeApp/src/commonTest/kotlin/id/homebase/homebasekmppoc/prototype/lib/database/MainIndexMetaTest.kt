@@ -2,7 +2,6 @@ package id.homebase.homebasekmppoc.prototype.lib.database
 
 import app.cash.sqldelight.db.SqlDriver
 import id.homebase.homebasekmppoc.lib.database.DriveLocalTagIndex
-import id.homebase.homebasekmppoc.lib.database.DriveMainIndex
 import id.homebase.homebasekmppoc.lib.database.DriveTagIndex
 import id.homebase.homebasekmppoc.lib.database.OdinDatabase
 import id.homebase.homebasekmppoc.prototype.lib.core.time.UnixTimeUtc
@@ -98,7 +97,7 @@ fun testUpsertDriveMainIndexHelper() = runTest {
             }"""
 
         // Parse JSON to create DriveMainIndex using our helper function
-        val driveMainIndex = parseJsonFileheaderToDriveMainIndex(jsonHeader, identityId, driveId)
+        val driveMainIndex = parseJsonHeaderToDriveMainIndex(identityId, driveId, jsonHeader)
 
         // Test the helper function
         MainIndexMetaHelpers.upsertDriveMainIndex(db, driveMainIndex)
@@ -230,9 +229,9 @@ assertEquals(driveId, retrievedRecord?.driveId)
 
 // Call BaseUpsertEntryZapZap function
         processor.BaseUpsertEntryZapZap(
-            jsonHeader = jsonHeader,
             identityId = identityId,
             driveId = driveId,
+            jsonHeader = jsonHeader,
             tagIndexRecords = tagIndexRecords,
             localTagIndexRecords = localTagIndexRecords,
             cursor = originalCursor
@@ -365,9 +364,9 @@ assertNotNull(retrievedRecord, "Record should exist after BaseUpsertEntryZapZap"
 
 // Call BaseUpsertEntryZapZap function with null cursor
         processor.BaseUpsertEntryZapZap(
-            jsonHeader = jsonHeader,
             identityId = identityId,
             driveId = driveId,
+            jsonHeader = jsonHeader,
             tagIndexRecords = tagIndexRecords,
             localTagIndexRecords = localTagIndexRecords,
             cursor = null
@@ -498,11 +497,11 @@ assertNotNull(retrievedRecord, "Record should exist after BaseUpsertEntryZapZap 
         // Create FileMetadataProcessor instance to test BaseUpsertEntryZapZap
         val processor = FileMetadataProcessor(db)
 
-// Call BaseUpsertEntryZapZap function
+        // Call BaseUpsertEntryZapZap function
         processor.BaseUpsertEntryZapZap(
-            jsonHeader = jsonHeader,
             identityId = identityId,
             driveId = driveId,
+            jsonHeader = jsonHeader,
             tagIndexRecords = tagIndexRecords,
             localTagIndexRecords = localTagIndexRecords,
             cursor = null

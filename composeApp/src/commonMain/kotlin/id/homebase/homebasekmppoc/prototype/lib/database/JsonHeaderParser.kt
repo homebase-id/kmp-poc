@@ -4,7 +4,6 @@ import id.homebase.homebasekmppoc.lib.database.DriveMainIndex
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.long
 import kotlinx.serialization.json.contentOrNull
 import kotlin.uuid.Uuid
 
@@ -16,10 +15,10 @@ import kotlin.uuid.Uuid
  * @return DriveMainIndex with extracted fields
  * @throws IllegalArgumentException if JSON is malformed or required fields are missing
  */
-fun parseJsonFileheaderToDriveMainIndex(
-    jsonHeader: String,
+fun parseJsonHeaderToDriveMainIndex(
     identityId: Uuid,
-    driveId: Uuid
+    driveId: Uuid,
+    jsonHeader: String
 ): DriveMainIndex {
     val json = Json { 
         ignoreUnknownKeys = true
