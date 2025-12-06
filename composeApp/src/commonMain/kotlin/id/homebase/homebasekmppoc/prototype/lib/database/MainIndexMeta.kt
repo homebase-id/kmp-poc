@@ -62,19 +62,26 @@ class FileMetadataProcessor(
     }
 
 
-    /**
+/**
      * Stores driveMainIndex and tags and optionally a cursor in one commit
-     * @param driveMainIndex The main file record
+     * @param jsonHeader JSON header string containing file metadata
+     * @param identityId Identity ID for the record
+     * @param driveId Drive ID for the record
      * @param tagIndexRecords List of tag index records for this file
      * @param localTagIndexRecords List of local tag index records for this file
      * @param cursor Optional current cursor to be saved
      */
     fun BaseUpsertEntryZapZap(
-        driveMainIndex: DriveMainIndex,
+        jsonHeader: String,
+        identityId: Uuid,
+        driveId: Uuid,
         tagIndexRecords: List<DriveTagIndex>,
         localTagIndexRecords: List<DriveLocalTagIndex>,
         cursor : QueryBatchCursor?
     ) {
+        // Parse JSON header to extract DriveMainIndex fields
+        val driveMainIndex = parseJsonFileheaderToDriveMainIndex(jsonHeader, identityId, driveId)
+
         database.transaction {
             MainIndexMetaHelpers.upsertDriveMainIndex(database, driveMainIndex);
 

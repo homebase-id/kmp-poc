@@ -37,7 +37,7 @@ class MainIndexMetaTest {
         driver?.close()
     }
 
-    @Test
+@Test
 fun testUpsertDriveMainIndexHelper() = runTest {
         // Test data
         val identityId = Uuid.random()
@@ -45,26 +45,60 @@ fun testUpsertDriveMainIndexHelper() = runTest {
         val fileId = Uuid.random()
         val currentTime = Clock.System.now().epochSeconds
 
-        // Create DriveMainIndex record
-        val driveMainIndex = DriveMainIndex(
-            rowId = 1L,
-            identityId = identityId,
-            driveId = driveId,
-            fileId = fileId,
-            uniqueId = Uuid.random(),
-            globalTransitId = Uuid.random(),
-            senderId = "test-sender",
-            groupId = null,
-            fileType = 1L,
-            dataType = 1L,
-            archivalStatus = 1L,
-            historyStatus = 1L,
-            userDate = currentTime,
-            created = currentTime,
-            modified = currentTime,
-            systemFileType = 1L,
-            jsonHeader = """{"versionTag":"${"test-version".encodeToByteArray().contentToString()}","byteCount":1000,"encryptedKeyHeader":"test-key","appData":"test-app-data","localVersionTag":null,"localAppData":null,"reactionSummary":null,"serverData":"test-server-data","transferHistory":null,"fileMetaData":"test-metadata"}"""
-        )
+        // Create JSON header
+        val jsonHeader = """{
+                "fileId": "${fileId}",
+                "fileMetadata": {
+                    "globalTransitId": "52a491ac-9870-4d0c-94a1-1bf667393015",
+                    "created": ${currentTime},
+                    "updated": ${currentTime},
+                    "transitCreated": ${currentTime},
+                    "transitUpdated": 0,
+                    "isEncrypted": true,
+                    "senderOdinId": "test-sender",
+                    "originalAuthor": "test-sender",
+                    "appData": {
+                        "uniqueId": "55d2e47e-ec86-f9b8-1e3d-d7bdeeb0527b",
+                        "tags": null,
+                        "fileType": 1,
+                        "dataType": 1,
+                        "groupId": null,
+                        "userDate": ${currentTime},
+                        "content": {
+                            "message": "test message",
+                            "deliveryStatus": 20
+                        },
+                        "previewThumbnail": null,
+                        "archivalStatus": 1
+                    },
+                    "localAppData": null,
+                    "referencedFile": null,
+                    "reactionPreview": null,
+                    "versionTag": "test-version-tag",
+                    "payloads": [],
+                    "dataSource": null
+                },
+                "serverMetadata": {
+                    "accessControlList": {
+                        "requiredSecurityGroup": "owner",
+                        "circleIdList": null,
+                        "odinIdList": null
+                    },
+                    "doNotIndex": false,
+                    "allowDistribution": false,
+                    "fileSystemType": "standard",
+                    "fileByteCount": 1000,
+                    "originalRecipientCount": 0,
+                    "transferHistory": null
+                },
+                "defaultPayload": {
+                    "message": "test message",
+                    "deliveryStatus": 20
+                }
+            }"""
+
+        // Parse JSON to create DriveMainIndex using our helper function
+        val driveMainIndex = parseJsonFileheaderToDriveMainIndex(jsonHeader, identityId, driveId)
 
         // Test the helper function
         MainIndexMetaHelpers.upsertDriveMainIndex(db, driveMainIndex)
@@ -92,26 +126,57 @@ assertEquals(driveId, retrievedRecord?.driveId)
         val fileId = Uuid.random()
         val currentTime = Clock.System.now().epochSeconds
 
-        // Create DriveMainIndex record
-        val driveMainIndex = DriveMainIndex(
-            rowId = 1L,
-            identityId = identityId,
-            driveId = driveId,
-            fileId = fileId,
-            uniqueId = Uuid.random(),
-            globalTransitId = Uuid.random(),
-            senderId = "test-sender",
-            groupId = null,
-            fileType = 1L,
-            dataType = 1L,
-            archivalStatus = 1L,
-            historyStatus = 1L,
-            userDate = currentTime,
-            created = currentTime,
-            modified = currentTime,
-            systemFileType = 1L,
-            jsonHeader = """{"versionTag":"${"test-version".encodeToByteArray().contentToString()}","byteCount":1000,"encryptedKeyHeader":"test-key","appData":"test-app-data","localVersionTag":null,"localAppData":null,"reactionSummary":null,"serverData":"test-server-data","transferHistory":null,"fileMetaData":"test-metadata"}"""
-        )
+        // Create JSON header
+        val jsonHeader = """{
+                "fileId": "${fileId}",
+                "fileMetadata": {
+                    "globalTransitId": "52a491ac-9870-4d0c-94a1-1bf667393015",
+                    "created": ${currentTime},
+                    "updated": ${currentTime},
+                    "transitCreated": ${currentTime},
+                    "transitUpdated": 0,
+                    "isEncrypted": true,
+                    "senderOdinId": "test-sender",
+                    "originalAuthor": "test-sender",
+                    "appData": {
+                        "uniqueId": "55d2e47e-ec86-f9b8-1e3d-d7bdeeb0527b",
+                        "tags": null,
+                        "fileType": 1,
+                        "dataType": 1,
+                        "groupId": null,
+                        "userDate": ${currentTime},
+                        "content": {
+                            "message": "test message",
+                            "deliveryStatus": 20
+                        },
+                        "previewThumbnail": null,
+                        "archivalStatus": 1
+                    },
+                    "localAppData": null,
+                    "referencedFile": null,
+                    "reactionPreview": null,
+                    "versionTag": "test-version-tag",
+                    "payloads": [],
+                    "dataSource": null
+                },
+                "serverMetadata": {
+                    "accessControlList": {
+                        "requiredSecurityGroup": "owner",
+                        "circleIdList": null,
+                        "odinIdList": null
+                    },
+                    "doNotIndex": false,
+                    "allowDistribution": false,
+                    "fileSystemType": "standard",
+                    "fileByteCount": 1000,
+                    "originalRecipientCount": 0,
+                    "transferHistory": null
+                },
+                "defaultPayload": {
+                    "message": "test message",
+                    "deliveryStatus": 20
+                }
+            }"""
 
         // Create tag records
         val tagId1 = Uuid.random()
@@ -163,9 +228,11 @@ assertEquals(driveId, retrievedRecord?.driveId)
             )
         )
 
-        // Call BaseUpsertEntryZapZap function
+// Call BaseUpsertEntryZapZap function
         processor.BaseUpsertEntryZapZap(
-            driveMainIndex = driveMainIndex,
+            jsonHeader = jsonHeader,
+            identityId = identityId,
+            driveId = driveId,
             tagIndexRecords = tagIndexRecords,
             localTagIndexRecords = localTagIndexRecords,
             cursor = originalCursor
@@ -178,9 +245,9 @@ assertEquals(driveId, retrievedRecord?.driveId)
             fileId = fileId
         ).executeAsOneOrNull()
 
-        assertNotNull(retrievedRecord, "Record should exist after BaseUpsertEntryZapZap")
+assertNotNull(retrievedRecord, "Record should exist after BaseUpsertEntryZapZap")
         assertEquals(identityId, retrievedRecord?.identityId)
-        assertEquals(driveMainIndex.senderId, retrievedRecord?.senderId)
+        assertEquals("test-sender", retrievedRecord?.senderId)
 
         val loadedCursor = cursorSync.loadCursor();
         assertNotNull(loadedCursor!!.pagingCursor, "Paging cursor should not be null")
@@ -237,26 +304,57 @@ assertEquals(driveId, retrievedRecord?.driveId)
         val fileId = Uuid.random()
         val currentTime = Clock.System.now().epochSeconds
 
-        // Create DriveMainIndex record
-        val driveMainIndex = DriveMainIndex(
-            rowId = 1L,
-            identityId = identityId,
-            driveId = driveId,
-            fileId = fileId,
-            uniqueId = Uuid.random(),
-            globalTransitId = Uuid.random(),
-            senderId = "test-sender",
-            groupId = null,
-            fileType = 1L,
-            dataType = 1L,
-            archivalStatus = 1L,
-            historyStatus = 1L,
-            userDate = currentTime,
-            created = currentTime,
-            modified = currentTime,
-            systemFileType = 1L,
-            jsonHeader = """{"versionTag":"${"test-version".encodeToByteArray().contentToString()}","byteCount":1000,"encryptedKeyHeader":"test-key","appData":"test-app-data","localVersionTag":null,"localAppData":null,"reactionSummary":null,"serverData":"test-server-data","transferHistory":null,"fileMetaData":"test-metadata"}"""
-        )
+        // Create JSON header
+        val jsonHeader = """{
+                "fileId": "${fileId}",
+                "fileMetadata": {
+                    "globalTransitId": "52a491ac-9870-4d0c-94a1-1bf667393015",
+                    "created": ${currentTime},
+                    "updated": ${currentTime},
+                    "transitCreated": ${currentTime},
+                    "transitUpdated": 0,
+                    "isEncrypted": true,
+                    "senderOdinId": "test-sender",
+                    "originalAuthor": "test-sender",
+                    "appData": {
+                        "uniqueId": "55d2e47e-ec86-f9b8-1e3d-d7bdeeb0527b",
+                        "tags": null,
+                        "fileType": 1,
+                        "dataType": 1,
+                        "groupId": null,
+                        "userDate": ${currentTime},
+                        "content": {
+                            "message": "test message",
+                            "deliveryStatus": 20
+                        },
+                        "previewThumbnail": null,
+                        "archivalStatus": 1
+                    },
+                    "localAppData": null,
+                    "referencedFile": null,
+                    "reactionPreview": null,
+                    "versionTag": "test-version-tag",
+                    "payloads": [],
+                    "dataSource": null
+                },
+                "serverMetadata": {
+                    "accessControlList": {
+                        "requiredSecurityGroup": "owner",
+                        "circleIdList": null,
+                        "odinIdList": null
+                    },
+                    "doNotIndex": false,
+                    "allowDistribution": false,
+                    "fileSystemType": "standard",
+                    "fileByteCount": 1000,
+                    "originalRecipientCount": 0,
+                    "transferHistory": null
+                },
+                "defaultPayload": {
+                    "message": "test message",
+                    "deliveryStatus": 20
+                }
+            }"""
 
         // Create tag records
         val tagIndexRecords = listOf<DriveTagIndex>()
@@ -265,12 +363,14 @@ assertEquals(driveId, retrievedRecord?.driveId)
         // Create FileMetadataProcessor instance to test BaseUpsertEntryZapZap
         val processor = FileMetadataProcessor(db)
 
-        // Call BaseUpsertEntryZapZap function with null cursor
+// Call BaseUpsertEntryZapZap function with null cursor
         processor.BaseUpsertEntryZapZap(
-            driveMainIndex = driveMainIndex,
+            jsonHeader = jsonHeader,
+            identityId = identityId,
+            driveId = driveId,
             tagIndexRecords = tagIndexRecords,
             localTagIndexRecords = localTagIndexRecords,
-            null
+            cursor = null
         )
 
         // Verify the main record was inserted
@@ -280,9 +380,9 @@ assertEquals(driveId, retrievedRecord?.driveId)
             fileId = fileId
         ).executeAsOneOrNull()
 
-        assertNotNull(retrievedRecord, "Record should exist after BaseUpsertEntryZapZap with null cursor")
+assertNotNull(retrievedRecord, "Record should exist after BaseUpsertEntryZapZap with null cursor")
         assertEquals(identityId, retrievedRecord?.identityId)
-        assertEquals(driveMainIndex.senderId, retrievedRecord?.senderId)
+        assertEquals("test-sender", retrievedRecord?.senderId)
     }
 
     @Test
@@ -311,26 +411,57 @@ assertEquals(driveId, retrievedRecord?.driveId)
             tagId = existingTagId2
         )
 
-// Create DriveMainIndex record
-        val driveMainIndex = DriveMainIndex(
-            rowId = 1L,
-            identityId = identityId,
-            driveId = driveId,
-            fileId = fileId,
-            uniqueId = Uuid.random(),
-            globalTransitId = Uuid.random(),
-            senderId = "test-sender",
-            groupId = null,
-            fileType = 1L,
-            dataType = 1L,
-            archivalStatus = 1L,
-            historyStatus = 1L,
-            userDate = currentTime,
-            created = currentTime,
-            modified = currentTime,
-            systemFileType = 1L,
-            jsonHeader = """{"versionTag":"${"test-version".encodeToByteArray().contentToString()}","byteCount":1000,"encryptedKeyHeader":"test-key","appData":"test-app-data","localVersionTag":null,"localAppData":null,"reactionSummary":null,"serverData":"test-server-data","transferHistory":null,"fileMetaData":"test-metadata"}"""
-        )
+// Create JSON header
+        val jsonHeader = """{
+                "fileId": "${fileId}",
+                "fileMetadata": {
+                    "globalTransitId": "52a491ac-9870-4d0c-94a1-1bf667393015",
+                    "created": ${currentTime},
+                    "updated": ${currentTime},
+                    "transitCreated": ${currentTime},
+                    "transitUpdated": 0,
+                    "isEncrypted": true,
+                    "senderOdinId": "test-sender",
+                    "originalAuthor": "test-sender",
+                    "appData": {
+                        "uniqueId": "55d2e47e-ec86-f9b8-1e3d-d7bdeeb0527b",
+                        "tags": null,
+                        "fileType": 1,
+                        "dataType": 1,
+                        "groupId": null,
+                        "userDate": ${currentTime},
+                        "content": {
+                            "message": "test message",
+                            "deliveryStatus": 20
+                        },
+                        "previewThumbnail": null,
+                        "archivalStatus": 1
+                    },
+                    "localAppData": null,
+                    "referencedFile": null,
+                    "reactionPreview": null,
+                    "versionTag": "test-version-tag",
+                    "payloads": [],
+                    "dataSource": null
+                },
+                "serverMetadata": {
+                    "accessControlList": {
+                        "requiredSecurityGroup": "owner",
+                        "circleIdList": null,
+                        "odinIdList": null
+                    },
+                    "doNotIndex": false,
+                    "allowDistribution": false,
+                    "fileSystemType": "standard",
+                    "fileByteCount": 1000,
+                    "originalRecipientCount": 0,
+                    "transferHistory": null
+                },
+                "defaultPayload": {
+                    "message": "test message",
+                    "deliveryStatus": 20
+                }
+            }"""
 
         // Create new tag records (different from existing)
         val newTagId1 = Uuid.random()
@@ -367,12 +498,14 @@ assertEquals(driveId, retrievedRecord?.driveId)
         // Create FileMetadataProcessor instance to test BaseUpsertEntryZapZap
         val processor = FileMetadataProcessor(db)
 
-        // Call BaseUpsertEntryZapZap function
+// Call BaseUpsertEntryZapZap function
         processor.BaseUpsertEntryZapZap(
-            driveMainIndex = driveMainIndex,
+            jsonHeader = jsonHeader,
+            identityId = identityId,
+            driveId = driveId,
             tagIndexRecords = tagIndexRecords,
             localTagIndexRecords = localTagIndexRecords,
-            null
+            cursor = null
         )
 
         // Verify the main record was inserted
@@ -382,9 +515,9 @@ assertEquals(driveId, retrievedRecord?.driveId)
             fileId = fileId
         ).executeAsOneOrNull()
 
-        assertNotNull(retrievedRecord, "Record should exist after BaseUpsertEntryZapZap")
+assertNotNull(retrievedRecord, "Record should exist after BaseUpsertEntryZapZap")
         assertEquals(identityId, retrievedRecord?.identityId)
-        assertEquals(driveMainIndex.senderId, retrievedRecord?.senderId)
+        assertEquals("test-sender", retrievedRecord?.senderId)
 
         // Verify that old tags were deleted and new tags were inserted
         val finalTags = db.driveTagIndexQueries.selectByFile(
