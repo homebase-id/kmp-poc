@@ -1,43 +1,57 @@
 package id.homebase.homebasekmppoc.prototype.lib.database
 
 import id.homebase.homebasekmppoc.lib.database.DriveMainIndex
+import id.homebase.homebasekmppoc.lib.database.DriveTagIndex
+import id.homebase.homebasekmppoc.lib.database.DriveLocalTagIndex
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.JsonArray
 import kotlin.uuid.Uuid
 
 /**
- * Parses JSON header string and extracts fields needed for DriveMainIndex
+ * Result of parsing a JSON header containing file metadata and tag information
+ */
+data class ParsedHeaderResult(
+    val driveMainIndex: DriveMainIndex,
+    val tagIndexRecords: List<DriveTagIndex>,
+    val localTagIndexRecords: List<DriveLocalTagIndex>
+)
+
+/**
+ * Parses JSON header string and extracts fields needed for DriveMainIndex and tag records
  * @param jsonHeader JSON string to parse
  * @param identityId Identity ID (required, not in JSON)
  * @param driveId Drive ID (required, not in JSON) 
- * @return DriveMainIndex with extracted fields
+ * @return ParsedHeaderResult containing DriveMainIndex and tag records
  * @throws IllegalArgumentException if JSON is malformed or required fields are missing
  */
 fun parseJsonHeaderToDriveMainIndex(
     identityId: Uuid,
     driveId: Uuid,
     jsonHeader: String
-): DriveMainIndex {
-    val json = Json { 
-        ignoreUnknownKeys = true
-        isLenient = false 
-    }
-    
+): ParsedHeaderResult {
     try {
-        val jsonObject = json.parseToJsonElement(jsonHeader).jsonObject
+        val json = Json.parseToJsonElement(jsonHeader)
+        val root = json.jsonObject ?: throw IllegalArgumentException("JSON must be an object")
         
-        // Extract required fileId
-        val fileIdStr = jsonObject["fileId"]?.jsonPrimitive?.contentOrNull
-            ?: throw IllegalArgumentException("Missing required field: fileId")
-        val fileId = Uuid.parse(fileIdStr)
+        val fileId = root["fileId"]?.jsonPrimitive?.contentOrNull?.let { 
+            if (it == "null") throw IllegalArgumentException("fileId cannot be null") else Uuid.parse(it) 
+        } ?: throw IllegalArgumentException("Missing fileId")
         
-        // Extract nested fileMetadata
-        val fileMetadata = jsonObject["fileMetadata"]?.jsonObject
-            ?: throw IllegalArgumentException("Missing required field: fileMetadata")
+        val fileMetadata = root["fileMetadata"]?.jsonObject 
+            ?: throw IllegalArgumentException("Missing fileMetadata")
         
-        // Extract fields from fileMetadata
+        // Extract deeply nested appData
+        val appData = fileMetadata["appData"]?.jsonObject
+        val localAppData = fileMetadata["localAppData"]?.jsonObject
+        val uniqueId = appData?.get("uniqueId")?.jsonPrimitive?.contentOrNull?.let {
+            if (it == "null") Uuid.random() else Uuid.parse(it) 
+        } ?: Uuid.random() // Default to random UUID if null or missing
+        val groupId = appData?.get("groupId")?.jsonPrimitive?.contentOrNull?.let { 
+            if (it == "null") null else Uuid.parse(it) 
+        }
         val globalTransitId = fileMetadata["globalTransitId"]?.jsonPrimitive?.contentOrNull?.let { 
             if (it == "null") null else Uuid.parse(it) 
         }
@@ -47,37 +61,84 @@ fun parseJsonHeaderToDriveMainIndex(
         val created = fileMetadata["created"]?.jsonPrimitive?.contentOrNull?.toLongOrNull() ?: 0L
         val modified = fileMetadata["updated"]?.jsonPrimitive?.contentOrNull?.toLongOrNull() ?: created
         
-        // Extract deeply nested appData
-        val appData = fileMetadata["appData"]?.jsonObject
-        val uniqueId = appData?.get("uniqueId")?.jsonPrimitive?.contentOrNull?.let { 
-            if (it == "null") Uuid.random() else Uuid.parse(it) 
-        } ?: Uuid.random() // Default to random UUID if null or missing
-        val groupId = appData?.get("groupId")?.jsonPrimitive?.contentOrNull?.let { 
-            if (it == "null") null else Uuid.parse(it) 
-        }
         val fileType = appData?.get("fileType")?.jsonPrimitive?.contentOrNull?.toLongOrNull() ?: 0L
         val dataType = appData?.get("dataType")?.jsonPrimitive?.contentOrNull?.toLongOrNull() ?: 0L
         val archivalStatus = appData?.get("archivalStatus")?.jsonPrimitive?.contentOrNull?.toLongOrNull() ?: 0L
         val userDate = appData?.get("userDate")?.jsonPrimitive?.contentOrNull?.toLongOrNull() ?: 0L
         
-        return DriveMainIndex(
+        // Extract tags from appData.tags
+        val tagIndexRecords = appData?.get("tags")?.let { tagsElement ->
+            if (tagsElement is JsonArray && tagsElement.isNotEmpty()) {
+                tagsElement.mapNotNull { tagElement ->
+                    tagElement.jsonPrimitive.contentOrNull?.let { tagStr ->
+                        if (tagStr != "null") {
+                            try {
+                                val tagId = Uuid.parse(tagStr)
+                                DriveTagIndex(
+                                    rowId = 0L, // Will be auto-generated by database
+                                    identityId = identityId,
+                                    driveId = driveId,
+                                    fileId = fileId,
+                                    tagId = tagId
+                                )
+                            } catch (e: IllegalArgumentException) {
+                                null // Skip invalid UUIDs
+                            }
+                        } else null
+                    }
+                }
+            } else emptyList()
+        } ?: emptyList()
+
+        // Extract tags from appData.tags
+        val localTagIndexRecords = appData?.get("tags")?.let { tagsElement ->
+            if (tagsElement is JsonArray && tagsElement.isNotEmpty()) {
+                tagsElement.mapNotNull { tagElement ->
+                    tagElement.jsonPrimitive.contentOrNull?.let { tagStr ->
+                        if (tagStr != "null") {
+                            try {
+                                val tagId = Uuid.parse(tagStr)
+                                DriveLocalTagIndex(
+                                    rowId = 0L, // Will be auto-generated by database
+                                    identityId = identityId,
+                                    driveId = driveId,
+                                    fileId = fileId,
+                                    tagId = tagId
+                                )
+                            } catch (e: IllegalArgumentException) {
+                                null // Skip invalid UUIDs
+                            }
+                        } else null
+                    }
+                }
+            } else emptyList()
+        } ?: emptyList()
+
+
+        val driveMainIndex = DriveMainIndex(
             rowId = 0L, // Will be auto-generated by database
             identityId = identityId,
             driveId = driveId,
             fileId = fileId,
-            uniqueId = uniqueId,
             globalTransitId = globalTransitId,
             senderId = senderId,
+            uniqueId = uniqueId,
             groupId = groupId,
             fileType = fileType,
             dataType = dataType,
             archivalStatus = archivalStatus,
-            historyStatus = 0L, // Default value
+            historyStatus = 0L,
             userDate = userDate,
             created = created,
             modified = modified,
             systemFileType = 0L, // Default value
             jsonHeader = jsonHeader
+        )
+        
+        return ParsedHeaderResult(
+            driveMainIndex = driveMainIndex,
+            tagIndexRecords = tagIndexRecords,
+            localTagIndexRecords = localTagIndexRecords
         )
     } catch (e: Exception) {
         throw IllegalArgumentException("Failed to parse JSON header: ${e.message}", e)

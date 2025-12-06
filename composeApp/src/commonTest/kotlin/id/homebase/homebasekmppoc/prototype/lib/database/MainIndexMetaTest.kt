@@ -97,10 +97,10 @@ fun testUpsertDriveMainIndexHelper() = runTest {
             }"""
 
         // Parse JSON to create DriveMainIndex using our helper function
-        val driveMainIndex = parseJsonHeaderToDriveMainIndex(identityId, driveId, jsonHeader)
+        val parsedResult = parseJsonHeaderToDriveMainIndex(identityId, driveId, jsonHeader)
 
         // Test the helper function
-        MainIndexMetaHelpers.upsertDriveMainIndex(db, driveMainIndex)
+        MainIndexMetaHelpers.upsertDriveMainIndex(db, parsedResult.driveMainIndex)
 
         // Verify the record was inserted
         val retrievedRecord = db.driveMainIndexQueries.selectByIdentityAndDriveAndFile(
@@ -232,8 +232,6 @@ assertEquals(driveId, retrievedRecord?.driveId)
             identityId = identityId,
             driveId = driveId,
             jsonHeader = jsonHeader,
-            tagIndexRecords = tagIndexRecords,
-            localTagIndexRecords = localTagIndexRecords,
             cursor = originalCursor
         )
 
@@ -367,8 +365,6 @@ assertNotNull(retrievedRecord, "Record should exist after BaseUpsertEntryZapZap"
             identityId = identityId,
             driveId = driveId,
             jsonHeader = jsonHeader,
-            tagIndexRecords = tagIndexRecords,
-            localTagIndexRecords = localTagIndexRecords,
             cursor = null
         )
 
@@ -502,8 +498,6 @@ assertNotNull(retrievedRecord, "Record should exist after BaseUpsertEntryZapZap 
             identityId = identityId,
             driveId = driveId,
             jsonHeader = jsonHeader,
-            tagIndexRecords = tagIndexRecords,
-            localTagIndexRecords = localTagIndexRecords,
             cursor = null
         )
 

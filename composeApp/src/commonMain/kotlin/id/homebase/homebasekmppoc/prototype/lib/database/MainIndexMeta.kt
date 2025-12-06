@@ -64,31 +64,29 @@ class FileMetadataProcessor(
 
 /**
      * Stores driveMainIndex and tags and optionally a cursor in one commit
-     * @param jsonHeader JSON header string containing file metadata
+     * @param jsonHeader JSON header string containing file metadata and tags
      * @param identityId Identity ID for the record
      * @param driveId Drive ID for the record
-     * @param tagIndexRecords List of tag index records for this file
-     * @param localTagIndexRecords List of local tag index records for this file
+     * @param tagIndexRecords Additional tag index records for this file (merged with tags from JSON)
+     * @param localTagIndexRecords Additional local tag index records for this file (merged with local tags from JSON)
      * @param cursor Optional current cursor to be saved
      */
     fun BaseUpsertEntryZapZap(
         identityId: Uuid,
         driveId: Uuid,
         jsonHeader: String,
-        tagIndexRecords: List<DriveTagIndex>,
-        localTagIndexRecords: List<DriveLocalTagIndex>,
         cursor : QueryBatchCursor?
     ) {
-        // Parse JSON header to extract DriveMainIndex fields
-        val driveMainIndex = parseJsonHeaderToDriveMainIndex(identityId, driveId,jsonHeader)
+        // Parse JSON header to extract DriveMainIndex fields and tag records
+        val parsedResult = parseJsonHeaderToDriveMainIndex(identityId, driveId, jsonHeader)
 
         database.transaction {
-            MainIndexMetaHelpers.upsertDriveMainIndex(database, driveMainIndex);
+            MainIndexMetaHelpers.upsertDriveMainIndex(database, parsedResult.driveMainIndex);
 
-            database.driveTagIndexQueries.deleteByFile(identityId = driveMainIndex.identityId, driveId = driveMainIndex.driveId, fileId = driveMainIndex.fileId);
-            database.driveLocalTagIndexQueries.deleteByFile(identityId = driveMainIndex.identityId, driveId = driveMainIndex.driveId, fileId = driveMainIndex.fileId);
+            database.driveTagIndexQueries.deleteByFile(identityId = identityId, driveId = driveId, fileId = parsedResult.driveMainIndex.fileId);
+            database.driveLocalTagIndexQueries.deleteByFile(identityId = identityId, driveId = driveId, fileId = parsedResult.driveMainIndex.fileId);
 
-            tagIndexRecords.forEach { tagRecord ->
+            parsedResult.tagIndexRecords.forEach { tagRecord ->
                 database.driveTagIndexQueries.insertTag(
                     identityId = tagRecord.identityId,
                     driveId = tagRecord.driveId,
@@ -97,12 +95,12 @@ class FileMetadataProcessor(
                 )
             }
 
-            localTagIndexRecords.forEach { localTagRecord ->
+            parsedResult.localTagIndexRecords.forEach { tagRecord ->
                 database.driveLocalTagIndexQueries.insertLocalTag(
-                    identityId = localTagRecord.identityId,
-                    driveId = localTagRecord.driveId,
-                    fileId = localTagRecord.fileId,
-                    tagId = localTagRecord.tagId
+                    identityId = tagRecord.identityId,
+                    driveId = tagRecord.driveId,
+                    fileId = tagRecord.fileId,
+                    tagId = tagRecord.tagId
                 )
             }
 
