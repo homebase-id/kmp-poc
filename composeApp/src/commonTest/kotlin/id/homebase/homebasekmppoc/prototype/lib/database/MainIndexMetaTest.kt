@@ -406,7 +406,11 @@ assertNotNull(retrievedRecord, "Record should exist after BaseUpsertEntryZapZap 
             tagId = existingTagId2
         )
 
-// Create JSON header
+        // Create new tag records (different from existing)
+        val newTagId1 = Uuid.random()
+        val newTagId2 = Uuid.random()
+
+        // Create JSON header
         val jsonHeader = """{
                 "fileId": "${fileId}",
                 "fileMetadata": {
@@ -420,7 +424,7 @@ assertNotNull(retrievedRecord, "Record should exist after BaseUpsertEntryZapZap 
                     "originalAuthor": "test-sender",
                     "appData": {
                         "uniqueId": "55d2e47e-ec86-f9b8-1e3d-d7bdeeb0527b",
-                        "tags": null,
+                        "tags": ["${newTagId1}", "${newTagId2}"],
                         "fileType": 1,
                         "dataType": 1,
                         "groupId": null,
@@ -458,42 +462,8 @@ assertNotNull(retrievedRecord, "Record should exist after BaseUpsertEntryZapZap 
                 }
             }"""
 
-        // Create new tag records (different from existing)
-        val newTagId1 = Uuid.random()
-        val newTagId2 = Uuid.random()
-        val tagIndexRecords = listOf(
-            DriveTagIndex(
-                rowId = 3L,
-                identityId = identityId,
-                driveId = driveId,
-                fileId = fileId,
-                tagId = newTagId1
-            ),
-            DriveTagIndex(
-                rowId = 4L,
-                identityId = identityId,
-                driveId = driveId,
-                fileId = fileId,
-                tagId = newTagId2
-            )
-        )
-
-        // Create local tag records
-        val localTagId1 = Uuid.random()
-        val localTagIndexRecords = listOf(
-            DriveLocalTagIndex(
-                rowId = 2L,
-                identityId = identityId,
-                driveId = driveId,
-                fileId = fileId,
-                tagId = localTagId1
-            )
-        )
-
         // Create FileMetadataProcessor instance to test BaseUpsertEntryZapZap
         val processor = FileMetadataProcessor(db)
-
-        // Call BaseUpsertEntryZapZap function
         processor.BaseUpsertEntryZapZap(
             identityId = identityId,
             driveId = driveId,
@@ -508,7 +478,7 @@ assertNotNull(retrievedRecord, "Record should exist after BaseUpsertEntryZapZap 
             fileId = fileId
         ).executeAsOneOrNull()
 
-assertNotNull(retrievedRecord, "Record should exist after BaseUpsertEntryZapZap")
+        assertNotNull(retrievedRecord, "Record should exist after BaseUpsertEntryZapZap")
         assertEquals(identityId, retrievedRecord?.identityId)
         assertEquals("test-sender", retrievedRecord?.senderId)
 

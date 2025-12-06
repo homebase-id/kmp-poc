@@ -8,6 +8,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
 import kotlin.uuid.Uuid
 
 /**
@@ -45,7 +46,8 @@ fun parseJsonHeaderToDriveMainIndex(
         
         // Extract deeply nested appData
         val appData = fileMetadata["appData"]?.jsonObject
-        val localAppData = fileMetadata["localAppData"]?.jsonObject
+        // val localAppData = fileMetadata["localAppData"]?.jsonObject
+        val localAppData: JsonObject? = fileMetadata["localAppData"] as? JsonObject
         val uniqueId = appData?.get("uniqueId")?.jsonPrimitive?.contentOrNull?.let {
             if (it == "null") Uuid.random() else Uuid.parse(it) 
         } ?: Uuid.random() // Default to random UUID if null or missing
@@ -91,7 +93,7 @@ fun parseJsonHeaderToDriveMainIndex(
         } ?: emptyList()
 
         // Extract tags from appData.tags
-        val localTagIndexRecords = appData?.get("tags")?.let { tagsElement ->
+        val localTagIndexRecords = localAppData?.get("tags")?.let { tagsElement ->
             if (tagsElement is JsonArray && tagsElement.isNotEmpty()) {
                 tagsElement.mapNotNull { tagElement ->
                     tagElement.jsonPrimitive.contentOrNull?.let { tagStr ->
