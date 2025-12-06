@@ -13,25 +13,25 @@ This is a Kotlin Multiplatform (KMP) project targeting Android and iOS, built wi
 ### Android
 
 ```bash
-./gradlew :composeApp:assembleDebug          # Build debug APK
-./gradlew :composeApp:assembleRelease        # Build release APK
-./gradlew build                               # Build entire project
+gradlew :composeApp:assembleDebug          # Build debug APK
+gradlew :composeApp:assembleRelease        # Build release APK
+gradlew build                               # Build entire project
 ```
 
 ### Testing
 
 ```bash
-./gradlew test                                # Run all tests
-./gradlew :composeApp:testDebugUnitTest      # Run Android unit tests
-./gradlew test --tests "id.homebase.homebasekmppoc.ComposeAppCommonTest.example"  # Run specific test
+gradlew test                                # Run all tests
+gradlew :composeApp:testDebugUnitTest      # Run Android unit tests
+gradlew test --tests "id.homebase.homebasekmppoc.ComposeAppCommonTest.example"  # Run specific test
 ```
 
 ### Other Commands
 
 ```bash
-./gradlew lint                                # Lint code
-./gradlew lintFix                             # Auto-fix lint issues
-./gradlew clean                               # Clean build artifacts
+gradlew lint                                # Lint code
+gradlew lintFix                             # Auto-fix lint issues
+gradlew clean                               # Clean build artifacts
 ```
 
 ## Architecture
@@ -368,7 +368,7 @@ kotlin {
   - `compileOnly` - Needed at compile time only
 - **Group related libraries** - Use same version reference
 - **Keep alphabetical** - Easier to find and avoid duplicates
-- **Update gradle wrapper** - `./gradlew wrapper --gradle-version=8.14.3`
+- **Update gradle wrapper** - `gradlew wrapper --gradle-version=8.14.3`
 
 #### DON'T ❌
 
@@ -386,15 +386,15 @@ After adding dependencies:
 
 ```bash
 # Sync Gradle
-./gradlew --refresh-dependencies
+gradlew --refresh-dependencies
 
 # Clean build
-./gradlew clean build
+gradlew clean build
 
 # Verify all platforms compile
-./gradlew compileKotlinAndroid
-./gradlew compileKotlinIosSimulatorArm64
-./gradlew compileKotlinDesktop
+gradlew compileKotlinAndroid
+gradlew compileKotlinIosSimulatorArm64
+gradlew compileKotlinDesktop
 ```
 
 ### Troubleshooting Dependencies
@@ -403,7 +403,7 @@ After adding dependencies:
 **Solution:**
 
 1. Check dependency is in correct sourceSet (commonMain vs androidMain)
-2. Run `./gradlew --refresh-dependencies`
+2. Run `gradlew --refresh-dependencies`
 3. Invalidate caches in IDE
 
 **Problem:** "Duplicate class" error
@@ -427,13 +427,13 @@ configurations.all {
 
 ```bash
 # Check for dependency updates
-./gradlew dependencyUpdates
+gradlew dependencyUpdates
 
 # View dependency tree
-./gradlew :composeApp:dependencies
+gradlew :composeApp:dependencies
 
 # Check specific configuration
-./gradlew :composeApp:dependencies --configuration commonMainCompileClasspath
+gradlew :composeApp:dependencies --configuration commonMainCompileClasspath
 ```
 
 Key dependencies (defined in `gradle/libs.versions.toml` and `build.gradle.kts`):
@@ -710,24 +710,24 @@ kotlin {
 
 ```bash
 # Run ALL tests (all platforms)
-./gradlew test
+gradlew test
 
 # Android tests only
-./gradlew testDebugUnitTest
-./gradlew testDebugUnitTest --tests "id.homebase.homebasekmppoc.{feature}.FeatureAndroidTest"
+gradlew testDebugUnitTest
+gradlew testDebugUnitTest --tests "id.homebase.homebasekmppoc.{feature}.FeatureAndroidTest"
 
 # Single Android test
-./gradlew testDebugUnitTest --tests "id.homebase.homebasekmppoc.{feature}.FeatureAndroidTest.specificTest"
+gradlew testDebugUnitTest --tests "id.homebase.homebasekmppoc.{feature}.FeatureAndroidTest.specificTest"
 
 # iOS tests
-./gradlew iosSimulatorArm64Test
-./gradlew iosArm64Test
+gradlew iosSimulatorArm64Test
+gradlew iosArm64Test
 
 # Desktop tests
-./gradlew desktopTest
+gradlew desktopTest
 
 # With detailed output
-./gradlew test --info
+gradlew test --info
 
 # View test reports
 open composeApp/build/reports/tests/testDebugUnitTest/index.html

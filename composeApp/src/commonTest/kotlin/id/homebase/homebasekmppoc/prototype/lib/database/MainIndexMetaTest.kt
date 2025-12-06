@@ -38,7 +38,7 @@ class MainIndexMetaTest {
     }
 
     @Test
-    fun testUpsertDriveMainIndexHelper() = runTest {
+fun testUpsertDriveMainIndexHelper() = runTest {
         // Test data
         val identityId = Uuid.random()
         val driveId = Uuid.random()
@@ -51,30 +51,19 @@ class MainIndexMetaTest {
             identityId = identityId,
             driveId = driveId,
             fileId = fileId,
+            uniqueId = Uuid.random(),
             globalTransitId = Uuid.random(),
-            fileState = 1L,
-            requiredSecurityGroup = 1L,
-            fileSystemType = 1L,
-            userDate = currentTime,
+            senderId = "test-sender",
+            groupId = null,
             fileType = 1L,
             dataType = 1L,
             archivalStatus = 1L,
             historyStatus = 1L,
-            senderId = "test-sender",
-            groupId = null,
-            uniqueId = Uuid.random(),
-            byteCount = 1000L,
-            hdrEncryptedKeyHeader = "test-key",
-            hdrVersionTag = "test-version".encodeToByteArray(),
-            hdrAppData = "test-app-data",
-            hdrLocalVersionTag = null,
-            hdrLocalAppData = null,
-            hdrReactionSummary = null,
-            hdrServerData = "test-server-data",
-            hdrTransferHistory = null,
-            hdrFileMetaData = "test-metadata",
+            userDate = currentTime,
             created = currentTime,
-            modified = currentTime
+            modified = currentTime,
+            systemFileType = 1L,
+            jsonHeader = """{"versionTag":"${"test-version".encodeToByteArray().contentToString()}","byteCount":1000,"encryptedKeyHeader":"test-key","appData":"test-app-data","localVersionTag":null,"localAppData":null,"reactionSummary":null,"serverData":"test-server-data","transferHistory":null,"fileMetaData":"test-metadata"}"""
         )
 
         // Test the helper function
@@ -89,13 +78,13 @@ class MainIndexMetaTest {
 
         assertNotNull(retrievedRecord, "Record should exist after upsert")
         assertEquals(identityId, retrievedRecord?.identityId)
-        assertEquals(driveId, retrievedRecord?.driveId)
+assertEquals(driveId, retrievedRecord?.driveId)
         assertEquals(fileId, retrievedRecord?.fileId)
         assertEquals("test-sender", retrievedRecord?.senderId)
-        assertEquals(1000L, retrievedRecord?.byteCount)
+        // Note: byteCount is now consolidated in jsonHeader
     }
 
-    @Test
+@Test
     fun testBaseUpsertEntryZapZapWithTags() = runTest {
         // Test data
         val identityId = Uuid.random()
@@ -109,30 +98,19 @@ class MainIndexMetaTest {
             identityId = identityId,
             driveId = driveId,
             fileId = fileId,
+            uniqueId = Uuid.random(),
             globalTransitId = Uuid.random(),
-            fileState = 1L,
-            requiredSecurityGroup = 1L,
-            fileSystemType = 1L,
-            userDate = currentTime,
+            senderId = "test-sender",
+            groupId = null,
             fileType = 1L,
             dataType = 1L,
             archivalStatus = 1L,
             historyStatus = 1L,
-            senderId = "test-sender",
-            groupId = null,
-            uniqueId = Uuid.random(),
-            byteCount = 1000L,
-            hdrEncryptedKeyHeader = "test-key",
-            hdrVersionTag = "test-version".encodeToByteArray(),
-            hdrAppData = "test-app-data",
-            hdrLocalVersionTag = null,
-            hdrLocalAppData = null,
-            hdrReactionSummary = null,
-            hdrServerData = "test-server-data",
-            hdrTransferHistory = null,
-            hdrFileMetaData = "test-metadata",
+            userDate = currentTime,
             created = currentTime,
-            modified = currentTime
+            modified = currentTime,
+            systemFileType = 1L,
+            jsonHeader = """{"versionTag":"${"test-version".encodeToByteArray().contentToString()}","byteCount":1000,"encryptedKeyHeader":"test-key","appData":"test-app-data","localVersionTag":null,"localAppData":null,"reactionSummary":null,"serverData":"test-server-data","transferHistory":null,"fileMetaData":"test-metadata"}"""
         )
 
         // Create tag records
@@ -251,7 +229,7 @@ class MainIndexMetaTest {
         assertEquals(db.driveLocalTagIndexQueries.countAll().executeAsOne(), 0L)
     }
 
-    @Test
+@Test
     fun testBaseUpsertEntryZapZapWithNullCursor() = runTest {
         // Test data
         val identityId = Uuid.random()
@@ -265,30 +243,19 @@ class MainIndexMetaTest {
             identityId = identityId,
             driveId = driveId,
             fileId = fileId,
+            uniqueId = Uuid.random(),
             globalTransitId = Uuid.random(),
-            fileState = 1L,
-            requiredSecurityGroup = 1L,
-            fileSystemType = 1L,
-            userDate = currentTime,
+            senderId = "test-sender",
+            groupId = null,
             fileType = 1L,
             dataType = 1L,
             archivalStatus = 1L,
             historyStatus = 1L,
-            senderId = "test-sender",
-            groupId = null,
-            uniqueId = Uuid.random(),
-            byteCount = 1000L,
-            hdrEncryptedKeyHeader = "test-key",
-            hdrVersionTag = "test-version".encodeToByteArray(),
-            hdrAppData = "test-app-data",
-            hdrLocalVersionTag = null,
-            hdrLocalAppData = null,
-            hdrReactionSummary = null,
-            hdrServerData = "test-server-data",
-            hdrTransferHistory = null,
-            hdrFileMetaData = "test-metadata",
+            userDate = currentTime,
             created = currentTime,
-            modified = currentTime
+            modified = currentTime,
+            systemFileType = 1L,
+            jsonHeader = """{"versionTag":"${"test-version".encodeToByteArray().contentToString()}","byteCount":1000,"encryptedKeyHeader":"test-key","appData":"test-app-data","localVersionTag":null,"localAppData":null,"reactionSummary":null,"serverData":"test-server-data","transferHistory":null,"fileMetaData":"test-metadata"}"""
         )
 
         // Create tag records
@@ -344,36 +311,25 @@ class MainIndexMetaTest {
             tagId = existingTagId2
         )
 
-        // Create DriveMainIndex record
+// Create DriveMainIndex record
         val driveMainIndex = DriveMainIndex(
             rowId = 1L,
             identityId = identityId,
             driveId = driveId,
             fileId = fileId,
+            uniqueId = Uuid.random(),
             globalTransitId = Uuid.random(),
-            fileState = 1L,
-            requiredSecurityGroup = 1L,
-            fileSystemType = 1L,
-            userDate = currentTime,
+            senderId = "test-sender",
+            groupId = null,
             fileType = 1L,
             dataType = 1L,
             archivalStatus = 1L,
             historyStatus = 1L,
-            senderId = "test-sender",
-            groupId = null,
-            uniqueId = Uuid.random(),
-            byteCount = 1000L,
-            hdrEncryptedKeyHeader = "test-key",
-            hdrVersionTag = "test-version".encodeToByteArray(),
-            hdrAppData = "test-app-data",
-            hdrLocalVersionTag = null,
-            hdrLocalAppData = null,
-            hdrReactionSummary = null,
-            hdrServerData = "test-server-data",
-            hdrTransferHistory = null,
-            hdrFileMetaData = "test-metadata",
+            userDate = currentTime,
             created = currentTime,
-            modified = currentTime
+            modified = currentTime,
+            systemFileType = 1L,
+            jsonHeader = """{"versionTag":"${"test-version".encodeToByteArray().contentToString()}","byteCount":1000,"encryptedKeyHeader":"test-key","appData":"test-app-data","localVersionTag":null,"localAppData":null,"reactionSummary":null,"serverData":"test-server-data","transferHistory":null,"fileMetaData":"test-metadata"}"""
         )
 
         // Create new tag records (different from existing)

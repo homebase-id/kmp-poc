@@ -63,35 +63,24 @@ val randomId = Random.nextLong()
         val created = currentTime
         val modified = currentTime + 1000
 
-        // Insert a record using upsertDriveMainIndex (for testing)
+// Insert a record using upsertDriveMainIndex (for testing)
         db.driveMainIndexQueries.upsertDriveMainIndex(
             identityId = identityId,
             driveId = driveId,
             fileId = fileId,
+            uniqueId = uniqueId,
             globalTransitId = globalTransitId,
-            fileState = fileState.toLong(),
-            requiredSecurityGroup = requiredSecurityGroup.toLong(),
-            fileSystemType = fileSystemType.toLong(),
-            userDate = userDate,
+            groupId = groupId,
+            senderId = senderId,
             fileType = fileType.toLong(),
             dataType = dataType.toLong(),
             archivalStatus = archivalStatus.toLong(),
             historyStatus = historyStatus.toLong(),
-            senderId = senderId,
-            groupId = groupId,
-            uniqueId = uniqueId,
-            byteCount = byteCount,
-            hdrEncryptedKeyHeader = hdrEncryptedKeyHeader,
-            hdrVersionTag = hdrVersionTag,
-            hdrAppData = hdrAppData,
-            hdrLocalVersionTag = hdrLocalVersionTag,
-            hdrLocalAppData = hdrLocalAppData,
-            hdrReactionSummary = hdrReactionSummary,
-            hdrServerData = hdrServerData,
-            hdrTransferHistory = hdrTransferHistory,
-            hdrFileMetaData = hdrFileMetaData,
+            userDate = userDate,
             created = created,
-            modified = modified
+            modified = modified,
+            systemFileType = fileSystemType.toLong(),
+            jsonHeader = """{"versionTag":"$hdrVersionTag","byteCount":$byteCount,"encryptedKeyHeader":"$hdrEncryptedKeyHeader","appData":"$hdrAppData","localVersionTag":"$hdrLocalVersionTag","localAppData":"$hdrLocalAppData","reactionSummary":"$hdrReactionSummary","serverData":"$hdrServerData","transferHistory":"$hdrTransferHistory","fileMetaData":"$hdrFileMetaData"}"""
         )
 
         // Select the record by identity, drive, and file
@@ -104,31 +93,20 @@ val randomId = Random.nextLong()
 // Verify all fields match
         assertEquals(identityId, selectedRecord.identityId)
         assertEquals(driveId, selectedRecord.driveId)
-        assertEquals(fileId, selectedRecord.fileId)
+assertEquals(fileId, selectedRecord.fileId)
         assertEquals(globalTransitId, selectedRecord.globalTransitId)
-        assertEquals(fileState.toLong(), selectedRecord.fileState)
-        assertEquals(requiredSecurityGroup.toLong(), selectedRecord.requiredSecurityGroup)
-        assertEquals(fileSystemType.toLong(), selectedRecord.fileSystemType)
         assertEquals(userDate, selectedRecord.userDate)
         assertEquals(fileType.toLong(), selectedRecord.fileType)
         assertEquals(dataType.toLong(), selectedRecord.dataType)
         assertEquals(archivalStatus.toLong(), selectedRecord.archivalStatus)
         assertEquals(historyStatus.toLong(), selectedRecord.historyStatus)
-        assertEquals(senderId, selectedRecord.senderId)
+        // Note: fileState, requiredSecurityGroup, fileSystemType are now consolidated in jsonHeader
+assertEquals(senderId, selectedRecord.senderId)
 assertEquals(groupId, selectedRecord.groupId)
-        assertEquals(uniqueId, selectedRecord.uniqueId)
-        assertEquals(byteCount, selectedRecord.byteCount)
-        assertEquals(hdrEncryptedKeyHeader, selectedRecord.hdrEncryptedKeyHeader)
-        assertEquals(hdrVersionTag.toList(), selectedRecord.hdrVersionTag.toList())
-        assertEquals(hdrAppData, selectedRecord.hdrAppData)
-        assertEquals(hdrLocalVersionTag.toList(), selectedRecord.hdrLocalVersionTag?.toList())
-        assertEquals(hdrLocalAppData, selectedRecord.hdrLocalAppData)
-        assertEquals(hdrReactionSummary, selectedRecord.hdrReactionSummary)
-        assertEquals(hdrServerData, selectedRecord.hdrServerData)
-        assertEquals(hdrTransferHistory, selectedRecord.hdrTransferHistory)
-        assertEquals(hdrFileMetaData, selectedRecord.hdrFileMetaData)
-        assertEquals(created, selectedRecord.created)
-        assertEquals(modified, selectedRecord.modified)
+assertEquals(uniqueId, selectedRecord.uniqueId)
+assertEquals(created, selectedRecord.created)
+assertEquals(modified, selectedRecord.modified)
+// Note: old header fields are now consolidated in jsonHeader
     }
 
     @Test
@@ -143,35 +121,24 @@ val identityId = Uuid.random()
         val uniqueId = Uuid.random()
         val hdrVersionTag = "hdr-version-original".encodeToByteArray()
 
-        // Insert initial record
+// Insert initial record
         db.driveMainIndexQueries.upsertDriveMainIndex(
             identityId = identityId,
             driveId = driveId,
             fileId = fileId,
+            uniqueId = uniqueId,
             globalTransitId = globalTransitId,
-            fileState = 1L,
-            requiredSecurityGroup = 2L,
-            fileSystemType = 3L,
-            userDate = currentTime,
+            groupId = null,
+            senderId = "original-sender",
             fileType = 4L,
             dataType = 5L,
             archivalStatus = 6L,
             historyStatus = 7L,
-            senderId = "original-sender",
-            groupId = null,
-            uniqueId = uniqueId,
-            byteCount = 1024L,
-            hdrEncryptedKeyHeader = "original-key-header",
-            hdrVersionTag = hdrVersionTag,
-            hdrAppData = "original-app-data",
-            hdrLocalVersionTag = null,
-            hdrLocalAppData = null,
-            hdrReactionSummary = null,
-            hdrServerData = "original-server-data",
-            hdrTransferHistory = null,
-            hdrFileMetaData = "original-metadata",
+            userDate = currentTime,
             created = currentTime,
-            modified = currentTime
+            modified = currentTime,
+            systemFileType = 3L,
+            jsonHeader = """{"versionTag":"${hdrVersionTag.contentToString()}","byteCount":1024,"encryptedKeyHeader":"original-key-header","appData":"original-app-data","localVersionTag":null,"localAppData":null,"reactionSummary":null,"serverData":"original-server-data","transferHistory":null,"fileMetaData":"original-metadata"}"""
         )
 
 // Update the record with new values
@@ -179,34 +146,23 @@ val identityId = Uuid.random()
         val updatedGlobalTransitId = Uuid.random()
         val updatedUniqueId = Uuid.random()
 
-        db.driveMainIndexQueries.upsertDriveMainIndex(
+db.driveMainIndexQueries.upsertDriveMainIndex(
             identityId = identityId,
             driveId = driveId,
             fileId = fileId,
+            uniqueId = updatedUniqueId,
             globalTransitId = updatedGlobalTransitId,
-            fileState = 11L,
-            requiredSecurityGroup = 22L,
-            fileSystemType = 33L,
-            userDate = updatedTime,
+            groupId = Uuid.random(),
+            senderId = "updated-sender",
             fileType = 44L,
             dataType = 55L,
             archivalStatus = 66L,
             historyStatus = 77L,
-            senderId = "updated-sender",
-            groupId = Uuid.random(),
-            uniqueId = updatedUniqueId,
-            byteCount = 2048L,
-            hdrEncryptedKeyHeader = "updated-key-header",
-            hdrVersionTag = "hdr-version-updated".encodeToByteArray(),
-            hdrAppData = "updated-app-data",
-            hdrLocalVersionTag = "hdr-local-version-updated".encodeToByteArray(),
-            hdrLocalAppData = "updated-local-app-data",
-            hdrReactionSummary = "updated-reaction-summary",
-            hdrServerData = "updated-server-data",
-            hdrTransferHistory = "updated-transfer-history",
-            hdrFileMetaData = "updated-metadata",
+            userDate = updatedTime,
             created = currentTime,
-            modified = updatedTime
+            modified = updatedTime,
+            systemFileType = 33L,
+            jsonHeader = """{"versionTag":"${"hdr-version-updated".encodeToByteArray().contentToString()}","byteCount":2048,"encryptedKeyHeader":"updated-key-header","appData":"updated-app-data","localVersionTag":"${"hdr-local-version-updated".encodeToByteArray().contentToString()}","localAppData":"updated-local-app-data","reactionSummary":"updated-reaction-summary","serverData":"updated-server-data","transferHistory":"updated-transfer-history","fileMetaData":"updated-metadata"}"""
         )
 
         // Select and verify the new record (simulating update by inserting different record)
@@ -217,13 +173,11 @@ val identityId = Uuid.random()
         ).executeAsOne()
 
 assertEquals(updatedGlobalTransitId, updatedRecord.globalTransitId)
-        assertEquals(11L, updatedRecord.fileState)
         assertEquals("updated-sender", updatedRecord.senderId)
         assertEquals(updatedUniqueId, updatedRecord.uniqueId)
-        assertEquals(2048L, updatedRecord.byteCount)
-        assertEquals("updated-app-data", updatedRecord.hdrAppData)
         assertEquals(updatedTime, updatedRecord.modified)
         assertEquals(currentTime, updatedRecord.created)
+        // Note: old header fields are now consolidated in jsonHeader
     }
 
     @Test
@@ -256,35 +210,24 @@ val identityId = Uuid.random()
 val identityId = Uuid.random()
         val driveId = Uuid.random()
 
-        for (i in 1..3) {
+for (i in 1..3) {
             db.driveMainIndexQueries.upsertDriveMainIndex(
                 identityId = identityId,
                 driveId = driveId,
-fileId = Uuid.random(),
+                fileId = Uuid.random(),
+                uniqueId = Uuid.random(),
                 globalTransitId = Uuid.random(),
-                fileState = i.toLong(),
-                requiredSecurityGroup = 1L,
-                fileSystemType = 1L,
-                userDate = currentTime,
+                groupId = null,
+                senderId = "sender-$i",
                 fileType = 1L,
                 dataType = 1L,
                 archivalStatus = 1L,
                 historyStatus = 1L,
-                senderId = "sender-$i",
-                groupId = null,
-uniqueId = Uuid.random(),
-                byteCount = i * 100L,
-                hdrEncryptedKeyHeader = "key-$i",
-                hdrVersionTag = "version-$i".encodeToByteArray(),
-                hdrAppData = "app-data-$i",
-                hdrLocalVersionTag = null,
-                hdrLocalAppData = null,
-                hdrReactionSummary = null,
-                hdrServerData = "server-data-$i",
-                hdrTransferHistory = null,
-                hdrFileMetaData = "metadata-$i",
+                userDate = currentTime,
                 created = currentTime + i,
-                modified = currentTime + i + 1000
+                modified = currentTime + i + 1000,
+                systemFileType = 1L,
+                jsonHeader = """{"versionTag":"${"version-$i".encodeToByteArray().contentToString()}","byteCount":${i * 100L},"encryptedKeyHeader":"key-$i","appData":"app-data-$i","localVersionTag":null,"localAppData":null,"reactionSummary":null,"serverData":"server-data-$i","transferHistory":null,"fileMetaData":"metadata-$i"}"""
             )
         }
 
@@ -303,36 +246,25 @@ uniqueId = Uuid.random(),
     @Test
     fun testDeleteAll() = runTest {
 
-        // Insert a test record first
+// Insert a test record first
         val currentTime = Random.nextLong()
         db.driveMainIndexQueries.upsertDriveMainIndex(
-identityId = Uuid.random(),
+            identityId = Uuid.random(),
             driveId = Uuid.random(),
             fileId = Uuid.random(),
+            uniqueId = Uuid.random(),
             globalTransitId = Uuid.random(),
-            fileState = 1L,
-            requiredSecurityGroup = 1L,
-            fileSystemType = 1L,
-            userDate = currentTime,
+            groupId = null,
+            senderId = "sender-delete",
             fileType = 1L,
             dataType = 1L,
             archivalStatus = 1L,
             historyStatus = 1L,
-            senderId = "sender-delete",
-            groupId = null,
-            uniqueId = Uuid.random(),
-            byteCount = 100L,
-            hdrEncryptedKeyHeader = "key-delete",
-            hdrVersionTag = "version-delete".encodeToByteArray(),
-            hdrAppData = "app-data-delete",
-            hdrLocalVersionTag = null,
-            hdrLocalAppData = null,
-            hdrReactionSummary = null,
-            hdrServerData = "server-data-delete",
-            hdrTransferHistory = null,
-            hdrFileMetaData = "metadata-delete",
+            userDate = currentTime,
             created = currentTime,
-            modified = currentTime
+            modified = currentTime,
+            systemFileType = 1L,
+            jsonHeader = """{"versionTag":"${"version-delete".encodeToByteArray().contentToString()}","byteCount":100,"encryptedKeyHeader":"key-delete","appData":"app-data-delete","localVersionTag":null,"localAppData":null,"reactionSummary":null,"serverData":"server-data-delete","transferHistory":null,"fileMetaData":"metadata-delete"}"""
         )
 
         // Verify we have 1 record
