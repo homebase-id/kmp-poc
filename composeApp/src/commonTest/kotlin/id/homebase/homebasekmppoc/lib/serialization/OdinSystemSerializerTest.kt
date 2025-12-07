@@ -212,4 +212,36 @@ class OdinSystemSerializerTest {
         assertTrue(json.contains("\"xMLData\""))
         assertTrue(json.contains("\"hTTPSEnabled\""))
     }
+
+    @Test
+    fun testSerialize_excludesNullValues() {
+        val personWithNullContact = TestPersonWithAddress(
+            PersonName = "John Doe",
+            Address = TestAddress(
+                StreetAddress = "123 Main St",
+                City = "Anytown",
+                PostalCode = "12345"
+            ),
+            ContactNumber = null
+        )
+
+        val json = OdinSystemSerializer.serialize(personWithNullContact)
+
+        // Should convert to camelCase
+        assertTrue(json.contains("\"personName\""))
+        assertTrue(json.contains("\"address\""))
+        assertTrue(json.contains("\"streetAddress\""))
+        assertTrue(json.contains("\"city\""))
+        assertTrue(json.contains("\"postalCode\""))
+        
+        // Should NOT contain null ContactNumber field
+        assertTrue(!json.contains("\"contactNumber\""))
+        assertTrue(!json.contains("null"))
+        
+        // Verify round-trip still works
+        val deserialized = OdinSystemSerializer.deserialize<TestPersonWithAddress>(json)
+        assertEquals(personWithNullContact.PersonName, deserialized.PersonName)
+        assertEquals(personWithNullContact.Address.StreetAddress, deserialized.Address.StreetAddress)
+        assertEquals(null, deserialized.ContactNumber)
+    }
 }

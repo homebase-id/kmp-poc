@@ -30,8 +30,8 @@ object OdinSystemSerializer {
      * Additional options:
      * - isLenient = false → strict JSON parsing (default)
      * - allowStructuredMapKeys = true → allows complex types as map keys
-     * - prettyPrint = false → compact JSON output (default)
-     * - explicitNulls = true → include null values in output (default)
+     * - prettyPrint = false → compact JSON output (minified)
+     * - explicitNulls = false → exclude null values from output for compactness
      * - coerceInputValues = false → don't coerce invalid values to defaults (default)
      */
     val json = Json {
@@ -41,7 +41,7 @@ object OdinSystemSerializer {
         isLenient = false
         allowStructuredMapKeys = true
         prettyPrint = false
-        explicitNulls = true
+        explicitNulls = false
         coerceInputValues = false
     }
 

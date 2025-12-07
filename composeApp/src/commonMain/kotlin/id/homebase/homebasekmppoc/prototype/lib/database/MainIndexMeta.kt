@@ -44,7 +44,7 @@ object MainIndexMetaHelpers {
  * Processes file metadata with associated tags from different index tables.
  * Takes a DriveMainIndex record and lists of DriveTagIndex and DriveLocalTagIndex records.
  */
-class FileMetadataProcessor(
+class FileHeaderProcessor(
     private val database: OdinDatabase
 ) {
 
@@ -62,7 +62,7 @@ class FileMetadataProcessor(
     }
 
 
-/**
+    /**
      * Converts SharedSecretEncryptedFileHeader to ParsedHeaderResult
      * 
      * @param identityId Identity ID (required, not in header)
@@ -99,6 +99,20 @@ class FileMetadataProcessor(
         )
 
         return driveMainIndex
+    }
+
+    /**
+     * Converts DriveMainIndex.jsonHeader back to SharedSecretEncryptedFileHeader
+     * This is the inverse function of convertFileHeaderToDriveMainIndexRecord
+     * 
+     * @param driveMainIndex DriveMainIndex record containing the jsonHeader
+     * @return SharedSecretEncryptedFileHeader reconstructed from the stored JSON
+     * @throws Exception if JSON deserialization fails
+     */
+    fun convertDriveMainIndexRecordToFileHeader(
+        driveMainIndex: DriveMainIndex
+    ): SharedSecretEncryptedFileHeader {
+        return OdinSystemSerializer.deserialize<SharedSecretEncryptedFileHeader>(driveMainIndex.jsonHeader)
     }
 
     /**
