@@ -1,6 +1,5 @@
 package id.homebase.homebasekmppoc.lib.serialization
 
-import id.homebase.homebasekmppoc.lib.serialization.OdinSystemSerializer
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileState
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileSystemType
 import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
@@ -85,25 +84,25 @@ class SharedSecretEncryptedFileHeaderTest {
 }
         """.trimIndent()
 
-        val header = OdinSystemSerializer.deserialize<SharedSecretEncryptedFileHeader>(json)
+        val fileHeader = OdinSystemSerializer.deserialize<SharedSecretEncryptedFileHeader>(json)
 
-        assertNotNull(header)
-        assertEquals("1355aa19-2030-8200-00ef-563eed96bebf", header.fileId.toString())
-        assertEquals("e8475dc4-6cb4-b665-1c2d-0dbd0f3aad5f", header.targetDrive.alias.toString())
-        assertEquals(300, header.priority)
-        assertEquals(5402950L, header.fileByteCount)
+        assertNotNull(fileHeader)
+        assertEquals("1355aa19-2030-8200-00ef-563eed96bebf", fileHeader.fileId.toString())
+        assertEquals("e8475dc4-6cb4-b665-1c2d-0dbd0f3aad5f", fileHeader.targetDrive.alias.toString())
+        assertEquals(300, fileHeader.priority)
+        assertEquals(5402950L, fileHeader.fileByteCount)
 
         // Verify enum deserialization
-        assertEquals(FileState.Active, header.fileState)
-        assertEquals(FileSystemType.Standard, header.fileSystemType)
+        assertEquals(FileState.Active, fileHeader.fileState)
+        assertEquals(FileSystemType.Standard, fileHeader.fileSystemType)
 
         // Verify Base64 ByteArray deserialization
-        assertNotNull(header.sharedSecretEncryptedKeyHeader.iv)
-        assertNotNull(header.sharedSecretEncryptedKeyHeader.encryptedAesKey)
+        assertNotNull(fileHeader.sharedSecretEncryptedKeyHeader.iv)
+        assertNotNull(fileHeader.sharedSecretEncryptedKeyHeader.encryptedAesKey)
 
         // Verify nested metadata
-        assertEquals("frodo.dotyou.cloud", header.fileMetadata.senderOdinId)
-        assertEquals(1, header.fileMetadata.payloads?.size)
-        assertEquals("pst_mdi0", header.fileMetadata.payloads?.get(0)?.key)
+        assertEquals("frodo.dotyou.cloud", fileHeader.fileMetadata.senderOdinId)
+        assertEquals(1, fileHeader.fileMetadata.payloads?.size)
+        assertEquals("pst_mdi0", fileHeader.fileMetadata.payloads?.get(0)?.key)
     }
 }

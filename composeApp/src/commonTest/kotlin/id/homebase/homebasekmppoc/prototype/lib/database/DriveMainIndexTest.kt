@@ -43,8 +43,6 @@ val randomId = Random.nextLong()
         val hdrLocalVersionTag = "hdr-local-version-$randomId".encodeToByteArray()
 
         // Test values
-        val fileState = 1
-        val requiredSecurityGroup = 2
         val fileSystemType = 3
         val userDate = currentTime
         val fileType = 4
