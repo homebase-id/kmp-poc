@@ -98,7 +98,7 @@ class FileMetadataProcessor(
             jsonHeader = jsonHeader
         )
 
-        return driveMainIndex;
+        return driveMainIndex
     }
 
     /**
