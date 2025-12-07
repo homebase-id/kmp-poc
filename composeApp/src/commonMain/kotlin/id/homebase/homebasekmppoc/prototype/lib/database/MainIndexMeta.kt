@@ -102,7 +102,60 @@ class FileMetadataProcessor(
     }
 
     /**
-     * Upserts a file entry into the database using the provided SharedSecretEncryptedFileHeader
+     * Upserts multiple file entries into the database using the provided SharedSecretEncryptedFileHeaders
+     * All operations are performed within a single database transaction for atomicity.
+     * 
+     * @param identityId Identity ID (required, not in header)
+     * @param driveId Drive ID (required, not in header)
+     * @param fileHeaders List of SharedSecretEncryptedFileHeader containing file metadata
+     * @param cursor Optional current cursor to be saved
+     */
+    fun BaseUpsertEntryZapZap(
+        identityId: Uuid,
+        driveId: Uuid,
+        fileHeaders: List<SharedSecretEncryptedFileHeader>,
+        cursor : QueryBatchCursor?
+    ) {
+        database.transaction {
+            fileHeaders.forEach { fileHeader ->
+                // Convert SharedSecretEncryptedFileHeader to extract DriveMainIndex fields and tag records
+                val driveMainIndexRecord = convertFileHeaderToDriveMainIndexRecord(identityId, driveId, fileHeader)
+
+                MainIndexMetaHelpers.upsertDriveMainIndex(database, driveMainIndexRecord)
+
+                database.driveTagIndexQueries.deleteByFile(identityId = identityId, driveId = driveId, fileId = driveMainIndexRecord.fileId)
+                database.driveLocalTagIndexQueries.deleteByFile(identityId = identityId, driveId = driveId, fileId = driveMainIndexRecord.fileId)
+
+                fileHeader.fileMetadata.appData.tags?.forEach { tagRecord ->
+                    database.driveTagIndexQueries.insertTag(
+                        identityId = identityId,
+                        driveId = driveId,
+                        fileId = driveMainIndexRecord.fileId,
+                        tagId = tagRecord
+                    )
+                }
+
+                fileHeader.fileMetadata.localAppData?.tags?.forEach { tagRecord ->
+                    database.driveLocalTagIndexQueries.insertLocalTag(
+                        identityId = identityId,
+                        driveId = driveId,
+                        fileId = driveMainIndexRecord.fileId,
+                        tagId = tagRecord
+                    )
+                }
+            }
+
+            if (cursor != null)
+            {
+                val cursorSync = CursorSync(database)
+                cursorSync.saveCursor(cursor)
+            }
+        }
+    }
+
+    /**
+     * Upserts a single file entry into the database using the provided SharedSecretEncryptedFileHeader
+     * This is a backwards-compatible helper that calls the batch version with a single-item list.
      * 
      * @param identityId Identity ID (required, not in header)
      * @param driveId Drive ID (required, not in header)
@@ -115,38 +168,6 @@ class FileMetadataProcessor(
         fileHeader: SharedSecretEncryptedFileHeader,
         cursor : QueryBatchCursor?
     ) {
-        // Convert SharedSecretEncryptedFileHeader to extract DriveMainIndex fields and tag records
-        val driveMainIndexRecord = convertFileHeaderToDriveMainIndexRecord(identityId, driveId, fileHeader)
-
-        database.transaction {
-            MainIndexMetaHelpers.upsertDriveMainIndex(database, driveMainIndexRecord)
-
-            database.driveTagIndexQueries.deleteByFile(identityId = identityId, driveId = driveId, fileId = driveMainIndexRecord.fileId)
-            database.driveLocalTagIndexQueries.deleteByFile(identityId = identityId, driveId = driveId, fileId = driveMainIndexRecord.fileId)
-
-            fileHeader.fileMetadata.appData.tags?.forEach { tagRecord ->
-                database.driveTagIndexQueries.insertTag(
-                    identityId = identityId,
-                    driveId = driveId,
-                    fileId = driveMainIndexRecord.fileId,
-                    tagId = tagRecord
-                )
-            }
-
-            fileHeader.fileMetadata.localAppData?.tags?.forEach { tagRecord ->
-                database.driveLocalTagIndexQueries.insertLocalTag(
-                    identityId = identityId,
-                    driveId = driveId,
-                    fileId = driveMainIndexRecord.fileId,
-                    tagId = tagRecord
-                )
-            }
-
-            if (cursor != null)
-            {
-                val cursorSync = CursorSync(database)
-                cursorSync.saveCursor(cursor)
-            }
-        }
+        BaseUpsertEntryZapZap(identityId, driveId, listOf(fileHeader), cursor)
     }
 }
