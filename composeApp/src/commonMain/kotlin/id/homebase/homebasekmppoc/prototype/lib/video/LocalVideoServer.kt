@@ -1,6 +1,10 @@
 package id.homebase.homebasekmppoc.prototype.lib.video
 
 import co.touchlab.kermit.Logger
+import io.ktor.client.HttpClient
+import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.statement.readBytes
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
@@ -10,6 +14,7 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.response.respondBytes
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
+import io.ktor.utils.io.core.toByteArray
 
 /**
  * Simple HTTP server for serving video content locally
@@ -17,7 +22,9 @@ import io.ktor.server.routing.routing
  *
  * This is fully common code - Ktor server works across all platforms!
  */
-class LocalVideoServer {
+class LocalVideoServer(
+    private val authToken: String? = null
+) {
     private var server: EmbeddedServer<*, *>? = null
     private var serverUrl: String = ""
     private val contentRegistry = mutableMapOf<String, ContentData>()
@@ -61,6 +68,53 @@ class LocalVideoServer {
                     )
                 }
 
+                // Proxy endpoint for remote URLs with auth header
+                get("/proxy") {
+                    val url = call.request.queryParameters["url"]
+                    if (url == null) {
+                        Logger.w("LocalVideoServer") { "Proxy request missing url parameter" }
+                        call.response.status(HttpStatusCode.BadRequest)
+                        return@get
+                    }
+
+                    try {
+                        Logger.i("LocalVideoServer") { "Proxying request to: $url" }
+                        val client = HttpClient()
+                        val response = client.get(url) {
+                            // Forward all headers from the client request
+                            call.request.headers.forEach { key, values ->
+                                if (key.lowercase() != "host" && key.lowercase() != "accept-encoding") {
+                                    values.forEach { value ->
+                                        header(key, value)
+                                    }
+                                }
+                            }
+                            if (authToken != null) {
+                                header("DY0810", authToken)
+                                Logger.d("LocalVideoServer") { "Added DY0810 header to proxy request" }
+                            }
+                        }
+                        val bytes = response.readBytes()
+                        Logger.i("LocalVideoServer") { "Proxied content size: ${bytes.size}, status: ${response.status}" }
+
+                        // Copy response headers
+                        response.headers.forEach { key, values ->
+                            values.forEach { value ->
+                                call.response.headers.append(key, value)
+                            }
+                        }
+
+                        call.respondBytes(
+                            bytes = bytes,
+                            contentType = ContentType.parse("application/octet-stream")
+                        )
+                        client.close()
+                    } catch (e: Exception) {
+                        Logger.e("LocalVideoServer") { "Proxy request failed: ${e.message}" }
+                        call.response.status(HttpStatusCode.InternalServerError)
+                    }
+                }
+
                 // Health check endpoint
                 get("/health") {
                     call.respondBytes("OK".encodeToByteArray())
@@ -70,7 +124,7 @@ class LocalVideoServer {
 
         // Get the actual port that was assigned by the system
         val actualPort = server!!.engine.resolvedConnectors().first().port
-        serverUrl = "http://localhost:$actualPort"
+        serverUrl = "http://127.0.0.1:$actualPort"
         Logger.i("LocalVideoServer") { "Video server started at $serverUrl" }
         return serverUrl
     }
