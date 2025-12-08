@@ -56,8 +56,9 @@ actual fun HlsVideoPlayer(
                         private val httpDataSourceFactory = DefaultHttpDataSource.Factory().apply {
                             // Add authentication cookie if token is provided
                             if (clientAuthToken != null) {
-                                setDefaultRequestProperties(mapOf("Cookie" to "DY0810=$clientAuthToken"))
-                                Logger.i("HlsVideoPlayer") { "Set Cookie header: DY0810=$clientAuthToken" }
+                                // setDefaultRequestProperties(mapOf("Cookie" to "DY0810=$clientAuthToken"))
+                                // Logger.i("HlsVideoPlayer") { "Set Cookie header: DY0810=$clientAuthToken" }
+                                setDefaultRequestProperties(mapOf("DY0810" to clientAuthToken))
                             }
                         }
 
@@ -80,6 +81,7 @@ actual fun HlsVideoPlayer(
                                             Logger.d("HlsVideoPlayer") { "Using DataSchemeDataSource for: ${dataSpec.uri}" }
                                             dataSchemeDataSource
                                         }
+
                                         else -> {
                                             Logger.d("HlsVideoPlayer") { "Using HTTP DataSource for: ${dataSpec.uri}" }
                                             httpDataSource
@@ -88,13 +90,18 @@ actual fun HlsVideoPlayer(
                                     return currentDataSource!!.open(dataSpec)
                                 }
 
-                                override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
+                                override fun read(
+                                    buffer: ByteArray,
+                                    offset: Int,
+                                    length: Int
+                                ): Int {
                                     return currentDataSource?.read(buffer, offset, length) ?: -1
                                 }
 
                                 override fun getUri() = currentDataSource?.uri
 
-                                override fun getResponseHeaders() = currentDataSource?.responseHeaders ?: emptyMap()
+                                override fun getResponseHeaders() =
+                                    currentDataSource?.responseHeaders ?: emptyMap()
 
                                 override fun close() {
                                     currentDataSource?.close()

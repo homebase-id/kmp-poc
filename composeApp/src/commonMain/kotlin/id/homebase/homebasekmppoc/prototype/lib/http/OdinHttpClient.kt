@@ -27,6 +27,7 @@ class OdinHttpClient(
 ) {
     private val identity: String = authenticatedState.identity
     private val clientAuthToken: String = authenticatedState.clientAuthToken
+
     @PublishedApi
     internal val sharedSecret: ByteArray = Base64.decode(authenticatedState.sharedSecret)
 
@@ -64,10 +65,11 @@ class OdinHttpClient(
         if (path.startsWith("/api/owner")) {
             response = client.get(encryptedUri) {
                 headers {
-                    append("Cookie", "DY0810=$clientAuthToken")
+                    // append("Cookie", "DY0810=$clientAuthToken")
+                    append("DY0810", clientAuthToken)
                 }
             }
-        } else  {
+        } else {
             response = client.get(encryptedUri) {
                 headers {
                     append("Cookie", "XT32=$clientAuthToken")
@@ -142,7 +144,8 @@ class OdinHttpClient(
         val client = createHttpClient()
         val response = client.get(encryptedUri) {
             headers {
-                append("Cookie", "DY0810=$clientAuthToken")
+                // append("Cookie", "DY0810=$clientAuthToken")
+                append("DY0810", clientAuthToken)
             }
         }
 
@@ -177,8 +180,13 @@ class OdinHttpClient(
 
     //
 
-    suspend fun queryBatch(request: GetQueryBatchRequest, fileSystemType: String = "128"): QueryBatchResponse {
-        val uri = "/api/owner/v1/drive/query/batch?${request.toQueryString()}&xfst=${encodeUrl(fileSystemType)}"
+    suspend fun queryBatch(
+        request: GetQueryBatchRequest,
+        fileSystemType: String = "128"
+    ): QueryBatchResponse {
+        val uri = "/api/owner/v1/drive/query/batch?${request.toQueryString()}&xfst=${
+            encodeUrl(fileSystemType)
+        }"
         val response = get<QueryBatchResponse>(uri)
         return response
     }

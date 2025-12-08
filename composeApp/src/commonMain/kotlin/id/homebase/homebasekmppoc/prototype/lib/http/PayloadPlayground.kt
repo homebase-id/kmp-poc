@@ -175,7 +175,8 @@ class PayloadWrapper(
         val client = createHttpClient()
         val response = client.get(encryptedUri) {
             headers {
-                append("Cookie", "DY0810=${authenticated.clientAuthToken}")
+                // append("Cookie", "DY0810=${authenticated.clientAuthToken}")
+                append("DY0810", authenticated.clientAuthToken)
             }
         }
 

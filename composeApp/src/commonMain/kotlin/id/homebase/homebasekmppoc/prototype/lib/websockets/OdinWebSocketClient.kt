@@ -116,7 +116,8 @@ class OdinWebSocketClient(
                 client.webSocket(
                     urlString = wsUrl,
                     request = {
-                        headers.append("Cookie", "DY0810=${authenticatedState.clientAuthToken}")
+                        // headers.append("Cookie", "DY0810=${authenticatedState.clientAuthToken}")
+                        headers.append("DY0810", authenticatedState.clientAuthToken)
                     }
                 ) {
                     session = this // Store session reference for sending messages
