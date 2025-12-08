@@ -79,3 +79,58 @@ The API will be available at `https://localhost:5001`
 - Android manifest includes intent filters for deeplinks
 - iOS Info.plist includes URL scheme configuration
 
+## HLS Video Playback
+
+This app includes cross-platform HLS video playback with authenticated backend requests.
+
+### Features
+
+- **Cross-platform HLS streaming**: Works on both Android and iOS
+- **Authenticated requests**: Adds `DY0810` header to backend requests for secure access
+- **Adaptive streaming**: Supports HLS manifests with byte-range segments
+- **Proxy-based authentication**: Uses LocalVideoServer to proxy requests with auth headers
+
+### How it works
+
+1. **Manifest Loading**: App fetches HLS manifest from backend
+2. **URL Modification**: Manifest URLs are rewritten to route through local proxy
+3. **Authenticated Proxying**: LocalVideoServer forwards requests with `DY0810` header
+4. **Video Playback**:
+   - Android: ExoPlayer with custom DataSource for header injection
+   - iOS: AVPlayerViewController with LocalVideoServer proxy
+
+### Architecture
+
+- **LocalVideoServer**: Ktor-based HTTP server running locally on device
+- **Proxy Endpoint**: `/proxy?url={encoded_url}` forwards requests with auth headers
+- **Header Forwarding**: All client headers (including Range for byte requests) are forwarded
+- **Response Headers**: Backend response headers are copied back to client
+
+### Example Manifest
+
+```
+#EXTM3U
+#EXT-X-VERSION:4
+#EXT-X-TARGETDURATION:7
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-KEY:METHOD=AES-128,URI="data:application/octet-stream;base64,WFLbzyKRzPyVp8LWbgu3fA==",IV=0x415efd95c27dadf95000e7cd867b6f59
+#EXTINF:6.985233,
+#EXT-X-BYTERANGE:19748464@0
+https://frodo.dotyou.cloud/api/owner/v1/drive/files/payload?ss={encrypted_auth}
+```
+
+### Why LocalVideoServer Proxy?
+
+AVPlayer on iOS doesn't provide APIs to add custom headers to HLS segment requests. The proxy approach:
+
+- ✅ Enables authenticated requests across platforms
+- ✅ Handles byte-range requests properly
+- ✅ Maintains security (headers not exposed in URLs)
+- ✅ Works with existing backend authentication
+
+### Testing
+
+- Android: ExoPlayer handles headers directly in DataSource
+- iOS: LocalVideoServer proxies requests with authentication
+- Both platforms support encrypted HLS streams with byte ranges
+
