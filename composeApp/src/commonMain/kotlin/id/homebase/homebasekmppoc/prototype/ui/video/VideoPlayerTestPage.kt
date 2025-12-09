@@ -11,7 +11,6 @@ import androidx.compose.ui.unit.dp
 import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthState
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthenticationManager
-import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
 import id.homebase.homebasekmppoc.prototype.lib.http.PayloadPlayground
 import id.homebase.homebasekmppoc.prototype.lib.http.PayloadWrapper
 import id.homebase.homebasekmppoc.prototype.lib.http.PublicPostsChannelDrive
@@ -53,29 +52,26 @@ fun VideoPlayerTestPage(authenticationManager: AuthenticationManager) {
     val authState by authenticationManager.authState.collectAsState()
     val scope = rememberCoroutineScope()
 
-    // Create LocalVideoServer with auth token when authenticated
-    val videoServer = remember(authState) {
-        when (val state = authState) {
-            is AuthState.Authenticated -> LocalVideoServer(state.clientAuthToken)
-            else -> null
+    // Create and start a single LocalVideoServer that runs continuously
+    val videoServer = remember { LocalVideoServer() }
+
+    // Auto-start local server once on page load
+    LaunchedEffect(Unit) {
+        try {
+            videoServer.start()
+            Logger.i("VideoPlayerTestPage") { "Video server started on page load" }
+        } catch (e: Exception) {
+            Logger.e("VideoPlayerTestPage", e) { "Failed to start video server on page load" }
         }
     }
 
-    // Auto-start server when authenticated
+    // Handle authentication state changes
     LaunchedEffect(authState) {
         when (val state = authState) {
             is AuthState.Authenticated -> {
                 resultMessage = "Authentication successful!\nIdentity: ${state.identity}"
                 isSuccess = true
                 showResultDialog = false
-
-                // Start the video server with auth token
-                try {
-                    videoServer?.start()
-                    Logger.i("VideoPlayerTestPage") { "Video server started with auth token after login" }
-                } catch (e: Exception) {
-                    Logger.e("VideoPlayerTestPage", e) { "Failed to start video server" }
-                }
             }
             is AuthState.Error -> {
                 resultMessage = "Authentication failed:\n${state.message}"
@@ -326,8 +322,10 @@ fun VideoPlayerTestPage(authenticationManager: AuthenticationManager) {
                                         Logger.i("VideoPlayerTestPage") { "Selected video ${index + 1}: ${header.header.fileId}" }
                                         scope.launch {
                                             try {
-                                                if (videoServer == null) {
-                                                    errorMessage = "Video server not initialized"
+                                                // Get current auth token
+                                                val currentAuthToken = (authState as? AuthState.Authenticated)?.clientAuthToken
+                                                if (currentAuthToken == null) {
+                                                    errorMessage = "Not authenticated"
                                                     return@launch
                                                 }
 
@@ -336,26 +334,30 @@ fun VideoPlayerTestPage(authenticationManager: AuthenticationManager) {
                                                 Logger.i("VideoPlayerTestPage") { "Got HLS manifest content for video ${index + 1}" }
 
                                                 // Get the local server URL
-                                                val serverUrl = videoServer.start()
+                                                val serverUrl = videoServer.getServerUrl()
                                                 Logger.d("VideoPlayerTestPage") { "Video server running at: $serverUrl" }
+
+                                                // Register the manifest ID for auth token lookup
+                                                val manifestId = "video-${index + 1}-manifest"
 
                                                 // Modify the manifest to proxy remote segment URLs through local server
                                                 val modifiedManifest = originalManifest.lines().joinToString("\n") { line ->
                                                     if (line.startsWith("https://")) {
                                                         val encodedUrl = line.encodeURLParameter()
-                                                        "$serverUrl/proxy?url=$encodedUrl"
+                                                        "$serverUrl/proxy?url=$encodedUrl&manifestId=$manifestId"
                                                     } else {
                                                         line
                                                     }
                                                 }
                                                 Logger.d("VideoPlayerTestPage") { "Modified manifest to proxy segment URLs through $serverUrl" }
 
-                                                // Register the modified manifest with local server
-                                                val manifestId = "video-${index + 1}-manifest"
+                                                // Register the modified manifest with local server and auth token
                                                 videoServer.registerContent(
                                                     id = manifestId,
                                                     data = modifiedManifest.encodeToByteArray(),
-                                                    contentType = "application/vnd.apple.mpegurl"
+                                                    contentType = "application/vnd.apple.mpegurl",
+                                                    authTokenHeaderName = "DY0810",
+                                                    authToken = currentAuthToken
                                                 )
 
                                                 // Get the local URL and pass to player

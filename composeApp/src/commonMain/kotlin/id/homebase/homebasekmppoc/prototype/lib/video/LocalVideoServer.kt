@@ -1,6 +1,7 @@
 package id.homebase.homebasekmppoc.prototype.lib.video
 
 import co.touchlab.kermit.Logger
+import id.homebase.homebasekmppoc.prototype.lib.core.SecureByteArray
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.header
@@ -8,7 +9,6 @@ import io.ktor.client.statement.bodyAsChannel
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.OutgoingContent
-import io.ktor.server.application.call
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.EmbeddedServer
 import io.ktor.server.engine.embeddedServer
@@ -23,29 +23,36 @@ import io.ktor.utils.io.ByteReadChannel
  * Supports both HLS manifests/segments and regular video files
  *
  * This is fully common code - Ktor server works across all platforms!
+ * Auth tokens are registered with content and used for proxying remote URLs
  */
-class LocalVideoServer(
-    private val authToken: String? = null
-) {
-    private var server: EmbeddedServer<*, *>? = null
-    private var serverUrl: String = ""
+class LocalVideoServer {
+    private lateinit var server: EmbeddedServer<*, *>
+    private lateinit var serverUrl: String
     private val contentRegistry = mutableMapOf<String, ContentData>()
     private val httpClient = HttpClient() // Reusable HTTP client for proxy requests
 
     private data class ContentData(
-        val data: ByteArray,
-        val contentType: String
+        val data: SecureByteArray,
+        val contentType: String,
+        val authTokenHeaderName: String? = null,
+        val authToken: String? = null
     )
 
     /**
+     * Get the server URL (server must be started first)
+     */
+    fun getServerUrl(): String {
+        check(::serverUrl.isInitialized) { "Server not started yet" }
+        return serverUrl
+    }
+
+    /**
      * Start the server on a random available port
+     * Should only be called once
      * @return The URL where the server is accessible
      */
     suspend fun start(): String {
-        if (server != null) {
-            Logger.d("LocalVideoServer") { "Server already running at $serverUrl" }
-            return serverUrl
-        }
+        check(!::server.isInitialized) { "Server already started" }
 
         server = embeddedServer(CIO, port = 0) {
             routing {
@@ -64,9 +71,9 @@ class LocalVideoServer(
                         return@get
                     }
 
-                    Logger.d("LocalVideoServer") { "Serving content: $id (${content.data.size} bytes, ${content.contentType})" }
+                    Logger.d("LocalVideoServer") { "Serving content: $id (${content.data.unsafeBytes.size} bytes, ${content.contentType})" }
                     call.respondBytes(
-                        bytes = content.data,
+                        bytes = content.data.unsafeBytes,
                         contentType = ContentType.parse(content.contentType)
                     )
                 }
@@ -80,6 +87,11 @@ class LocalVideoServer(
                         return@get
                     }
 
+                    // Get manifest ID to look up the associated auth token from content data
+                    val manifestId = call.request.queryParameters["manifestId"]
+                    val authTokenHeaderName = manifestId?.let { contentRegistry[it]?.authTokenHeaderName }
+                    val authToken = manifestId?.let { contentRegistry[it]?.authToken }
+
                     try {
                         Logger.i("LocalVideoServer") { "Proxying request to: $url" }
 
@@ -92,8 +104,8 @@ class LocalVideoServer(
                                     }
                                 }
                             }
-                            if (authToken != null) {
-                                header("DY0810", authToken)
+                            if (authTokenHeaderName != null && authToken != null) {
+                                header(authTokenHeaderName, authToken)
                                 Logger.d("LocalVideoServer") { "Added DY0810 header to proxy request" }
                             }
                         }
@@ -139,7 +151,7 @@ class LocalVideoServer(
         }.start(wait = false)
 
         // Get the actual port that was assigned by the system
-        val actualPort = server!!.engine.resolvedConnectors().first().port
+        val actualPort = server.engine.resolvedConnectors().first().port
         serverUrl = "http://127.0.0.1:$actualPort"
         Logger.i("LocalVideoServer") { "Video server started at $serverUrl" }
         return serverUrl
@@ -149,8 +161,9 @@ class LocalVideoServer(
      * Stop the server
      */
     fun stop() {
-        server?.stop(1000, 2000)
-        server = null
+        if (::server.isInitialized) {
+            server.stop(1000, 2000)
+        }
         contentRegistry.clear()
         httpClient.close()
         Logger.i("LocalVideoServer") { "Video server stopped" }
@@ -161,10 +174,24 @@ class LocalVideoServer(
      * @param id Unique identifier for this video
      * @param data Video data (can be HLS manifest, segment, or full video)
      * @param contentType MIME type (e.g., "application/vnd.apple.mpegurl", "video/mp4")
+     * @param authToken Optional auth token to use when proxying remote URLs for this content
      */
-    fun registerContent(id: String, data: ByteArray, contentType: String) {
-        contentRegistry[id] = ContentData(data, contentType)
-        Logger.d("LocalVideoServer") { "Registered content: $id (${data.size} bytes, $contentType)" }
+    fun registerContent(
+        id: String,
+        data: ByteArray,
+        contentType: String,
+        authTokenHeaderName: String? = null,
+        authToken: String? = null) {
+        contentRegistry[id] = ContentData(
+            SecureByteArray(data),
+            contentType,
+            authTokenHeaderName,
+            authToken)
+        if (authToken != null) {
+            Logger.d("LocalVideoServer") { "Registered content: $id (${data.size} bytes, $contentType) with auth token" }
+        } else {
+            Logger.d("LocalVideoServer") { "Registered content: $id (${data.size} bytes, $contentType)" }
+        }
     }
 
     /**
