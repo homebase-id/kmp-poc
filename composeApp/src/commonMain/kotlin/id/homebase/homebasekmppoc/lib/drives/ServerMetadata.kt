@@ -11,8 +11,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class ServerMetadata(
     val accessControlList: AccessControlList? = null,
-    @Deprecated("Use allowDistribution instead")
-    val doNotIndex: Boolean = false,
+    //@Deprecated("Use allowDistribution instead")
+    //val doNotIndex: Boolean = false, <-- MS if it's deprecated, let's try not to use it
     val allowDistribution: Boolean = false,
     val fileSystemType: FileSystemType = FileSystemType.Standard,
     val fileByteCount: Long = 0,
