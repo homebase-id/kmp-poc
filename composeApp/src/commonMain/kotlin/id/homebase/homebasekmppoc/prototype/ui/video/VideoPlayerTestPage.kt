@@ -55,7 +55,9 @@ fun VideoPlayerTestPage(authenticationManager: AuthenticationManager) {
     // Create and start a single LocalVideoServer that runs continuously
     val videoServer = remember { LocalVideoServer() }
 
+    //
     // Auto-start local server once on page load
+    //
     LaunchedEffect(Unit) {
         try {
             videoServer.start()
@@ -65,7 +67,9 @@ fun VideoPlayerTestPage(authenticationManager: AuthenticationManager) {
         }
     }
 
+    //
     // Handle authentication state changes
+    //
     LaunchedEffect(authState) {
         when (val state = authState) {
             is AuthState.Authenticated -> {
@@ -82,7 +86,9 @@ fun VideoPlayerTestPage(authenticationManager: AuthenticationManager) {
         }
     }
 
-    // Fetch videos from backend when authenticated
+    //
+    // Fetch video list from backend when authenticated
+    //
     LaunchedEffect(authState) {
         if (authState is AuthState.Authenticated) {
             isLoadingVideos = true
@@ -107,6 +113,9 @@ fun VideoPlayerTestPage(authenticationManager: AuthenticationManager) {
         }
     }
 
+    //
+    // Error dialog
+    //
     if (errorMessage != null) {
         AlertDialog(
             onDismissRequest = { errorMessage = null },
@@ -118,7 +127,9 @@ fun VideoPlayerTestPage(authenticationManager: AuthenticationManager) {
         )
     }
 
+    //
     // Result dialog
+    //
     if (showResultDialog) {
         AlertDialog(
             onDismissRequest = { showResultDialog = false },
@@ -136,7 +147,9 @@ fun VideoPlayerTestPage(authenticationManager: AuthenticationManager) {
         )
     }
 
+    //
     // Show HLS player page if a video is selected
+    //
     if (showHlsPlayerPage && hlsPlaylistUrl != null) {
         val clientAuthToken = (authState as? AuthState.Authenticated)?.clientAuthToken
         Logger.i("VideoPlayerTestPage") { "Opening HLS player with clientAuthToken: $clientAuthToken" }

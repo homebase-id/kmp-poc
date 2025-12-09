@@ -15,11 +15,7 @@ import androidx.compose.ui.unit.dp
  * Desktop HLS video player (stub implementation)
  */
 @Composable
-actual fun HlsVideoPlayer(
-    manifestUrl: String,
-    clientAuthToken: String?,
-    modifier: Modifier
-) {
+actual fun HlsVideoPlayer(manifestUrl: String, modifier: Modifier) {
     Box(
         modifier = modifier
             .fillMaxWidth()

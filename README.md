@@ -99,23 +99,38 @@ This app includes cross-platform HLS video playback with authenticated backend r
 └────────┬────────┘
          │ 1. Fetches manifest content from backend
          │ 2. Modifies URLs to proxy through local server
-         │ 3. Starts LocalVideoServer with auth token
+         │ 3. Registers content with auth token
          │ 4. Passes local manifest URL to player
+         │    (e.g., http://127.0.0.1:PORT/content/video-1-manifest)
          ▼
 ┌─────────────────┐
 │ LocalVideoServer│ ← Ktor HTTP server (127.0.0.1:random_port)
 │  (Common code)  │
 └────────┬────────┘
-         │ • Serves modified manifest
-         │ • Proxies segment requests with DY0810 header
+         │ HTTP Endpoints:
+         │ • GET /content/{id} → Serves modified manifest
+         │ • GET /proxy?url=...&manifestId=... → Proxies segments with auth header
+         │
+         │ Features:
          │ • Streams responses (no buffering)
          │ • Handles byte-range requests (206 Partial Content)
+         │ • Auth token stored per-content registration
+         │
+         │ ◄────── HTTP GET /content/{id} (manifest request)
+         │ ◄────── HTTP GET /proxy?url=... (segment requests)
          ▼
 ┌──────────────┬──────────────┐
 │   Android    │     iOS      │
 │  ExoPlayer   │  AVPlayer    │
+│              │              │
+│ Makes HTTP   │ Makes HTTP   │
+│ GET requests │ GET requests │
+│ to local     │ to local     │
+│ server       │ server       │
 └──────────────┴──────────────┘
 ```
+
+**Note**: Native video players (ExoPlayer, AVPlayer) make standard HTTP GET requests to the LocalVideoServer running on `127.0.0.1`. The server acts as an authentication proxy, injecting the `DY0810` header into backend requests.
 
 ### Why LocalVideoServer is Needed
 
@@ -129,10 +144,11 @@ This app includes cross-platform HLS video playback with authenticated backend r
 
 1. **Manifest Modification**: Rewrites segment URLs to point to local proxy
    - Original: `https://backend.com/segment.ts`
-   - Modified: `http://127.0.0.1:12345/proxy?url=https%3A%2F%2Fbackend.com%2Fsegment.ts`
+   - Modified: `http://127.0.0.1:12345/proxy?url=https%3A%2F%2Fbackend.com%2Fsegment.ts&manifestId=video-1-manifest`
 
 2. **Authenticated Proxying**: Intercepts segment requests and adds auth header
-   - Player requests: `http://127.0.0.1:12345/proxy?url={encoded_backend_url}`
+   - Player requests: `http://127.0.0.1:12345/proxy?url={encoded_backend_url}&manifestId={id}`
+   - Server looks up auth token from content registration
    - Proxy forwards: `GET {backend_url}` with `DY0810: {clientAuthToken}`
 
 3. **Transparent Streaming**: Streams response directly to player
@@ -145,33 +161,39 @@ This app includes cross-platform HLS video playback with authenticated backend r
 #### 1. VideoPlayerTestPage (Test Harness)
 
 ```kotlin
-// Create LocalVideoServer with auth token
-val videoServer = remember(authState) {
-    when (val state = authState) {
-        is AuthState.Authenticated -> LocalVideoServer(state.clientAuthToken)
-        else -> null
-    }
-}
+// Create single LocalVideoServer that runs continuously
+val videoServer = remember { LocalVideoServer() }
 
-// Start server and modify manifest
-LaunchedEffect(authState) {
-    videoServer?.start()  // Starts on random port (e.g., http://127.0.0.1:44683)
+// Start server once on page load
+LaunchedEffect(Unit) {
+    videoServer.start()  // Starts on random port (e.g., http://127.0.0.1:44683)
 }
 
 // When video selected:
+val currentAuthToken = (authState as? AuthState.Authenticated)?.clientAuthToken
 val originalManifest = header.getVideoMetaData()  // Fetch from backend
-val serverUrl = videoServer.start()
+val serverUrl = videoServer.getServerUrl()
 
-// Modify segment URLs to proxy through local server
+val manifestId = "video-1-manifest"
+
+// Modify segment URLs to proxy through local server with manifestId
 val modifiedManifest = originalManifest.lines().joinToString("\n") { line ->
     if (line.startsWith("https://")) {
-        "$serverUrl/proxy?url=${line.encodeURLParameter()}"
+        val encodedUrl = line.encodeURLParameter()
+        "$serverUrl/proxy?url=$encodedUrl&manifestId=$manifestId"
     } else line
 }
 
-// Register and serve modified manifest
-videoServer.registerContent("manifest", modifiedManifest.encodeToByteArray(), ...)
-val localManifestUrl = videoServer.getContentUrl("manifest")
+// Register manifest with auth token
+videoServer.registerContent(
+    id = manifestId,
+    data = modifiedManifest.encodeToByteArray(),
+    contentType = "application/vnd.apple.mpegurl",
+    authTokenHeaderName = "DY0810",
+    authToken = currentAuthToken
+)
+
+val localManifestUrl = videoServer.getContentUrl(manifestId)
 
 // Pass to player
 HlsVideoPlayer(manifestUrl = localManifestUrl, clientAuthToken = null, ...)
@@ -188,12 +210,25 @@ HlsVideoPlayer(manifestUrl = localManifestUrl, clientAuthToken = null, ...)
 **Key Implementation Details**:
 
 ```kotlin
-class LocalVideoServer(private val authToken: String?) {
+class LocalVideoServer {
+    private val contentRegistry = mutableMapOf<String, ContentData>()
     private val httpClient = HttpClient()  // Reusable for proxying
 
-    // Proxy endpoint: /proxy?url={encoded_url}
+    private data class ContentData(
+        val data: SecureByteArray,
+        val contentType: String,
+        val authTokenHeaderName: String? = null,
+        val authToken: String? = null
+    )
+
+    // Proxy endpoint: /proxy?url={encoded_url}&manifestId={id}
     get("/proxy") {
         val url = call.request.queryParameters["url"]
+        val manifestId = call.request.queryParameters["manifestId"]
+
+        // Look up auth token from content registration
+        val authTokenHeaderName = manifestId?.let { contentRegistry[it]?.authTokenHeaderName }
+        val authToken = manifestId?.let { contentRegistry[it]?.authToken }
 
         val response = httpClient.get(url) {
             // Forward all headers (including Range for byte-range requests)
@@ -202,9 +237,9 @@ class LocalVideoServer(private val authToken: String?) {
                     header(key, value)
                 }
             }
-            // Add authentication header
-            if (authToken != null) {
-                header("DY0810", authToken)
+            // Add authentication header from content data
+            if (authTokenHeaderName != null && authToken != null) {
+                header(authTokenHeaderName, authToken)
             }
         }
 
@@ -291,7 +326,7 @@ https://backend.com/api/v1/files/payload?ss={encrypted_params}
 #EXT-X-VERSION:4
 #EXTINF:6.985,
 #EXT-X-BYTERANGE:19748464@0
-http://127.0.0.1:44683/proxy?url=https%3A%2F%2Fbackend.com%2Fapi%2Fv1%2Ffiles%2Fpayload%3Fss%3D...
+http://127.0.0.1:44683/proxy?url=https%3A%2F%2Fbackend.com%2Fapi%2Fv1%2Ffiles%2Fpayload%3Fss%3D...&manifestId=video-1-manifest
 ```
 
 ### Byte-Range Request Handling
@@ -306,7 +341,7 @@ HLS manifests use `#EXT-X-BYTERANGE` to specify segments as byte ranges within a
 
 **Player Request**:
 ```
-GET /proxy?url=... HTTP/1.1
+GET /proxy?url=...&manifestId=video-1-manifest HTTP/1.1
 Range: bytes=19748464-36788415
 ```
 

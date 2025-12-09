@@ -31,11 +31,7 @@ import co.touchlab.kermit.Logger
  */
 @OptIn(UnstableApi::class)
 @Composable
-actual fun HlsVideoPlayer(
-    manifestUrl: String,
-    clientAuthToken: String?,
-    modifier: Modifier
-) {
+actual fun HlsVideoPlayer(manifestUrl: String, modifier: Modifier) {
     val context = LocalContext.current
 
     Logger.i("HlsVideoPlayer.Android") { "Creating HLS player for URL: $manifestUrl" }

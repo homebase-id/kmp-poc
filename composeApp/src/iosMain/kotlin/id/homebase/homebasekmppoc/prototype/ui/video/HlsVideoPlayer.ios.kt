@@ -26,11 +26,7 @@ import platform.Foundation.NSURL
  */
 @OptIn(ExperimentalForeignApi::class)
 @Composable
-actual fun HlsVideoPlayer(
-    manifestUrl: String,
-    clientAuthToken: String?,
-    modifier: Modifier
-) {
+actual fun HlsVideoPlayer(manifestUrl: String, modifier: Modifier) {
     Logger.i("HlsVideoPlayer.iOS") { "Creating HLS player for URL: $manifestUrl" }
 
     val playerViewController = remember(manifestUrl) {

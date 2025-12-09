@@ -22,6 +22,7 @@ import co.touchlab.kermit.Logger
 @Composable
 fun HlsVideoPlayerPage(
     hlsPlaylistUrl: String,
+    authTokenHeaderName: String = "Authorization",
     clientAuthToken: String? = null,
     videoTitle: String = "Video Player",
     onBack: () -> Unit
@@ -56,7 +57,6 @@ fun HlsVideoPlayerPage(
         ) {
             HlsVideoPlayer(
                 manifestUrl = hlsPlaylistUrl,
-                clientAuthToken = clientAuthToken,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(400.dp)

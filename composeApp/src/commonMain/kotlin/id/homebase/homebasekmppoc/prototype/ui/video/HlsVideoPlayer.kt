@@ -7,12 +7,7 @@ import androidx.compose.ui.Modifier
  * Platform-specific HLS video player component.
  *
  * @param manifestUrl The HLS manifest URL (m3u8)
- * @param clientAuthToken Optional client auth token for authenticated requests
  * @param modifier Optional modifier for the video player
  */
 @Composable
-expect fun HlsVideoPlayer(
-    manifestUrl: String,
-    clientAuthToken: String? = null,
-    modifier: Modifier = Modifier
-)
+expect fun HlsVideoPlayer(manifestUrl: String, modifier: Modifier = Modifier)
