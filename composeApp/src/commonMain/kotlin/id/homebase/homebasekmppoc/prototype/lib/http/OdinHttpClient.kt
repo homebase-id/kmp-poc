@@ -12,11 +12,24 @@ import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.client.request.headers
+import io.ktor.http.HeadersBuilder
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import kotlin.io.encoding.Base64
 
 // SEB:TODO use OdinClient instead of this once backend V2 is stable on main
+
+val ownerCookieName = "DY0810"
+val appCookieName = "BX0900"
+val youAuthCookieName = "XT32"
+
+enum class AppOrOwner(val value: String) {
+    Apps("apps"),
+    Owner("owner");
+
+    override fun toString() = value
+}
+
 
 /**
  * HTTP client for making authenticated requests to Odin backend
@@ -62,18 +75,10 @@ class OdinHttpClient(
         val client = createHttpClient()
 
         var response: io.ktor.client.statement.HttpResponse
-        if (path.startsWith("/api/owner")) {
-            response = client.get(encryptedUri) {
-                headers {
-                    // append("Cookie", "DY0810=$clientAuthToken")
-                    append("DY0810", clientAuthToken)
-                }
-            }
-        } else {
-            response = client.get(encryptedUri) {
-                headers {
-                    append("Cookie", "XT32=$clientAuthToken")
-                }
+
+        response = client.get(encryptedUri) {
+            headers {
+                appendAuth(path, clientAuthToken)
             }
         }
 
@@ -126,7 +131,7 @@ class OdinHttpClient(
         val client = createHttpClient()
         val response = client.get(encryptedUri) {
             headers {
-                append("Cookie", "XT32=$clientAuthToken")
+                appendAuth(uri, clientAuthToken)
             }
         }
 
@@ -144,8 +149,7 @@ class OdinHttpClient(
         val client = createHttpClient()
         val response = client.get(encryptedUri) {
             headers {
-                // append("Cookie", "DY0810=$clientAuthToken")
-                append("DY0810", clientAuthToken)
+                appendAuth(uri, clientAuthToken)
             }
         }
 
@@ -167,7 +171,7 @@ class OdinHttpClient(
         val client = createHttpClient()
         val response = client.get(encryptedUri) {
             headers {
-                append("Cookie", "XT32=$clientAuthToken")
+                appendAuth(uri, clientAuthToken)
             }
         }
 
@@ -181,10 +185,11 @@ class OdinHttpClient(
     //
 
     suspend fun queryBatch(
+        appOrOwner: AppOrOwner,
         request: GetQueryBatchRequest,
         fileSystemType: String = "128"
     ): QueryBatchResponse {
-        val uri = "/api/owner/v1/drive/query/batch?${request.toQueryString()}&xfst=${
+        val uri = "/api/$appOrOwner/v1/drive/query/batch?${request.toQueryString()}&xfst=${
             encodeUrl(fileSystemType)
         }"
         val response = get<QueryBatchResponse>(uri)
@@ -202,5 +207,28 @@ class OdinHttpClient(
 fun createHttpClient() = HttpClient {
     install(ContentNegotiation) {
         json(OdinSystemSerializer.json)
+    }
+}
+
+//
+
+// fun tokenFromPath(path: String, authToken: String): String {
+//     return when {
+//         path.startsWith("/api/owner") -> "$ownerCookieName=$authToken"
+//         path.startsWith("/api/apps") -> "$appCookieName=$authToken"
+//         else -> "$youAuthCookieName=$authToken"
+//     }
+// }
+
+fun HeadersBuilder.appendAuth(path: String, authToken: String) {
+    if (path.startsWith("/api/owner")) {
+        append("Cookie", "$ownerCookieName=$authToken")
+        append(ownerCookieName, authToken)
+    } else if (path.startsWith("/api/apps")) {
+        append("Cookie", "$appCookieName=$authToken")
+        append(ownerCookieName, authToken)
+    } else {
+        append("Cookie", "$youAuthCookieName=$authToken")
+        append(youAuthCookieName, authToken)
     }
 }

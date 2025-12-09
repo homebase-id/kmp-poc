@@ -106,7 +106,7 @@ class LocalVideoServer {
                             }
                             if (authTokenHeaderName != null && authToken != null) {
                                 header(authTokenHeaderName, authToken)
-                                Logger.d("LocalVideoServer") { "Added DY0810 header to proxy request" }
+                                Logger.d("LocalVideoServer") { "Added $authTokenHeaderName header to proxy request" }
                             }
                         }
 

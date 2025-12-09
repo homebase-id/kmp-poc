@@ -56,7 +56,11 @@ class PayloadPlayground(private val authenticated: AuthState.Authenticated) {
 
     //
 
-    suspend fun getHeadersOnDrive(driveAlias: Uuid, driveType: Uuid, fileState: FileState): List<SharedSecretEncryptedFileHeader> {
+    suspend fun getHeadersOnDrive(
+        appOrOwner: AppOrOwner,
+        driveAlias: Uuid,
+        driveType: Uuid,
+        fileState: FileState): List<SharedSecretEncryptedFileHeader> {
         val qb = GetQueryBatchRequest(
             alias = driveAlias,
             type = driveType,
@@ -66,14 +70,17 @@ class PayloadPlayground(private val authenticated: AuthState.Authenticated) {
         )
 
         val client = OdinHttpClient(authenticated)
-        val response = client.queryBatch(qb)
+        val response = client.queryBatch(appOrOwner, qb)
         return response.searchResults
     }
 
     //
 
-    suspend fun getImagesOnDrive(driveAlias: Uuid, driveType: Uuid): List<PayloadWrapper> {
-        val headers = getHeadersOnDrive(driveAlias, driveType, FileState.Active)
+    suspend fun getImagesOnDrive(
+        appOrOwner: AppOrOwner,
+        driveAlias: Uuid,
+        driveType: Uuid): List<PayloadWrapper> {
+        val headers = getHeadersOnDrive(appOrOwner, driveAlias, driveType, FileState.Active)
 
         return buildList {
             headers.forEach { header ->
@@ -88,14 +95,14 @@ class PayloadPlayground(private val authenticated: AuthState.Authenticated) {
 
     //
 
-    suspend fun getImage(payload: PayloadWrapper): ByteArray {
-        return payload.getPayloadBytes()
+    suspend fun getImage(appOrOwner: AppOrOwner, payload: PayloadWrapper): ByteArray {
+        return payload.getPayloadBytes(appOrOwner)
     }
 
     //
 
-    suspend fun getVideosOnDrive(driveAlias: Uuid, driveType: Uuid): List<PayloadWrapper> {
-        val headers = getHeadersOnDrive(driveAlias, driveType, FileState.Active)
+    suspend fun getVideosOnDrive(appOrOwner: AppOrOwner, driveAlias: Uuid, driveType: Uuid): List<PayloadWrapper> {
+        val headers = getHeadersOnDrive(appOrOwner, driveAlias, driveType, FileState.Active)
 
         return buildList {
             headers.forEach { header ->
@@ -110,15 +117,20 @@ class PayloadPlayground(private val authenticated: AuthState.Authenticated) {
 
     //
 
-    suspend fun getVideo(payload: PayloadWrapper): ByteArray {
-        return payload.getPayloadBytes()
+    suspend fun getVideo(appOrOwner: AppOrOwner, payload: PayloadWrapper): ByteArray {
+        return payload.getPayloadBytes(appOrOwner)
     }
 
     //
 
-    suspend fun getFileHeader(fileId: String, alias: String, type: String, fileSystemType: String): SharedSecretEncryptedFileHeader
+    suspend fun getFileHeader(
+        appOrOwner: AppOrOwner,
+        fileId: String,
+        alias: String,
+        type: String,
+        fileSystemType: String): SharedSecretEncryptedFileHeader
     {
-        val uri = "/api/owner/v1/drive/files/header?alias=$alias&type=$type&fileId=$fileId&xfst=$fileSystemType"
+        val uri = "/api/$appOrOwner/v1/drive/files/header?alias=$alias&type=$type&fileId=$fileId&xfst=$fileSystemType"
 
         val client = OdinHttpClient(authenticated)
         val result = client.get<SharedSecretEncryptedFileHeader>(uri)
@@ -143,40 +155,40 @@ class PayloadWrapper(
 
     //
 
-    fun getPayloadUri(): String {
+    fun getPayloadUri(appOrOwner: AppOrOwner): String {
         val fileId = header.fileId
         val alias = header.targetDrive.alias
         val type = header.targetDrive.type
         val payloadKey = payload.key
 
         // calls backend DriveStorageControllerBase.GetPayloadStream
-        val uri = "https://${authenticated.identity}/api/owner/v1/drive/files/payload?alias=$alias&type=$type&fileId=$fileId&key=$payloadKey&xfst=128"
+        val uri = "https://${authenticated.identity}/api/$appOrOwner/v1/drive/files/payload?alias=$alias&type=$type&fileId=$fileId&key=$payloadKey&xfst=128"
 
         return uri
     }
 
     //
 
-    suspend fun getEncryptedPayloadUri(): String {
-        val plain = getPayloadUri()
+    suspend fun getEncryptedPayloadUri(appOrOwner: AppOrOwner): String {
+        val plain = getPayloadUri(appOrOwner)
         val cipher = CryptoHelper.uriWithEncryptedQueryString(plain, authenticated.sharedSecret)
         return cipher
     }
 
     //
 
-    suspend fun getPayloadBytes(): ByteArray {
+    suspend fun getPayloadBytes(appOrOwner: AppOrOwner): ByteArray {
         Logger.d("PayloadPlayground") { "Payload key: ${payload.key}" }
 
-        val encryptedUri = getEncryptedPayloadUri()
+        val encryptedUri = getEncryptedPayloadUri(appOrOwner)
 
         Logger.d("PayloadPlayground") { "Making GET request to: $encryptedUri" }
 
         val client = createHttpClient()
         val response = client.get(encryptedUri) {
             headers {
-                // append("Cookie", "DY0810=${authenticated.clientAuthToken}")
-                append("DY0810", authenticated.clientAuthToken)
+                append("Cookie", "$ownerCookieName=${authenticated.clientAuthToken}")
+                // append(ownerCookieName, authenticated.clientAuthToken)
             }
         }
 
@@ -218,7 +230,7 @@ class PayloadWrapper(
 
     //
 
-    suspend fun getVideoMetaData(): String {
+    suspend fun getVideoMetaData(appOrOwner: AppOrOwner): String {
         val playlistContent = payload.descriptorContent
             ?: throw Exception("No descriptor content found in payload")
 
@@ -227,7 +239,7 @@ class PayloadWrapper(
             throw Exception("No HLS playlist found in video metadata")
         }
 
-        val hls = createHlsPlaylist8(videoMetaData)
+        val hls = createHlsPlaylist(appOrOwner, videoMetaData)
         Logger.d("getVideoMetaData") { "HLS Playlist:\n$hls" }
         return hls
     }
@@ -235,7 +247,7 @@ class PayloadWrapper(
     //
 
     // m3u8 playlist manipulation for HLS streaming
-    suspend fun createHlsPlaylist8(videoMetaData: VideoMetaData): String {
+    suspend fun createHlsPlaylist(appOrOwner: AppOrOwner, videoMetaData: VideoMetaData): String {
         val aesKey = decryptKeyHeader()?.aesKey?.Base64Encode()
 
         val lines = videoMetaData.hlsPlaylist?.lines() ?: throw Exception("No HLS playlist content found")
@@ -262,7 +274,7 @@ class PayloadWrapper(
                 }
                 // Case 2: Segment URL (Not a comment/tag and not empty)
                 !line.startsWith("#") && line.isNotBlank() -> {
-                    val newUrl = getEncryptedPayloadUri()
+                    val newUrl = getEncryptedPayloadUri(appOrOwner)
                     modifiedLines.add(newUrl)
                 }
                 // Case 3: Metadata / Comments / Empty lines

@@ -34,6 +34,7 @@ import homebasekmppoc.composeapp.generated.resources.Res
 import homebasekmppoc.composeapp.generated.resources.compose_multiplatform
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthState
 import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
+import id.homebase.homebasekmppoc.prototype.lib.http.AppOrOwner
 import id.homebase.homebasekmppoc.prototype.lib.http.OdinHttpClient
 import id.homebase.homebasekmppoc.prototype.lib.http.PayloadPlayground
 import id.homebase.homebasekmppoc.prototype.lib.http.PayloadWrapper
@@ -75,15 +76,17 @@ fun AuthenticatedOwnerCard(
                 // val drives = payloadPlayground.getDrivesByType(SystemDriveConstants.publicPostChannelDrive.type)
 
                 imageHeaders = payloadPlayground.getImagesOnDrive(
+                    AppOrOwner.Owner,
                     PublicPostsChannelDrive.alias,
                     PublicPostsChannelDrive.type)
                 imageHeaders?.size?.let {
                     if (it > 0) {
-                        imageBytes = imageHeaders!![0].getPayloadBytes()
+                        imageBytes = imageHeaders!![0].getPayloadBytes(AppOrOwner.Owner)
                     }
                 }
 
                 videoHeaders = payloadPlayground.getVideosOnDrive(
+                    AppOrOwner.Owner,
                     PublicPostsChannelDrive.alias,
                     PublicPostsChannelDrive.type)
 

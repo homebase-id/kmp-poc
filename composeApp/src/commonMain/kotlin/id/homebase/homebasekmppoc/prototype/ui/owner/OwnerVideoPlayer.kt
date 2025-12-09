@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthState
 import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
+import id.homebase.homebasekmppoc.prototype.lib.http.AppOrOwner
 import id.homebase.homebasekmppoc.prototype.lib.http.PayloadPlayground
 import id.homebase.homebasekmppoc.prototype.lib.http.PayloadWrapper
 import id.homebase.homebasekmppoc.prototype.ui.video.VideoPlayer
@@ -50,7 +51,7 @@ fun OwnerVideoPlayer(
         if (authenticatedState != null) {
             isLoading = true
             try {
-                videoBytes = videoHeader.getPayloadBytes()
+                videoBytes = videoHeader.getPayloadBytes(AppOrOwner.Owner)
                 isLoading = false
             } catch (e: Exception) {
                 errorMessage = e.message ?: "Unknown error"

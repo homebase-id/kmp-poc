@@ -86,7 +86,7 @@ This app includes cross-platform HLS video playback with authenticated backend r
 ### Features
 
 - **Cross-platform HLS streaming**: Works on both Android and iOS
-- **Authenticated requests**: Injects `DY0810` header to backend requests for secure access
+- **Authenticated requests**: Injects auth header to backend requests for secure access
 - **Adaptive streaming**: Supports HLS manifests with byte-range segments (`#EXT-X-BYTERANGE`)
 - **Streaming proxy**: Efficiently streams video segments without buffering in memory
 
@@ -130,7 +130,7 @@ This app includes cross-platform HLS video playback with authenticated backend r
 └──────────────┴──────────────┘
 ```
 
-**Note**: Native video players (ExoPlayer, AVPlayer) make standard HTTP GET requests to the LocalVideoServer running on `127.0.0.1`. The server acts as an authentication proxy, injecting the `DY0810` header into backend requests.
+**Note**: Native video players (ExoPlayer, AVPlayer) make standard HTTP GET requests to the LocalVideoServer running on `127.0.0.1`. The server acts as an authentication proxy, injecting the auth header into backend requests.
 
 ### Why LocalVideoServer is Needed
 
@@ -138,7 +138,7 @@ This app includes cross-platform HLS video playback with authenticated backend r
 
 - **iOS AVPlayer**: No API to add custom headers to segment requests
 - **Android ExoPlayer**: Can add headers, but requires managing auth token lifecycle and manual injection
-- **Backend requires authentication**: All video segment requests need `DY0810` header
+- **Backend requires authentication**: All video segment requests need auth header
 
 **Solution**: LocalVideoServer acts as an authentication proxy:
 
@@ -149,7 +149,7 @@ This app includes cross-platform HLS video playback with authenticated backend r
 2. **Authenticated Proxying**: Intercepts segment requests and adds auth header
    - Player requests: `http://127.0.0.1:12345/proxy?url={encoded_backend_url}&manifestId={id}`
    - Server looks up auth token from content registration
-   - Proxy forwards: `GET {backend_url}` with `DY0810: {clientAuthToken}`
+   - Proxy forwards: `GET {backend_url}` with `some-auth: {clientAuthToken}`
 
 3. **Transparent Streaming**: Streams response directly to player
    - No buffering (uses Ktor channels)
@@ -189,7 +189,7 @@ videoServer.registerContent(
     id = manifestId,
     data = modifiedManifest.encodeToByteArray(),
     contentType = "application/vnd.apple.mpegurl",
-    authTokenHeaderName = "DY0810",
+    authTokenHeaderName = "XXX",
     authToken = currentAuthToken
 )
 
@@ -349,7 +349,7 @@ Range: bytes=19748464-36788415
 ```
 GET /api/v1/files/payload?ss=... HTTP/1.1
 Range: bytes=19748464-36788415
-DY0810: {clientAuthToken}
+auth: {clientAuthToken}
 ```
 
 **Backend Response**:
@@ -382,6 +382,6 @@ Both platforms now work identically:
 - ✅ Android: ExoPlayer plays HLS streams via LocalVideoServer proxy
 - ✅ iOS: AVPlayer plays HLS streams via LocalVideoServer proxy
 - ✅ Byte-range requests handled correctly (206 responses)
-- ✅ Authenticated requests with DY0810 header
+- ✅ Authenticated requests with auth header
 - ✅ Smooth playback without stuttering
 

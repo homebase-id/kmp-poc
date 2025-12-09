@@ -31,3 +31,28 @@ fun getAppParams(): YouAuthAppParameters {
 
     return appParams
 }
+
+fun getFeedAppParams(): YouAuthAppParameters {
+    val driveParams = listOf(
+        YouAuthDriveParameters(
+            driveAlias = "e8475dc46cb4b6651c2d0dbd0f3aad5f",
+            driveType = "8f448716-e34c-edf9-0141-45e043ca6612",
+            name = "feed me library",
+            description = "Place for your feeds",
+            permission = 3
+        )
+    )
+
+    val appParams = YouAuthAppParameters(
+        appName = "feed me app",
+        appOrigin = "dev.dotyou.cloud:3005",
+        appId = "5f887d80-0132-4294-ba40-bda79155551d",
+        clientFriendly = "KMP App",
+        drivesParam = OdinSystemSerializer.serialize(driveParams),
+        returnParam = "backend-will-decide"
+    )
+
+    return appParams
+}
+
+
