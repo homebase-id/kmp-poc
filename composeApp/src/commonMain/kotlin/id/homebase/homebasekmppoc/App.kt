@@ -25,6 +25,7 @@ import id.homebase.homebasekmppoc.prototype.ui.db.DbPage
 import id.homebase.homebasekmppoc.prototype.ui.owner.OwnerPage
 import id.homebase.homebasekmppoc.prototype.ui.domain.DomainPage
 import id.homebase.homebasekmppoc.prototype.ui.ws.WebsocketPage
+import id.homebase.homebasekmppoc.prototype.ui.driveFetch.DriveFetchPage
 import id.homebase.homebasekmppoc.prototype.ui.video.VideoPlayerTestPage
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthenticationManager
 import id.homebase.homebasekmppoc.prototype.lib.youauth.YouAuthManager
@@ -36,7 +37,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 fun App() {
     MaterialTheme {
         var selectedTabIndex by remember { mutableStateOf(0) }
-        val tabs = listOf("Owner", "Domain", "App", "db", "ws", "Video")
+        val tabs = listOf("Owner", "Domain", "App", "db", "ws", "Video", "DriveFetch")
         val drawerState = rememberDrawerState(DrawerValue.Closed)
         val scope = rememberCoroutineScope()
 
@@ -99,6 +100,7 @@ fun App() {
                         3 -> DbPage()
                         4 -> WebsocketPage(wsAuthenticationManager)
                         5 -> VideoPlayerTestPage(videoAuthenticationManager)
+                        6 -> DriveFetchPage(appYouAuthManager)
                     }
                 }
             }

@@ -1,7 +1,7 @@
 package id.homebase.homebasekmppoc.prototype.lib.youauth
 
 import co.touchlab.kermit.Logger
-import id.homebase.homebasekmppoc.prototype.lib.decodeUrl
+import id.homebase.homebasekmppoc.lib.decodeUrl
 
 /**
  * Routes YouAuth deeplink callbacks to the appropriate YouAuthManager instance

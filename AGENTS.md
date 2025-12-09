@@ -8,6 +8,101 @@ This is a Kotlin Multiplatform (KMP) project targeting Android and iOS, built wi
 
 **Package:** `id.homebase.homebasekmppoc`
 
+## Current Development Context
+
+### App Architecture
+
+The application uses a **drawer-based navigation** with six main pages (defined in `App.kt`):
+
+1. **Owner** - `OwnerPage(authenticationManager)` - Main owner authentication page
+2. **Domain** - `DomainPage(domainYouAuthManager)` - Domain-based YouAuth authentication
+3. **App** - `AppPage(appYouAuthManager)` - App-based YouAuth authentication with permissions
+4. **db** - `DbPage()` - Database operations testing
+5. **ws** - `WebsocketPage(wsAuthenticationManager)` - WebSocket connectivity testing
+6. **Video** - `VideoPlayerTestPage(videoAuthenticationManager)` - Video player testing
+
+### Project Structure
+
+```
+composeApp/src/commonMain/kotlin/id/homebase/homebasekmppoc/
+├── App.kt                    # Main entry point with drawer navigation
+├── lib/                      # Shared library code (reusable components)
+│   ├── core/                 # Core utilities (SecureByteArray, etc.)
+│   ├── crypto/               # Cryptography (ECC, AES, HKDF, etc.)
+│   ├── drives/               # Drive API models and queries
+│   ├── http/                 # HTTP utilities (UriBuilder, etc.)
+│   ├── image/                # Image processing utilities
+│   └── serialization/        # JSON serialization (OdinSystemSerializer)
+├── prototype/                # Feature implementations  
+│   ├── lib/                  # Feature-specific libraries
+│   │   ├── authentication/   # AuthenticationManager, AuthState
+│   │   ├── youauth/          # YouAuthManager, YouAuthCallbackRouter
+│   │   ├── drives/           # DriveQueryProvider
+│   │   ├── database/         # Database operations
+│   │   ├── http/             # HTTP client creation
+│   │   ├── video/            # Video handling
+│   │   └── websockets/       # WebSocket client
+│   └── ui/                   # UI pages and components
+│       ├── app/              # App page with permissions
+│       ├── domain/           # Domain authentication page
+│       ├── driveFetch/       # DriveFetchPage & DriveFetchList
+│       ├── owner/            # Owner authentication page
+│       ├── db/               # Database testing page
+│       ├── ws/               # WebSocket testing page
+│       └── video/            # Video player testing page
+└── ui/                       # Legacy/shared UI components
+```
+
+### YouAuth Authentication System
+
+The app implements two types of YouAuth flows managed by `YouAuthManager`:
+
+1. **Domain Authentication** (in Domain tab):
+   - Basic domain authentication without app permissions
+   - Uses `clientType = ClientType.domain`
+
+2. **App Authentication** (in App tab):
+   - Full app authentication with permission requests
+   - Uses `clientType = ClientType.app` with `YouAuthAppParameters`
+   - Requests specific drive permissions (e.g., photo albums, channels)
+
+**Authentication State Flow** (`AuthState` sealed class):
+- `Unauthenticated` - Initial state
+- `Authenticating` - Browser launched, waiting for callback
+- `Authenticated(identity, clientAuthToken, sharedSecret)` - Successfully authenticated
+- `Error(message)` - Authentication failed
+
+**Key Components:**
+- `YouAuthManager` - Manages auth flow lifecycle per page
+- `YouAuthCallbackRouter` - Routes deeplink callbacks to correct manager instance
+- `AuthenticationManager` - Alternative authentication for Owner/WS/Video pages
+
+### Drive Fetch Feature (Recently Implemented)
+
+Located in `prototype/ui/driveFetch/`:
+
+- **`DriveFetchPage.kt`** - Main page that:
+  - Requires prior authentication from App tab
+  - Fetches files from authenticated user's drive
+  - Uses `DriveQueryProvider.create().queryBatch()` to fetch data
+  - Displays results in `DriveFetchList`
+
+- **`DriveFetchList.kt`** - Display component for drive items:
+  - `DriveFetchList` - LazyColumn of file headers
+  - `DriveFetchItemCard` - Card displaying file ID and content
+
+**Usage Flow:**
+1. Authenticate in App tab (YouAuth with app permissions)
+2. Navigate to use Drive Fetch functionality
+3. Click "Fetch Files" to call `queryBatch` API
+4. Results displayed as list of `SharedSecretEncryptedFileHeader`
+
+### Known Issues & Recent Work
+
+- **YouAuth callback routing** - Fixed "lateinit property instance has not been initialized" by implementing `YouAuthCallbackRouter` to properly route callbacks to the correct `YouAuthManager` instance
+- **State persistence** - `YouAuthManager` instances are hoisted to `App.kt` level to survive tab navigation
+- **Token exchange** - Sometimes returns 404, related to `exchangeSecretDigest` encoding compatibility across platforms (marked as TODO in code)
+
 ## Build Commands
 
 ### Android

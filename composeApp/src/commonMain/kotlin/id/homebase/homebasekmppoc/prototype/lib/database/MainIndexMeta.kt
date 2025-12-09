@@ -2,8 +2,8 @@ package id.homebase.homebasekmppoc.prototype.lib.database
 
 import id.homebase.homebasekmppoc.lib.database.DriveMainIndex
 import id.homebase.homebasekmppoc.lib.database.OdinDatabase
+import id.homebase.homebasekmppoc.lib.drives.SharedSecretEncryptedFileHeader
 import id.homebase.homebasekmppoc.lib.serialization.OdinSystemSerializer
-import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.QueryBatchCursor
 import kotlin.uuid.Uuid
 
@@ -89,7 +89,7 @@ class FileHeaderProcessor(
             groupId = header.fileMetadata.appData.groupId,
             fileType = (header.fileMetadata.appData.fileType ?: 0).toLong(),
             dataType = (header.fileMetadata.appData.dataType ?: 0).toLong(),
-            archivalStatus = (header.fileMetadata.appData.archivalStatus ?: 0).toLong(),
+            archivalStatus = (header.fileMetadata.appData.archivalStatus?.value ?: 0).toLong(),
             historyStatus = 0L,
             userDate = header.fileMetadata.appData.userDate ?: 0L,
             created = header.fileMetadata.created.milliseconds,
