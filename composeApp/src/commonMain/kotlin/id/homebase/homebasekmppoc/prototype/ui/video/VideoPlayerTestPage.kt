@@ -173,7 +173,7 @@ fun VideoPlayerTestPage(youAuthManager: YouAuthManager) {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = "Video Player Test",
+                text = "HLS Video Player Test",
                 style = MaterialTheme.typography.headlineMedium
             )
 
