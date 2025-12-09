@@ -158,8 +158,20 @@ class AesCbcTest {
 
         val ciphertext = AesCbc.encrypt(plaintext, correctKey, iv)
 
-        // CBC with PKCS padding typically throws on wrong key due to padding validation
-        assertFailsWith<Exception> { AesCbc.decrypt(ciphertext, wrongKey, iv) }
+        // CBC with PKCS padding typically throws on wrong key due to padding validation,
+        // but there's a ~1/256 chance the garbage data has "valid" padding.
+        // In that case, the decrypted result should still be garbage (not equal to original).
+        try {
+            val decrypted = AesCbc.decrypt(ciphertext, wrongKey, iv)
+            // If we get here, decryption "succeeded" but should produce garbage
+            assertNotEquals(
+                    plaintext.decodeToString(),
+                    decrypted.decodeToString(),
+                    "Decryption with wrong key should not produce original plaintext"
+            )
+        } catch (e: Exception) {
+            // Expected: padding validation failed
+        }
     }
 
     // ========================================================================
