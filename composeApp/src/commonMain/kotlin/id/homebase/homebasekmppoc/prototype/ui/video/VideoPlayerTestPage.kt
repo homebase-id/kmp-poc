@@ -16,6 +16,7 @@ import id.homebase.homebasekmppoc.prototype.lib.http.PayloadPlayground
 import id.homebase.homebasekmppoc.prototype.lib.http.PayloadWrapper
 import id.homebase.homebasekmppoc.prototype.lib.http.PublicPostsChannelDrive
 import id.homebase.homebasekmppoc.prototype.lib.video.LocalVideoServer
+import io.ktor.http.encodeURLParameter
 import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -39,10 +40,6 @@ fun VideoPlayerTestPage(authenticationManager: AuthenticationManager) {
     var resultMessage by remember { mutableStateOf("") }
     var isSuccess by remember { mutableStateOf(false) }
 
-    var serverStatus by remember { mutableStateOf("Not started") }
-    var serverUrl by remember { mutableStateOf("") }
-    var currentVideoUrl by remember { mutableStateOf<String?>(null) }
-
     var videoHeaders by remember { mutableStateOf<List<PayloadWrapper>?>(null) }
     var selectedVideoHeader by remember { mutableStateOf<PayloadWrapper?>(null) }
     var isLoadingVideos by remember { mutableStateOf(false) }
@@ -55,31 +52,29 @@ fun VideoPlayerTestPage(authenticationManager: AuthenticationManager) {
 
     val authState by authenticationManager.authState.collectAsState()
     val scope = rememberCoroutineScope()
-    val videoServer = remember { LocalVideoServer() }
 
-    var payloadPlayground by remember { mutableStateOf<PayloadPlayground?>(null) }
+    // Create LocalVideoServer with auth token when authenticated
+    val videoServer = remember(authState) {
+        when (val state = authState) {
+            is AuthState.Authenticated -> LocalVideoServer(state.clientAuthToken)
+            else -> null
+        }
+    }
 
-    // Show dialog when authentication completes and start server
+    // Auto-start server when authenticated
     LaunchedEffect(authState) {
         when (val state = authState) {
             is AuthState.Authenticated -> {
                 resultMessage = "Authentication successful!\nIdentity: ${state.identity}"
                 isSuccess = true
                 showResultDialog = false
-                payloadPlayground = PayloadPlayground(state)
 
-                // Automatically start the server after login
-                if (serverStatus != "Running") {
-                    try {
-                        serverStatus = "Starting..."
-                        val url = videoServer.start()
-                        serverUrl = url
-                        serverStatus = "Running"
-                        Logger.i("VideoPlayerTestPage") { "Server auto-started at $url after login" }
-                    } catch (e: Exception) {
-                        serverStatus = "Error: ${e.message}"
-                        Logger.e("VideoPlayerTestPage", e) { "Failed to auto-start server" }
-                    }
+                // Start the video server with auth token
+                try {
+                    videoServer?.start()
+                    Logger.i("VideoPlayerTestPage") { "Video server started with auth token after login" }
+                } catch (e: Exception) {
+                    Logger.e("VideoPlayerTestPage", e) { "Failed to start video server" }
                 }
             }
             is AuthState.Error -> {
@@ -331,19 +326,39 @@ fun VideoPlayerTestPage(authenticationManager: AuthenticationManager) {
                                         Logger.i("VideoPlayerTestPage") { "Selected video ${index + 1}: ${header.header.fileId}" }
                                         scope.launch {
                                             try {
-                                                // Get the HLS playlist/manifest URL
-                                                val hlsPlaylist = header.getVideoMetaData()
-                                                Logger.i("VideoPlayerTestPage") { "Got HLS playlist for video ${index + 1}" }
+                                                if (videoServer == null) {
+                                                    errorMessage = "Video server not initialized"
+                                                    return@launch
+                                                }
 
-                                                // Register the manifest with the local server
+                                                // Get the HLS manifest content from backend
+                                                val originalManifest = header.getVideoMetaData()
+                                                Logger.i("VideoPlayerTestPage") { "Got HLS manifest content for video ${index + 1}" }
+
+                                                // Get the local server URL
+                                                val serverUrl = videoServer.start()
+                                                Logger.d("VideoPlayerTestPage") { "Video server running at: $serverUrl" }
+
+                                                // Modify the manifest to proxy remote segment URLs through local server
+                                                val modifiedManifest = originalManifest.lines().joinToString("\n") { line ->
+                                                    if (line.startsWith("https://")) {
+                                                        val encodedUrl = line.encodeURLParameter()
+                                                        "$serverUrl/proxy?url=$encodedUrl"
+                                                    } else {
+                                                        line
+                                                    }
+                                                }
+                                                Logger.d("VideoPlayerTestPage") { "Modified manifest to proxy segment URLs through $serverUrl" }
+
+                                                // Register the modified manifest with local server
                                                 val manifestId = "video-${index + 1}-manifest"
                                                 videoServer.registerContent(
                                                     id = manifestId,
-                                                    data = hlsPlaylist.encodeToByteArray(),
+                                                    data = modifiedManifest.encodeToByteArray(),
                                                     contentType = "application/vnd.apple.mpegurl"
                                                 )
 
-                                                // Get the URL and show the HLS player page
+                                                // Get the local URL and pass to player
                                                 hlsPlaylistUrl = videoServer.getContentUrl(manifestId)
                                                 selectedVideoTitle = "Video ${index + 1}"
                                                 showHlsPlayerPage = true
@@ -374,154 +389,6 @@ fun VideoPlayerTestPage(authenticationManager: AuthenticationManager) {
                             )
                         }
                     }
-                }
-            }
-        }
-
-        // Server status card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer
-            )
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = "Local Video Server",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = "Status: $serverStatus",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                if (serverUrl.isNotEmpty()) {
-                    Text(
-                        text = "URL: $serverUrl",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                }
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Button(
-                        onClick = {
-                            scope.launch {
-                                try {
-                                    serverStatus = "Starting..."
-                                    val url = videoServer.start()
-                                    serverUrl = url
-                                    serverStatus = "Running"
-                                    Logger.i("VideoPlayerTestPage") { "Server started at $url" }
-                                } catch (e: Exception) {
-                                    serverStatus = "Error: ${e.message}"
-                                    Logger.e("VideoPlayerTestPage", e) { "Failed to start server" }
-                                }
-                            }
-                        },
-                        enabled = serverStatus != "Running"
-                    ) {
-                        Text("Start Server")
-                    }
-
-                    Button(
-                        onClick = {
-                            videoServer.stop()
-                            serverStatus = "Stopped"
-                            serverUrl = ""
-                            currentVideoUrl = null
-                            Logger.i("VideoPlayerTestPage") { "Server stopped" }
-                        },
-                        enabled = serverStatus == "Running"
-                    ) {
-                        Text("Stop Server")
-                    }
-                }
-            }
-        }
-
-        // Test content section
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.tertiaryContainer
-            )
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = "Test Content",
-                    style = MaterialTheme.typography.titleMedium
-                )
-
-                Button(
-                    onClick = {
-                        scope.launch {
-                            try {
-                                // Create a simple test manifest
-                                val testManifest = """
-                                    #EXTM3U
-                                    #EXT-X-VERSION:3
-                                    #EXT-X-TARGETDURATION:10
-                                    #EXT-X-MEDIA-SEQUENCE:0
-                                    #EXTINF:10.0,
-                                    segment0.ts
-                                    #EXT-X-ENDLIST
-                                """.trimIndent()
-
-                                videoServer.registerContent(
-                                    id = "test-manifest",
-                                    data = testManifest.encodeToByteArray(),
-                                    contentType = "application/vnd.apple.mpegurl"
-                                )
-
-                                currentVideoUrl = videoServer.getContentUrl("test-manifest")
-                                Logger.i("VideoPlayerTestPage") { "Registered test manifest: $currentVideoUrl" }
-                            } catch (e: Exception) {
-                                Logger.e("VideoPlayerTestPage", e) { "Failed to register test manifest" }
-                            }
-                        }
-                    },
-                    enabled = serverStatus == "Running"
-                ) {
-                    Text("Load Test HLS Manifest")
-                }
-
-                if (currentVideoUrl != null) {
-                    Text(
-                        text = "Current video URL: $currentVideoUrl",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer
-                    )
-                }
-            }
-        }
-
-        // Video player section
-        if (currentVideoUrl != null) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(300.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Video Player (URL: $currentVideoUrl)",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    // TODO: Integrate actual video player here
                 }
             }
         }

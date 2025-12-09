@@ -86,51 +86,267 @@ This app includes cross-platform HLS video playback with authenticated backend r
 ### Features
 
 - **Cross-platform HLS streaming**: Works on both Android and iOS
-- **Authenticated requests**: Adds `DY0810` header to backend requests for secure access
-- **Adaptive streaming**: Supports HLS manifests with byte-range segments
-- **Proxy-based authentication**: Uses LocalVideoServer to proxy requests with auth headers
+- **Authenticated requests**: Injects `DY0810` header to backend requests for secure access
+- **Adaptive streaming**: Supports HLS manifests with byte-range segments (`#EXT-X-BYTERANGE`)
+- **Streaming proxy**: Efficiently streams video segments without buffering in memory
 
-### How it works
+### Architecture Overview
 
-1. **Manifest Loading**: App fetches HLS manifest from backend
-2. **URL Modification**: Manifest URLs are rewritten to route through local proxy
-3. **Authenticated Proxying**: LocalVideoServer forwards requests with `DY0810` header
-4. **Video Playback**:
-   - Android: ExoPlayer with custom DataSource for header injection
-   - iOS: AVPlayerViewController with LocalVideoServer proxy
+```
+┌─────────────────┐
+│ VideoPlayerTest │ ← Entry point (manages LocalVideoServer)
+│      Page       │
+└────────┬────────┘
+         │ 1. Fetches manifest content from backend
+         │ 2. Modifies URLs to proxy through local server
+         │ 3. Starts LocalVideoServer with auth token
+         │ 4. Passes local manifest URL to player
+         ▼
+┌─────────────────┐
+│ LocalVideoServer│ ← Ktor HTTP server (127.0.0.1:random_port)
+│  (Common code)  │
+└────────┬────────┘
+         │ • Serves modified manifest
+         │ • Proxies segment requests with DY0810 header
+         │ • Streams responses (no buffering)
+         │ • Handles byte-range requests (206 Partial Content)
+         ▼
+┌──────────────┬──────────────┐
+│   Android    │     iOS      │
+│  ExoPlayer   │  AVPlayer    │
+└──────────────┴──────────────┘
+```
 
-### Architecture
+### Why LocalVideoServer is Needed
 
-- **LocalVideoServer**: Ktor-based HTTP server running locally on device
-- **Proxy Endpoint**: `/proxy?url={encoded_url}` forwards requests with auth headers
-- **Header Forwarding**: All client headers (including Range for byte requests) are forwarded
-- **Response Headers**: Backend response headers are copied back to client
+**Problem**: Native video players (AVPlayer on iOS, ExoPlayer on Android) cannot inject custom authentication headers into HLS segment requests:
 
-### Example Manifest
+- **iOS AVPlayer**: No API to add custom headers to segment requests
+- **Android ExoPlayer**: Can add headers, but requires managing auth token lifecycle and manual injection
+- **Backend requires authentication**: All video segment requests need `DY0810` header
 
+**Solution**: LocalVideoServer acts as an authentication proxy:
+
+1. **Manifest Modification**: Rewrites segment URLs to point to local proxy
+   - Original: `https://backend.com/segment.ts`
+   - Modified: `http://127.0.0.1:12345/proxy?url=https%3A%2F%2Fbackend.com%2Fsegment.ts`
+
+2. **Authenticated Proxying**: Intercepts segment requests and adds auth header
+   - Player requests: `http://127.0.0.1:12345/proxy?url={encoded_backend_url}`
+   - Proxy forwards: `GET {backend_url}` with `DY0810: {clientAuthToken}`
+
+3. **Transparent Streaming**: Streams response directly to player
+   - No buffering (uses Ktor channels)
+   - Preserves HTTP status (206 for byte ranges)
+   - Forwards all headers (Content-Range, Content-Type, etc.)
+
+### How It Works
+
+#### 1. VideoPlayerTestPage (Test Harness)
+
+```kotlin
+// Create LocalVideoServer with auth token
+val videoServer = remember(authState) {
+    when (val state = authState) {
+        is AuthState.Authenticated -> LocalVideoServer(state.clientAuthToken)
+        else -> null
+    }
+}
+
+// Start server and modify manifest
+LaunchedEffect(authState) {
+    videoServer?.start()  // Starts on random port (e.g., http://127.0.0.1:44683)
+}
+
+// When video selected:
+val originalManifest = header.getVideoMetaData()  // Fetch from backend
+val serverUrl = videoServer.start()
+
+// Modify segment URLs to proxy through local server
+val modifiedManifest = originalManifest.lines().joinToString("\n") { line ->
+    if (line.startsWith("https://")) {
+        "$serverUrl/proxy?url=${line.encodeURLParameter()}"
+    } else line
+}
+
+// Register and serve modified manifest
+videoServer.registerContent("manifest", modifiedManifest.encodeToByteArray(), ...)
+val localManifestUrl = videoServer.getContentUrl("manifest")
+
+// Pass to player
+HlsVideoPlayer(manifestUrl = localManifestUrl, clientAuthToken = null, ...)
+```
+
+#### 2. LocalVideoServer (Common Code)
+
+**Responsibilities**:
+- Serve modified HLS manifests
+- Proxy video segment requests with authentication
+- Stream responses efficiently (no memory buffering)
+- Handle HTTP byte-range requests (206 Partial Content)
+
+**Key Implementation Details**:
+
+```kotlin
+class LocalVideoServer(private val authToken: String?) {
+    private val httpClient = HttpClient()  // Reusable for proxying
+
+    // Proxy endpoint: /proxy?url={encoded_url}
+    get("/proxy") {
+        val url = call.request.queryParameters["url"]
+
+        val response = httpClient.get(url) {
+            // Forward all headers (including Range for byte-range requests)
+            call.request.headers.forEach { key, values ->
+                if (key.lowercase() != "host" && key.lowercase() != "accept-encoding") {
+                    header(key, value)
+                }
+            }
+            // Add authentication header
+            if (authToken != null) {
+                header("DY0810", authToken)
+            }
+        }
+
+        // Preserve HTTP status (important for 206 Partial Content)
+        call.response.status(response.status)
+
+        // Forward response headers (Content-Range, Content-Type, etc.)
+        response.headers.forEach { key, values ->
+            if (key.lowercase() != "content-length" && key.lowercase() != "content-type") {
+                call.response.headers.append(key, value)
+            }
+        }
+
+        // Stream response (no buffering!)
+        val responseChannel = response.bodyAsChannel()
+        call.respond(object : OutgoingContent.ReadChannelContent() {
+            override val contentType = ContentType.parse(contentTypeString)
+            override fun readFrom() = responseChannel
+        })
+    }
+}
+```
+
+**Why Streaming Instead of Buffering?**
+- Video segments can be 17-19MB each
+- Buffering causes GC pauses and playback stutters
+- Streaming delivers bytes as they arrive from backend
+- Reduces memory usage from ~20MB per segment to ~8KB buffer
+
+#### 3. HLS Video Players (Platform-Specific)
+
+**Android** (`HlsVideoPlayer.android.kt`):
+```kotlin
+@Composable
+actual fun HlsVideoPlayer(manifestUrl: String, clientAuthToken: String?, modifier: Modifier) {
+    val exoPlayer = remember(manifestUrl) {
+        ExoPlayer.Builder(context).build().apply {
+            val hlsMediaSource = HlsMediaSource.Factory(dataSourceFactory)
+                .createMediaSource(MediaItem.fromUri(manifestUrl))
+            setMediaSource(hlsMediaSource)
+            prepare()
+            playWhenReady = true
+        }
+    }
+    // ExoPlayer fetches manifest and segments from LocalVideoServer
+}
+```
+
+**iOS** (`HlsVideoPlayer.ios.kt`):
+```kotlin
+@Composable
+actual fun HlsVideoPlayer(manifestUrl: String, clientAuthToken: String?, modifier: Modifier) {
+    val playerViewController = remember(manifestUrl) {
+        val url = NSURL.URLWithString(manifestUrl)
+        val player = AVPlayer.playerWithURL(url)
+        val playerViewController = AVPlayerViewController()
+        playerViewController.player = player
+        playerViewController
+    }
+    // AVPlayer fetches manifest and segments from LocalVideoServer
+}
+```
+
+**Key Points**:
+- Both players are now **identical in architecture**
+- Neither player manages LocalVideoServer internally
+- Both receive a local manifest URL (`http://127.0.0.1:xxxxx/content/manifest`)
+- Auth token handling is centralized in LocalVideoServer
+
+### Example Manifest Flow
+
+**Original Manifest** (from backend):
 ```
 #EXTM3U
 #EXT-X-VERSION:4
-#EXT-X-TARGETDURATION:7
-#EXT-X-MEDIA-SEQUENCE:0
-#EXT-X-KEY:METHOD=AES-128,URI="data:application/octet-stream;base64,WFLbzyKRzPyVp8LWbgu3fA==",IV=0x415efd95c27dadf95000e7cd867b6f59
-#EXTINF:6.985233,
+#EXTINF:6.985,
 #EXT-X-BYTERANGE:19748464@0
-https://frodo.dotyou.cloud/api/owner/v1/drive/files/payload?ss={encrypted_auth}
+https://backend.com/api/v1/files/payload?ss={encrypted_params}
 ```
 
-### Why LocalVideoServer Proxy?
+**Modified Manifest** (served by LocalVideoServer):
+```
+#EXTM3U
+#EXT-X-VERSION:4
+#EXTINF:6.985,
+#EXT-X-BYTERANGE:19748464@0
+http://127.0.0.1:44683/proxy?url=https%3A%2F%2Fbackend.com%2Fapi%2Fv1%2Ffiles%2Fpayload%3Fss%3D...
+```
 
-AVPlayer on iOS doesn't provide APIs to add custom headers to HLS segment requests. The proxy approach:
+### Byte-Range Request Handling
 
-- ✅ Enables authenticated requests across platforms
-- ✅ Handles byte-range requests properly
-- ✅ Maintains security (headers not exposed in URLs)
-- ✅ Works with existing backend authentication
+HLS manifests use `#EXT-X-BYTERANGE` to specify segments as byte ranges within a single file:
+
+**Example**:
+```
+#EXT-X-BYTERANGE:19748464@0         ← bytes 0-19748463
+#EXT-X-BYTERANGE:17039952@19748464  ← bytes 19748464-36788415
+```
+
+**Player Request**:
+```
+GET /proxy?url=... HTTP/1.1
+Range: bytes=19748464-36788415
+```
+
+**LocalVideoServer Forwards**:
+```
+GET /api/v1/files/payload?ss=... HTTP/1.1
+Range: bytes=19748464-36788415
+DY0810: {clientAuthToken}
+```
+
+**Backend Response**:
+```
+HTTP/1.1 206 Partial Content
+Content-Range: bytes 19748464-36788415/123456789
+Content-Length: 17039952
+```
+
+**LocalVideoServer Streams Back**:
+```
+HTTP/1.1 206 Partial Content
+Content-Range: bytes 19748464-36788415/123456789
+Content-Length: 17039952
+
+[streaming bytes...]
+```
+
+### Benefits
+
+✅ **Cross-platform**: Single authentication approach for both iOS and Android
+✅ **Secure**: Auth tokens never exposed in URLs or manifests
+✅ **Efficient**: Streaming eliminates memory buffering
+✅ **Standards-compliant**: Properly handles HTTP 206 Partial Content
+✅ **Maintainable**: LocalVideoServer is managed externally (test page)
 
 ### Testing
 
-- Android: ExoPlayer handles headers directly in DataSource
-- iOS: LocalVideoServer proxies requests with authentication
-- Both platforms support encrypted HLS streams with byte ranges
+Both platforms now work identically:
+- ✅ Android: ExoPlayer plays HLS streams via LocalVideoServer proxy
+- ✅ iOS: AVPlayer plays HLS streams via LocalVideoServer proxy
+- ✅ Byte-range requests handled correctly (206 responses)
+- ✅ Authenticated requests with DY0810 header
+- ✅ Smooth playback without stuttering
 

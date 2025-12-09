@@ -4,17 +4,19 @@ import co.touchlab.kermit.Logger
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.header
-import io.ktor.client.statement.readBytes
+import io.ktor.client.statement.bodyAsChannel
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.OutgoingContent
 import io.ktor.server.application.call
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.EmbeddedServer
 import io.ktor.server.engine.embeddedServer
+import io.ktor.server.response.respond
 import io.ktor.server.response.respondBytes
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
-import io.ktor.utils.io.core.toByteArray
+import io.ktor.utils.io.ByteReadChannel
 
 /**
  * Simple HTTP server for serving video content locally
@@ -28,6 +30,7 @@ class LocalVideoServer(
     private var server: EmbeddedServer<*, *>? = null
     private var serverUrl: String = ""
     private val contentRegistry = mutableMapOf<String, ContentData>()
+    private val httpClient = HttpClient() // Reusable HTTP client for proxy requests
 
     private data class ContentData(
         val data: ByteArray,
@@ -79,8 +82,8 @@ class LocalVideoServer(
 
                     try {
                         Logger.i("LocalVideoServer") { "Proxying request to: $url" }
-                        val client = HttpClient()
-                        val response = client.get(url) {
+
+                        val response = httpClient.get(url) {
                             // Forward all headers from the client request
                             call.request.headers.forEach { key, values ->
                                 if (key.lowercase() != "host" && key.lowercase() != "accept-encoding") {
@@ -94,21 +97,34 @@ class LocalVideoServer(
                                 Logger.d("LocalVideoServer") { "Added DY0810 header to proxy request" }
                             }
                         }
-                        val bytes = response.readBytes()
-                        Logger.i("LocalVideoServer") { "Proxied content size: ${bytes.size}, status: ${response.status}" }
 
-                        // Copy response headers
+                        Logger.i("LocalVideoServer") { "Streaming response, status: ${response.status}" }
+
+                        // Set response status to match backend (important for 206 Partial Content)
+                        call.response.status(response.status)
+
+                        // Copy response headers (including Content-Range for byte range requests)
                         response.headers.forEach { key, values ->
-                            values.forEach { value ->
-                                call.response.headers.append(key, value)
+                            // Skip headers that Ktor will set automatically
+                            if (key.lowercase() != "content-length" && key.lowercase() != "content-type") {
+                                values.forEach { value ->
+                                    call.response.headers.append(key, value)
+                                }
                             }
                         }
 
-                        call.respondBytes(
-                            bytes = bytes,
-                            contentType = ContentType.parse("application/octet-stream")
-                        )
-                        client.close()
+                        // Stream the response body directly (no buffering)
+                        val responseChannel: ByteReadChannel = response.bodyAsChannel()
+                        val contentTypeString = response.headers.get("Content-Type")
+                            ?: "application/octet-stream"
+
+                        // Use custom streaming content
+                        call.respond(object : OutgoingContent.ReadChannelContent() {
+                            override val contentType = ContentType.parse(contentTypeString)
+                            override fun readFrom(): ByteReadChannel = responseChannel
+                        })
+
+                        Logger.d("LocalVideoServer") { "Streaming complete for: $url" }
                     } catch (e: Exception) {
                         Logger.e("LocalVideoServer") { "Proxy request failed: ${e.message}" }
                         call.response.status(HttpStatusCode.InternalServerError)
@@ -136,6 +152,7 @@ class LocalVideoServer(
         server?.stop(1000, 2000)
         server = null
         contentRegistry.clear()
+        httpClient.close()
         Logger.i("LocalVideoServer") { "Video server stopped" }
     }
 
