@@ -28,35 +28,49 @@ import id.homebase.homebasekmppoc.prototype.lib.youauth.YouAuthManager
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
+/**
+ * App authentication page using YouAuth flow.
+ *
+ * @param youAuthManager Manager for YouAuth authentication
+ * @param onAuthenticated Optional callback triggered when authentication succeeds (for navigation)
+ */
 @Composable
-fun AppPage(youAuthManager: YouAuthManager) {
+fun AppPage(youAuthManager: YouAuthManager, onAuthenticated: (() -> Unit)? = null) {
     var odinIdentity by remember { mutableStateOf("frodo.baggins.demo.rocks") }
-    // var odinIdentity by remember { mutableStateOf("frodo.baggins.demo.rocks") }
 
     val authState by youAuthManager.youAuthState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
-    
+
+    // Trigger navigation callback when authentication succeeds
+    androidx.compose.runtime.LaunchedEffect(authState) {
+        if (authState is AuthState.Authenticated && onAuthenticated != null) {
+            onAuthenticated()
+        }
+    }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.primaryContainer)
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            modifier =
+                    Modifier.fillMaxSize()
+                            .background(MaterialTheme.colorScheme.primaryContainer)
+                            .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "App",
-            style = MaterialTheme.typography.headlineMedium,
-            textAlign = TextAlign.Center
+                text = "App",
+                style = MaterialTheme.typography.headlineMedium,
+                textAlign = TextAlign.Center
         )
 
         Spacer(modifier = Modifier.height(32.dp))
 
         // Always show the authenticated app card
         AuthenticatedAppCard(
-            authenticatedState = if (authState is AuthState.Authenticated) authState as AuthState.Authenticated else null,
-            modifier = Modifier.padding(horizontal = 16.dp)
+                authenticatedState =
+                        if (authState is AuthState.Authenticated)
+                                authState as AuthState.Authenticated
+                        else null,
+                modifier = Modifier.padding(horizontal = 16.dp)
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -65,67 +79,63 @@ fun AppPage(youAuthManager: YouAuthManager) {
         when (val state = authState) {
             is AuthState.Unauthenticated -> {
                 OutlinedTextField(
-                    value = odinIdentity,
-                    onValueChange = { odinIdentity = it },
-                    label = { Text("Odin Identity") },
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                        value = odinIdentity,
+                        onValueChange = { odinIdentity = it },
+                        label = { Text("Odin Identity") },
+                        modifier = Modifier.padding(horizontal = 16.dp)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
-                    onClick = {
-                        coroutineScope.launch {
-                            val appParams = getAppParams()
-                            youAuthManager.authorize(odinIdentity, coroutineScope, appParams,)
-                        }
-                    },
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                ) {
-                    Text("Log in")
-                }
+                        onClick = {
+                            coroutineScope.launch {
+                                val appParams = getAppParams()
+                                youAuthManager.authorize(
+                                        odinIdentity,
+                                        coroutineScope,
+                                        appParams,
+                                )
+                            }
+                        },
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                ) { Text("Log in") }
             }
             is AuthState.Authenticating -> {
                 CircularProgressIndicator()
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Authenticating...",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                        text = "Authenticating...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
             is AuthState.Authenticated -> {
                 Button(
-                    onClick = {
-                        youAuthManager.logout()
-                    },
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                ) {
-                    Text("Log out")
-                }
+                        onClick = { youAuthManager.logout() },
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                ) { Text("Log out") }
             }
             is AuthState.Error -> {
                 Text(
-                    text = "Error: ${state.message}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error
+                        text = "Error: ${state.message}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
-                    value = odinIdentity,
-                    onValueChange = { odinIdentity = it },
-                    label = { Text("Odin Identity") },
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                        value = odinIdentity,
+                        onValueChange = { odinIdentity = it },
+                        label = { Text("Odin Identity") },
+                        modifier = Modifier.padding(horizontal = 16.dp)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
-                    onClick = {
-                        coroutineScope.launch {
-                            youAuthManager.authorize(odinIdentity, coroutineScope)
-                        }
-                    },
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                ) {
-                    Text("Try again")
-                }
+                        onClick = {
+                            coroutineScope.launch {
+                                youAuthManager.authorize(odinIdentity, coroutineScope)
+                            }
+                        },
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                ) { Text("Try again") }
             }
         }
     }
@@ -134,10 +144,7 @@ fun AppPage(youAuthManager: YouAuthManager) {
 @Preview
 @Composable
 fun AppPagePreview() {
-    MaterialTheme {
-        AppPage(YouAuthManager())
-    }
+    MaterialTheme { AppPage(YouAuthManager()) }
 }
 
 //
-
