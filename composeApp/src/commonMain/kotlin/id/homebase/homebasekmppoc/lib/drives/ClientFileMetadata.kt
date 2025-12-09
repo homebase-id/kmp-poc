@@ -36,7 +36,6 @@ data class ClientFileMetadata(
     }
 }
 
-/** Stub types - implement as needed based on your requirements */
 @Serializable
 data class AppFileMetaData(
         @Serializable(with = UuidSerializer::class) val uniqueId: Uuid? = null,

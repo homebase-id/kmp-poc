@@ -188,11 +188,8 @@ class DriveQueryProviderTest {
         )
 
         // Assert - URL should contain encrypted ss parameter
-        assertTrue(capturedUrl?.contains("ss=") == true)
-        assertTrue(
-                capturedUrl?.startsWith("https://test.domain.com/api/apps/v1/drive/query/batch") ==
-                        true
-        )
+        assertEquals(capturedUrl?.contains("ss="), true)
+        assertEquals(capturedUrl?.startsWith("https://test.domain.com/api/apps/v1/drive/query/batch"), true)
     }
 
     @Test

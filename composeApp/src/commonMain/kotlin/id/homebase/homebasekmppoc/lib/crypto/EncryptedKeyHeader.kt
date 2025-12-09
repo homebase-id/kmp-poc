@@ -2,7 +2,7 @@ package id.homebase.homebasekmppoc.lib.crypto
 
 import id.homebase.homebasekmppoc.lib.core.SecureByteArray
 import id.homebase.homebasekmppoc.lib.serialization.Base64ByteArraySerializer
-import id.homebase.homebasekmppoc.lib.toBase64
+import id.homebase.homebasekmppoc.prototype.toBase64
 import kotlinx.serialization.Serializable
 import kotlin.io.encoding.Base64
 

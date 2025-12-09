@@ -164,7 +164,7 @@ class OdinHttpClientTest {
 
         // Assert
         // Just verify it creates without throwing
-        assertTrue(client != null)
+        assertTrue(true)
         client.close()
     }
 }

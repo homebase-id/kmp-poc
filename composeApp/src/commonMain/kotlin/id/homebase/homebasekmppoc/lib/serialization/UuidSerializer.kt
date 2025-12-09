@@ -20,6 +20,6 @@ object UuidSerializer : KSerializer<Uuid> {
     }
 
     override fun deserialize(decoder: Decoder): Uuid {
-        return Uuid.Companion.parse(decoder.decodeString())
+        return Uuid.parse(decoder.decodeString())
     }
 }
