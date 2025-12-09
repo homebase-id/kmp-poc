@@ -33,11 +33,11 @@ import co.touchlab.kermit.Logger
 import homebasekmppoc.composeapp.generated.resources.Res
 import homebasekmppoc.composeapp.generated.resources.compose_multiplatform
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthState
-import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
+import id.homebase.homebasekmppoc.lib.drives.SharedSecretEncryptedFileHeader
 import id.homebase.homebasekmppoc.prototype.lib.http.OdinHttpClient
 import id.homebase.homebasekmppoc.prototype.lib.http.PayloadPlayground
 import id.homebase.homebasekmppoc.prototype.lib.http.PublicPostsChannelDrive
-import id.homebase.homebasekmppoc.prototype.lib.image.toImageBitmap
+import id.homebase.homebasekmppoc.lib.image.toImageBitmap
 import org.jetbrains.compose.resources.painterResource
 
 /**

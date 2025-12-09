@@ -1,6 +1,6 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives
 
-import id.homebase.homebasekmppoc.prototype.lib.encodeUrl
+import id.homebase.homebasekmppoc.lib.encodeUrl
 import kotlinx.serialization.Serializable
 
 @Serializable

@@ -1,6 +1,6 @@
 package id.homebase.homebasekmppoc.prototype.lib.youauth
 
-import id.homebase.homebasekmppoc.prototype.lib.encodeUrl
+import id.homebase.homebasekmppoc.lib.encodeUrl
 
 
 data class YouAuthAuthorizeRequest(

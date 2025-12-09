@@ -30,11 +30,12 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun AppPage(youAuthManager: YouAuthManager) {
-    var odinIdentity by remember { mutableStateOf("frodo.dotyou.cloud") }
+    var odinIdentity by remember { mutableStateOf("frodo.baggins.demo.rocks") }
     // var odinIdentity by remember { mutableStateOf("frodo.baggins.demo.rocks") }
 
     val authState by youAuthManager.youAuthState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
+    
 
     Column(
         modifier = Modifier
@@ -74,7 +75,7 @@ fun AppPage(youAuthManager: YouAuthManager) {
                     onClick = {
                         coroutineScope.launch {
                             val appParams = getAppParams()
-                            youAuthManager.authorize(odinIdentity, coroutineScope, appParams)
+                            youAuthManager.authorize(odinIdentity, coroutineScope, appParams,)
                         }
                     },
                     modifier = Modifier.padding(horizontal = 16.dp)

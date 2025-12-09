@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     companion object {
         lateinit var instance: MainActivity
+        private  set
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,6 +49,11 @@ class MainActivity : ComponentActivity() {
                 YouAuthCallbackRouter.handleCallback(callbackURL)
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        instance = this
     }
 }
 

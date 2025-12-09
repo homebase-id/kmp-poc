@@ -2,10 +2,10 @@ package id.homebase.homebasekmppoc.prototype.lib.http
 
 import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthState
-import id.homebase.homebasekmppoc.prototype.lib.crypto.CryptoHelper
-import id.homebase.homebasekmppoc.prototype.lib.drives.GetQueryBatchRequest
-import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResponse
-import id.homebase.homebasekmppoc.prototype.lib.encodeUrl
+import id.homebase.homebasekmppoc.lib.crypto.CryptoHelper
+import id.homebase.homebasekmppoc.lib.drives.GetQueryBatchRequest
+import id.homebase.homebasekmppoc.lib.drives.QueryBatchResponse
+import id.homebase.homebasekmppoc.lib.encodeUrl
 import id.homebase.homebasekmppoc.lib.serialization.OdinSystemSerializer
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
