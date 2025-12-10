@@ -1,7 +1,8 @@
 package id.homebase.homebasekmppoc.prototype.lib.http
 
-import id.homebase.homebasekmppoc.lib.crypto.CryptoHelper
+import id.homebase.homebasekmppoc.prototype.lib.crypto.CryptoHelper
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthState
+import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import kotlin.io.encoding.Base64
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -87,7 +88,7 @@ class OdinHttpClientTest {
         val encryptedPayload =
                 CryptoHelper.encryptData(originalText, Base64.decode(authState.sharedSecret))
         val encryptedJson =
-                id.homebase.homebasekmppoc.lib.serialization.OdinSystemSerializer.serialize(
+                OdinSystemSerializer.serialize(
                         encryptedPayload
                 )
 
@@ -109,7 +110,7 @@ class OdinHttpClientTest {
 
         val originalData = TestData(message = "test", count = 42)
         val originalJson =
-                id.homebase.homebasekmppoc.lib.serialization.OdinSystemSerializer.serialize(
+                OdinSystemSerializer.serialize(
                         originalData
                 )
 
@@ -117,7 +118,7 @@ class OdinHttpClientTest {
         val encryptedPayload =
                 CryptoHelper.encryptData(originalJson, Base64.decode(authState.sharedSecret))
         val encryptedJson =
-                id.homebase.homebasekmppoc.lib.serialization.OdinSystemSerializer.serialize(
+                OdinSystemSerializer.serialize(
                         encryptedPayload
                 )
 

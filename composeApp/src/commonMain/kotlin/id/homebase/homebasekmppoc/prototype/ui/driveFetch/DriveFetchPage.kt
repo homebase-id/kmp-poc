@@ -27,7 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import co.touchlab.kermit.Logger
-import id.homebase.homebasekmppoc.lib.drives.QueryBatchResponse
+import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResponse
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthState
 import id.homebase.homebasekmppoc.prototype.lib.drives.DriveQueryProvider
 import id.homebase.homebasekmppoc.prototype.lib.youauth.YouAuthManager

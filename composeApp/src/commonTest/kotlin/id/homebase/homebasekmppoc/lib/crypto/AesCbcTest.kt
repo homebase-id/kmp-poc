@@ -1,6 +1,8 @@
 package id.homebase.homebasekmppoc.lib.crypto
 
-import id.homebase.homebasekmppoc.lib.core.SecureByteArray
+import id.homebase.homebasekmppoc.prototype.lib.core.SecureByteArray
+import id.homebase.homebasekmppoc.prototype.lib.crypto.AesCbc
+import id.homebase.homebasekmppoc.prototype.lib.crypto.ByteArrayUtil
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

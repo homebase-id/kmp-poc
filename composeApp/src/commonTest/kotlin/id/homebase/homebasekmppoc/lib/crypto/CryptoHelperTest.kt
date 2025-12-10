@@ -1,5 +1,8 @@
 package id.homebase.homebasekmppoc.lib.crypto
 
+import id.homebase.homebasekmppoc.prototype.lib.crypto.ByteArrayUtil
+import id.homebase.homebasekmppoc.prototype.lib.crypto.CryptoHelper
+import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import kotlin.io.encoding.Base64
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -152,7 +155,7 @@ class CryptoHelperTest {
         // Encrypt
         val payload = CryptoHelper.encryptData(originalText, sharedSecret)
         val encryptedJson =
-                id.homebase.homebasekmppoc.lib.serialization.OdinSystemSerializer.serialize(payload)
+                OdinSystemSerializer.serialize(payload)
 
         // Decrypt
         val decrypted = CryptoHelper.decryptContentAsString(encryptedJson, sharedSecret)
@@ -169,7 +172,7 @@ class CryptoHelperTest {
         // Encrypt
         val payload = CryptoHelper.encryptData(originalText, sharedSecretBytes)
         val encryptedJson =
-                id.homebase.homebasekmppoc.lib.serialization.OdinSystemSerializer.serialize(payload)
+                OdinSystemSerializer.serialize(payload)
 
         // Decrypt with base64 secret
         val decrypted = CryptoHelper.decryptContentAsString(encryptedJson, sharedSecretBase64)
@@ -185,14 +188,14 @@ class CryptoHelperTest {
         val sharedSecret = ByteArrayUtil.getRndByteArray(32)
         val originalPayload = TestPayload(message = "hello", count = 99)
         val originalJson =
-                id.homebase.homebasekmppoc.lib.serialization.OdinSystemSerializer.serialize(
+                OdinSystemSerializer.serialize(
                         originalPayload
                 )
 
         // Encrypt
         val encryptedPayload = CryptoHelper.encryptData(originalJson, sharedSecret)
         val encryptedJson =
-                id.homebase.homebasekmppoc.lib.serialization.OdinSystemSerializer.serialize(
+                OdinSystemSerializer.serialize(
                         encryptedPayload
                 )
 

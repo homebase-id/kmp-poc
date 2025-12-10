@@ -1,5 +1,6 @@
 package id.homebase.homebasekmppoc.lib.crypto
 
+import id.homebase.homebasekmppoc.prototype.lib.crypto.Crc32c
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals

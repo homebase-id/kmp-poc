@@ -1,9 +1,9 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives
 
-import id.homebase.homebasekmppoc.lib.crypto.CryptoHelper
-import id.homebase.homebasekmppoc.lib.drives.QueryBatchResponse
-import id.homebase.homebasekmppoc.lib.http.SharedSecretEncryptedPayload
-import id.homebase.homebasekmppoc.lib.serialization.OdinSystemSerializer
+import id.homebase.homebasekmppoc.prototype.lib.crypto.AesCbc
+import id.homebase.homebasekmppoc.prototype.lib.crypto.CryptoHelper
+import id.homebase.homebasekmppoc.prototype.lib.http.SharedSecretEncryptedPayload
+import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -153,7 +153,7 @@ class DriveQueryProviderTest {
                             val json = OdinSystemSerializer.serialize(response)
                             val secret = Base64.decode(sharedSecret)
                             val encryptedBytes =
-                                    id.homebase.homebasekmppoc.lib.crypto.AesCbc.encrypt(
+                                    AesCbc.encrypt(
                                             json.encodeToByteArray(),
                                             secret,
                                             ByteArray(16) { 0 }

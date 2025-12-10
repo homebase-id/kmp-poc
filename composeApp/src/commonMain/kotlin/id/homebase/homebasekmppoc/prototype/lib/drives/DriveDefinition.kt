@@ -1,6 +1,5 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives
 
-import id.homebase.homebasekmppoc.lib.drives.TargetDrive
 import kotlinx.serialization.Serializable
 
 /**

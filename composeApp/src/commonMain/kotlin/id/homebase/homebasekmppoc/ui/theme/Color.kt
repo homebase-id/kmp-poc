@@ -2,70 +2,148 @@ package id.homebase.homebasekmppoc.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-/** Light theme colors for Homebase */
+/** Light theme colors for Homebase (Signal-based) */
 object LightColors {
-    val Primary = Color(0xFF1976D2)
+    // Material 3 Core Colors
+    val Primary = Color(0xFF2C58C3)
     val OnPrimary = Color(0xFFFFFFFF)
-    val PrimaryContainer = Color(0xFFBBDEFB)
-    val OnPrimaryContainer = Color(0xFF001E2F)
+    val PrimaryContainer = Color(0xFFD2DFFB)
+    val OnPrimaryContainer = Color(0xFF051845)
 
-    val Secondary = Color(0xFF546E7A)
+    val Secondary = Color(0xFF586071)
     val OnSecondary = Color(0xFFFFFFFF)
-    val SecondaryContainer = Color(0xFFCFD8DC)
-    val OnSecondaryContainer = Color(0xFF0D1F24)
+    val SecondaryContainer = Color(0xFFDCE5F9)
+    val OnSecondaryContainer = Color(0xFF151D2C)
 
-    val Tertiary = Color(0xFF7C4DFF)
-    val OnTertiary = Color(0xFFFFFFFF)
-    val TertiaryContainer = Color(0xFFE8DDFF)
-    val OnTertiaryContainer = Color(0xFF21005D)
+    val Background = Color(0xFFFBFCFF)
+    val OnBackground = Color(0xFF1B1D1D)
 
-    val Background = Color(0xFFFAFAFA)
-    val OnBackground = Color(0xFF1C1B1F)
+    val Surface = Color(0xFFFBFCFF)
+    val OnSurface = Color(0xFF1B1B1D)
+    val SurfaceVariant = Color(0xFFE7EBF3)
+    val OnSurfaceVariant = Color(0xFF545863)
+    val OnSurfaceVariant1 = Color(0xFFBBBFC8)
 
-    val Surface = Color(0xFFFFFFFF)
-    val OnSurface = Color(0xFF1C1B1F)
-    val SurfaceVariant = Color(0xFFE7E0EC)
-    val OnSurfaceVariant = Color(0xFF49454F)
-
-    val Error = Color(0xFFB00020)
+    val Error = Color(0xFFBA1B1B)
     val OnError = Color(0xFFFFFFFF)
-    val ErrorContainer = Color(0xFFFCDAD9)
+    val ErrorContainer = Color(0xFFFFDAD4)
     val OnErrorContainer = Color(0xFF410002)
 
-    val Outline = Color(0xFF79747E)
-    val OutlineVariant = Color(0xFFCAC4D0)
+    val Outline = Color(0xFF808389)
+
+    // Surface Elevation Variants
+    val Surface1 = Color(0xFFF2F5F9)
+    val Surface2 = Color(0xFFEDF0F6)
+    val Surface3 = Color(0xFFE8ECF4)
+    val Surface4 = Color(0xFFE6EAF3)
+    val Surface5 = Color(0xFFE3E7F1)
+
+    // Transparent Colors
+    val Transparent1 = Color(0x14FFFFFF)
+    val Transparent2 = Color(0x29FFFFFF)
+    val Transparent3 = Color(0x8FFFFFFF)
+    val Transparent4 = Color(0xB8FFFFFF)
+    val Transparent5 = Color(0xF5FFFFFF)
+
+    // Neutral Colors
+    val Neutral = Color(0xFFFFFFFF)
+    val NeutralVariant = Color(0xB8FFFFFF)
+    val NeutralSurface = Color(0x99FFFFFF)
+
+    // Inverse Transparent Colors
+    val TransparentInverse1 = Color(0x0A000000)
+    val TransparentInverse2 = Color(0x14000000)
+    val TransparentInverse3 = Color(0x66000000)
+    val TransparentInverse4 = Color(0xB8000000)
+    val TransparentInverse5 = Color(0xE0000000)
+
+    // Inverse Neutral Colors
+    val NeutralInverse = Color(0xFF121212)
+    val NeutralVariantInverse = Color(0xFF5C5C5C)
+
+    // Custom Colors (for overlays, etc.)
+    val OnCustom = Color(0xFFFFFFFF)
+    val OnCustomVariant = Color(0xB3FFFFFF)
 }
 
-/** Dark theme colors for Homebase */
+/** Dark theme colors for Homebase (Signal-based) */
 object DarkColors {
-    val Primary = Color(0xFF90CAF9)
-    val OnPrimary = Color(0xFF003258)
-    val PrimaryContainer = Color(0xFF004881)
-    val OnPrimaryContainer = Color(0xFFD1E4FF)
+    // Material 3 Core Colors
+    val Primary = Color(0xFFB6C5FA)
+    val OnPrimary = Color(0xFF1E2438)
+    val PrimaryContainer = Color(0xFF464B5C)
+    val OnPrimaryContainer = Color(0xFFDBE1FC)
 
-    val Secondary = Color(0xFF90A4AE)
-    val OnSecondary = Color(0xFF1D333A)
-    val SecondaryContainer = Color(0xFF354A52)
-    val OnSecondaryContainer = Color(0xFFD0E6F0)
+    val Secondary = Color(0xFFC1C6DD)
+    val OnSecondary = Color(0xFF2A3042)
+    val SecondaryContainer = Color(0xFF414659)
+    val OnSecondaryContainer = Color(0xFFDCE1F9)
 
-    val Tertiary = Color(0xFFB39DDB)
-    val OnTertiary = Color(0xFF381E72)
-    val TertiaryContainer = Color(0xFF4F378B)
-    val OnTertiaryContainer = Color(0xFFEADDFF)
+    val Background = Color(0xFF1B1C1F)
+    val OnBackground = Color(0xFFE2E1E5)
 
-    val Background = Color(0xFF121212)
-    val OnBackground = Color(0xFFE6E1E5)
+    val Surface = Color(0xFF1B1C1F)
+    val OnSurface = Color(0xFFE2E1E5)
+    val SurfaceVariant = Color(0xFF303133)
+    val OnSurfaceVariant = Color(0xFFBEBFC5)
+    val OnSurfaceVariant1 = Color(0xFF4D5059)
 
-    val Surface = Color(0xFF1C1B1F)
-    val OnSurface = Color(0xFFE6E1E5)
-    val SurfaceVariant = Color(0xFF49454F)
-    val OnSurfaceVariant = Color(0xFFCAC4D0)
-
-    val Error = Color(0xFFCF6679)
+    val Error = Color(0xFFFFB4A9)
     val OnError = Color(0xFF690005)
-    val ErrorContainer = Color(0xFF93000A)
+    val ErrorContainer = Color(0xFF930006)
     val OnErrorContainer = Color(0xFFFFDAD6)
 
-    val Outline = Color(0xFF938F99)
-    val OutlineVariant = Color(0xFF49454F)
+    val Outline = Color(0xFF5C5E65)
+
+    // Surface Elevation Variants
+    val Surface1 = Color(0xFF23242A)
+    val Surface2 = Color(0xFF272A31)
+    val Surface3 = Color(0xFF2C2F37)
+    val Surface4 = Color(0xFF2E3039)
+    val Surface5 = Color(0xFF31343E)
+
+    // Transparent Colors
+    val Transparent1 = Color(0x0AFFFFFF)
+    val Transparent2 = Color(0x1FFFFFFF)
+    val Transparent3 = Color(0x29FFFFFF)
+    val Transparent4 = Color(0x7AFFFFFF)
+    val Transparent5 = Color(0xB8FFFFFF)
+
+    // Neutral Colors
+    val Neutral = Color(0xFF121212)
+    val NeutralVariant = Color(0xFF5C5C5C)
+    val NeutralSurface = Color(0x14FFFFFF)
+
+    // Inverse Transparent Colors
+    val TransparentInverse1 = Color(0x0A000000)
+    val TransparentInverse2 = Color(0x14000000)
+    val TransparentInverse3 = Color(0x29000000)
+    val TransparentInverse4 = Color(0xB8000000)
+    val TransparentInverse5 = Color(0xF5000000)
+
+    // Inverse Neutral Colors
+    val NeutralInverse = Color(0xE0FFFFFF)
+    val NeutralVariantInverse = Color(0xA3FFFFFF)
+
+    // Custom Colors (for overlays, etc.)
+    val OnCustom = Color(0xFFFFFFFF)
+    val OnCustomVariant = Color(0xB3FFFFFF)
+
+    // Alpha Variants
+    val Background92 = Color(0xEB1B1C1F)
+    val Surface87 = Color(0xDE1B1C1F)
+    val SurfaceVariant92 = Color(0xEB303133)
+}
+
+/** Extended color palette for custom UI elements */
+object ExtendedColors {
+    // Common colors used in both themes
+    val White = Color(0xFFFFFFFF)
+    val Black = Color(0xFF000000)
+    val Transparent = Color(0x00000000)
+
+    // Status colors
+    val Success = Color(0xFF4CAF50)
+    val Warning = Color(0xFFFF9800)
+    val Info = Color(0xFF2196F3)
 }

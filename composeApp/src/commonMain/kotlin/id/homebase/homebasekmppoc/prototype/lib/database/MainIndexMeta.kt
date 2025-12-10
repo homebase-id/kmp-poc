@@ -2,8 +2,8 @@ package id.homebase.homebasekmppoc.prototype.lib.database
 
 import id.homebase.homebasekmppoc.lib.database.DriveMainIndex
 import id.homebase.homebasekmppoc.lib.database.OdinDatabase
-import id.homebase.homebasekmppoc.lib.drives.SharedSecretEncryptedFileHeader
-import id.homebase.homebasekmppoc.lib.serialization.OdinSystemSerializer
+import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
+import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.QueryBatchCursor
 import kotlin.uuid.Uuid
 

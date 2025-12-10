@@ -12,46 +12,128 @@ This is a Kotlin Multiplatform (KMP) project targeting Android and iOS, built wi
 
 ### App Architecture
 
-The application uses a **drawer-based navigation** with six main pages (defined in `App.kt`):
+The application uses **Navigation 3** with type-safe routes and **Koin** for dependency injection:
 
-1. **Owner** - `OwnerPage(authenticationManager)` - Main owner authentication page
-2. **Domain** - `DomainPage(domainYouAuthManager)` - Domain-based YouAuth authentication
-3. **App** - `AppPage(appYouAuthManager)` - App-based YouAuth authentication with permissions
-4. **db** - `DbPage()` - Database operations testing
-5. **ws** - `WebsocketPage(wsAuthenticationManager)` - WebSocket connectivity testing
-6. **Video** - `VideoPlayerTestPage(videoAuthenticationManager)` - Video player testing
+- **Entry Point**: `App.kt` - Sets up Koin, theme, and navigation
+- **Navigation**: `ui/navigation/AppNavHost.kt` - Defines all routes using MVI Mvvm pattern
+- **Architecture**: Strict MVI-styled MVVM (Single State, Single Action, One-off Events)
+- **Theme**: `ui/theme/` - Material 3 theme with dark/light mode support
+- **DI**: `di/AppModule.kt` - Koin modules for dependency injection
 
 ### Project Structure
 
 ```
 composeApp/src/commonMain/kotlin/id/homebase/homebasekmppoc/
-├── App.kt                    # Main entry point with drawer navigation
+├── App.kt                    # Main entry point with Koin & Navigation
+├── di/                       # Dependency Injection
+│   └── AppModule.kt          # Koin module definitions
 ├── lib/                      # Shared library code (reusable components)
 │   ├── core/                 # Core utilities (SecureByteArray, etc.)
 │   ├── crypto/               # Cryptography (ECC, AES, HKDF, etc.)
 │   ├── drives/               # Drive API models and queries
 │   ├── http/                 # HTTP utilities (UriBuilder, etc.)
 │   ├── image/                # Image processing utilities
-│   └── serialization/        # JSON serialization (OdinSystemSerializer)
-├── prototype/                # Feature implementations  
-│   ├── lib/                  # Feature-specific libraries
-│   │   ├── authentication/   # AuthenticationManager, AuthState
-│   │   ├── youauth/          # YouAuthManager, YouAuthCallbackRouter
-│   │   ├── drives/           # DriveQueryProvider
-│   │   ├── database/         # Database operations
-│   │   ├── http/             # HTTP client creation
-│   │   ├── video/            # Video handling
-│   │   └── websockets/       # WebSocket client
-│   └── ui/                   # UI pages and components
-│       ├── app/              # App page with permissions
-│       ├── domain/           # Domain authentication page
-│       ├── driveFetch/       # DriveFetchPage & DriveFetchList
-│       ├── owner/            # Owner authentication page
-│       ├── db/               # Database testing page
-│       ├── ws/               # WebSocket testing page
-│       └── video/            # Video player testing page
-└── ui/                       # Legacy/shared UI components
+│   ├── serialization/        # JSON serialization (OdinSystemSerializer)
+│   └── storage/              # Secure storage (SecureStorage expect/actual)
+├── ui/                       # UI layer
+│   ├── navigation/           # Navigation components
+│   │   ├── Routes.kt         # Type-safe route definitions
+│   │   ├── AuthGuard.kt      # Auth protection wrapper
+│   │   └── AppNavHost.kt     # Navigation host
+│   ├── screens/              # Screen composables
+│   │   ├── LoginScreen.kt    # Login/auth screen
+│   │   └── HomeScreen.kt     # Main home screen
+│   └── theme/                # Theming
+│       ├── Color.kt          # Light/dark color palettes
+│       ├── Type.kt           # Typography
+│       └── Theme.kt          # HomebaseTheme composable
+└── prototype/                # Prototype/testing code (will be refactored)
+    ├── lib/                  # Feature-specific libraries
+    │   ├── authentication/   # AuthenticationManager, AuthState
+    │   ├── youauth/          # YouAuthManager, YouAuthCallbackRouter
+    │   ├── drives/           # DriveQueryProvider
+    │   ├── database/         # Database operations
+    │   ├── http/             # HTTP client creation
+    │   ├── video/            # Video handling
+    │   └── websockets/       # WebSocket client
+    └── ui/                   # Legacy UI pages
 ```
+
+### Secure Storage (SecureStorage)
+
+Cross-platform secure key-value storage using platform-native mechanisms:
+
+| Platform | Mechanism | Location |
+|----------|-----------|----------|
+| Android | Android KeyStore + AES-GCM | `androidMain/.../lib/storage/SecureStorage.android.kt` |
+| iOS | Keychain Services | `iosMain/.../lib/storage/SecureStorage.ios.kt` |
+| Desktop | Java KeyStore (PKCS12) + AES-GCM | `desktopMain/.../lib/storage/SecureStorage.desktop.kt` |
+
+**Usage:**
+```kotlin
+// Android: Initialize with context first
+SecureStorage.initialize(context)
+
+// All platforms
+SecureStorage.put("key", "sensitive_value")
+val value = SecureStorage.get("key")
+SecureStorage.remove("key")
+SecureStorage.contains("key")
+SecureStorage.clear()
+```
+
+**Notes:**
+- Android requires `initialize(context)` before any other operation
+- iOS Keychain doesn't work in simulator test environment (tests skipped)
+- Desktop stores encrypted data in `~/.homebase-kmp-poc/`
+
+### Dependency Injection (Koin)
+
+See [DEPENDENCY_INJECTION.md](./DEPENDENCY_INJECTION.md) for detailed guide.
+
+**Quick Reference:**
+```kotlin
+// Inject in Composable
+val myService: MyService = koinInject()
+
+// Register in di/AppModule.kt
+val appModule = module {
+    singleOf(::MyService)  // Singleton
+    factoryOf(::MyUseCase) // New instance each call
+}
+```
+
+### MVI Architecture (Strict)
+
+The UI follows a strict MVI-styled MVVM pattern to ensure unidirectional data flow and easy testing.
+
+**Core Rules:**
+1.  **Single State**: The UI observes a single immutable `data class [Feature]UiState`.
+2.  **Single Entry Point**: The ViewModel exposes exactly ONE public function: `fun onAction(action: [Feature]UiAction)`.
+3.  **Actions**: User interactions are defined as a sealed interface `[Feature]UiAction`.
+4.  **One-Off Events**: Side effects (navigation, snackbars) use a `Channel<[Feature]UiEvent>` exposed as a `Flow`.
+5.  **Dumb Composables**: UI components only take `state` and `(Action) -> Unit`. Logic resides in the Witness.
+
+**Example Structure:**
+```kotlin
+// Contract
+data class LoginUiState(...)
+sealed interface LoginUiAction { ... }
+sealed interface LoginUiEvent { ... }
+
+// ViewModel
+class LoginViewModel : ViewModel() {
+    val uiState = MutableStateFlow(LoginUiState())
+    val uiEvent = Channel<LoginUiEvent>()
+    
+    fun onAction(action: LoginUiAction) { ... }
+}
+
+// Composable
+@Composable
+fun LoginScreen(state: LoginUiState, onAction: (LoginUiAction) -> Unit) { ... }
+```
+
 
 ### YouAuth Authentication System
 
