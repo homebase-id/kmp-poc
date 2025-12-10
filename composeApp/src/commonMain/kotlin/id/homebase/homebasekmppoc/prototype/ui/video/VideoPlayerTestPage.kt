@@ -15,11 +15,9 @@ import id.homebase.homebasekmppoc.prototype.lib.http.PayloadPlayground
 import id.homebase.homebasekmppoc.prototype.lib.http.PayloadWrapper
 import id.homebase.homebasekmppoc.prototype.lib.http.PublicPostsChannelDrive
 import id.homebase.homebasekmppoc.prototype.lib.video.LocalVideoServer
-import id.homebase.homebasekmppoc.prototype.lib.video.VideoMetaData
 import id.homebase.homebasekmppoc.prototype.lib.youauth.YouAuthManager
 import id.homebase.homebasekmppoc.prototype.ui.app.getFeedAppParams
 import kotlinx.coroutines.launch
-import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * Test page for video playback with local HTTP server
@@ -32,23 +30,20 @@ fun VideoPlayerTestPage(youAuthManager: YouAuthManager) {
     var odinIdentity by remember { mutableStateOf("frodo.dotyou.cloud") }
     var password by remember { mutableStateOf("a") }
 
-    var showResultDialog by remember { mutableStateOf(false) }
-    var resultMessage by remember { mutableStateOf("") }
-    var isSuccess by remember { mutableStateOf(false) }
+    var showLogionResultDialog by remember { mutableStateOf(false) }
+    var loginResultMessage by remember { mutableStateOf("") }
+    var isLoginSuccess by remember { mutableStateOf(false) }
 
     var videoPayloads by remember { mutableStateOf<List<PayloadWrapper>?>(null) }
     var selectedVideoPayload by remember { mutableStateOf<PayloadWrapper?>(null) }
     var isLoadingVideos by remember { mutableStateOf(false) }
     var videoErrorMessage by remember { mutableStateOf<String?>(null) }
 
-    // HLS player page state
-    //var videoMetaData by remember { mutableStateOf<VideoMetaData?>(null) }
-    var selectedVideoTitle by remember { mutableStateOf("Video") }
-
     val authState by youAuthManager.youAuthState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
     // Create and start a single LocalVideoServer that runs continuously
+    // SEB:TODO how do we stop
     val videoServer = remember { LocalVideoServer() }
 
     //
@@ -69,15 +64,15 @@ fun VideoPlayerTestPage(youAuthManager: YouAuthManager) {
     LaunchedEffect(authState) {
         when (val state = authState) {
             is AuthState.Authenticated -> {
-                resultMessage = "Authentication successful!\nIdentity: ${state.identity}"
-                isSuccess = true
-                showResultDialog = false
+                loginResultMessage = "Authentication successful!\nIdentity: ${state.identity}"
+                isLoginSuccess = true
+                showLogionResultDialog = false
             }
 
             is AuthState.Error -> {
-                resultMessage = "Authentication failed:\n${state.message}"
-                isSuccess = false
-                showResultDialog = true
+                loginResultMessage = "Authentication failed:\n${state.message}"
+                isLoginSuccess = false
+                showLogionResultDialog = true
             }
 
             else -> {}
@@ -129,17 +124,17 @@ fun VideoPlayerTestPage(youAuthManager: YouAuthManager) {
     //
     // Result dialog
     //
-    if (showResultDialog) {
+    if (showLogionResultDialog) {
         AlertDialog(
-            onDismissRequest = { showResultDialog = false },
+            onDismissRequest = { showLogionResultDialog = false },
             title = {
-                Text(if (isSuccess) "Success" else "Error")
+                Text(if (isLoginSuccess) "Success" else "Error")
             },
             text = {
-                Text(resultMessage)
+                Text(loginResultMessage)
             },
             confirmButton = {
-                TextButton(onClick = { showResultDialog = false }) {
+                TextButton(onClick = { showLogionResultDialog = false }) {
                     Text("OK")
                 }
             }
@@ -156,7 +151,6 @@ fun VideoPlayerTestPage(youAuthManager: YouAuthManager) {
             AppOrOwner.Apps,
             localVideoServer = videoServer,
             videoPayload = selectedVideoPayload!!,
-            videoTitle = selectedVideoTitle,
             onBack = {
                 selectedVideoPayload = null
                 Logger.i("VideoPlayerTestPage") { "Returned from player page" }
@@ -348,68 +342,7 @@ fun VideoPlayerTestPage(youAuthManager: YouAuthManager) {
                                 videoPayloads!!.forEachIndexed { index, header ->
                                     Button(
                                         onClick = {
-                                            Logger.i("VideoPlayerTestPage") { "Selected video ${index + 1}: ${header.header.fileId}" }
-                                            coroutineScope.launch {
-                                                try {
-                                                    // Get current auth token
-                                                    val currentAuthToken =
-                                                        (authState as? AuthState.Authenticated)?.clientAuthToken
-                                                    if (currentAuthToken == null) {
-                                                        errorMessage = "Not authenticated"
-                                                        return@launch
-                                                    }
-
-                                                    selectedVideoPayload = header
-
-                                                    // // Get the HLS manifest content from backend
-                                                    // val originalManifest =
-                                                    //     header.getVideoMetaData(AppOrOwner.Apps)
-                                                    // Logger.i("VideoPlayerTestPage") { "Got HLS manifest content for video ${index + 1}" }
-                                                    //
-                                                    // // Get the local server URL
-                                                    // val serverUrl = videoServer.getServerUrl()
-                                                    // Logger.d("VideoPlayerTestPage") { "Video server running at: $serverUrl" }
-                                                    //
-                                                    // // Register the manifest ID for auth token lookup
-                                                    // val manifestId = "video-${index + 1}-manifest"
-                                                    //
-                                                    // // Modify the manifest to proxy remote segment URLs through local server
-                                                    // val modifiedManifest = originalManifest.lines()
-                                                    //     .joinToString("\n") { line ->
-                                                    //         if (line.startsWith("https://")) {
-                                                    //             val encodedUrl =
-                                                    //                 line.encodeURLParameter()
-                                                    //             "$serverUrl/proxy?url=$encodedUrl&manifestId=$manifestId"
-                                                    //         } else {
-                                                    //             line
-                                                    //         }
-                                                    //     }
-                                                    // Logger.d("VideoPlayerTestPage") { "Modified manifest to proxy segment URLs through $serverUrl" }
-
-                                                    // Register the modified manifest with local server and auth token
-                                                    // videoServer.registerContent(
-                                                    //     id = manifestId,
-                                                    //     data = modifiedManifest.encodeToByteArray(),
-                                                    //     contentType = "application/vnd.apple.mpegurl",
-                                                    //     authTokenHeaderName = appCookieName,
-                                                    //     // authTokenHeaderName = youAuthCookieName,
-                                                    //     authToken = currentAuthToken
-                                                    // )
-
-                                                    // Get the local URL and pass to player
-                                                    // videoMetaData =
-                                                    //     videoServer.getContentUrl(manifestId)
-                                                    selectedVideoTitle = "Video ${index + 1}"
-
-                                                } catch (e: Exception) {
-                                                    if (e is CancellationException) throw e
-                                                    errorMessage = e.message ?: "Unknown error"
-                                                    Logger.e(
-                                                        "VideoPlayerTestPage",
-                                                        e
-                                                    ) { "Failed to load video" }
-                                                }
-                                            }
+                                            selectedVideoPayload = header
                                         },
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
