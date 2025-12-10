@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -25,9 +25,9 @@ import androidx.compose.ui.unit.dp
  */
 @Composable
 fun HomeScreen(state: HomeUiState, onAction: (HomeUiAction) -> Unit) {
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Scaffold { innerPadding ->
         Column(
-                modifier = Modifier.fillMaxSize().padding(24.dp),
+                modifier = Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {

@@ -34,7 +34,18 @@ composeApp/src/commonMain/kotlin/id/homebase/homebasekmppoc/
 │   ├── http/                 # HTTP utilities (UriBuilder, etc.)
 │   ├── image/                # Image processing utilities
 │   ├── serialization/        # JSON serialization (OdinSystemSerializer)
-│   └── storage/              # Secure storage (SecureStorage expect/actual)
+│   ├── storage/              # Secure storage (SecureStorage expect/actual)
+│   └── youAuth/              # YouAuth authentication (NEW)
+│       ├── ClientType.kt             # domain/app enum
+│       ├── DrivePermissionType.kt    # Bitwise permissions (Read=1, Write=2, etc.)
+│       ├── TargetDriveAccessRequest.kt # Drive access params
+│       ├── YouAuthorizationParams.kt # OAuth authorization params
+│       ├── AppAuthorizationParams.kt # App-level auth params
+│       ├── YouAuthTokenResponse.kt   # Token response
+│       ├── YouAuthStorageKeys.kt     # SecureStorage keys
+│       ├── OdinClientFactory.kt      # Creates OdinClient from storage
+│       ├── YouAuthProvider.kt        # HTTP-level auth operations
+│       └── YouAuthFlowManager.kt     # Complete auth flow with state
 ├── ui/                       # UI layer
 │   ├── navigation/           # Navigation components
 │   │   ├── Routes.kt         # Type-safe route definitions
@@ -50,7 +61,7 @@ composeApp/src/commonMain/kotlin/id/homebase/homebasekmppoc/
 └── prototype/                # Prototype/testing code (will be refactored)
     ├── lib/                  # Feature-specific libraries
     │   ├── authentication/   # AuthenticationManager, AuthState
-    │   ├── youauth/          # YouAuthManager, YouAuthCallbackRouter
+    │   ├── youauth/          # Legacy YouAuthManager (being replaced)
     │   ├── drives/           # DriveQueryProvider
     │   ├── database/         # Database operations
     │   ├── http/             # HTTP client creation
@@ -58,6 +69,7 @@ composeApp/src/commonMain/kotlin/id/homebase/homebasekmppoc/
     │   └── websockets/       # WebSocket client
     └── ui/                   # Legacy UI pages
 ```
+
 
 ### Secure Storage (SecureStorage)
 
@@ -135,29 +147,66 @@ fun LoginScreen(state: LoginUiState, onAction: (LoginUiAction) -> Unit) { ... }
 ```
 
 
+
 ### YouAuth Authentication System
 
-The app implements two types of YouAuth flows managed by `YouAuthManager`:
+The app implements browser-based OAuth2-like authentication using the new `lib/youAuth/` module:
 
-1. **Domain Authentication** (in Domain tab):
-   - Basic domain authentication without app permissions
-   - Uses `clientType = ClientType.domain`
+**Architecture:**
+```
+LoginViewModel → YouAuthFlowManager → YouAuthProvider → OdinClient
+                       ↓
+               OdinClientFactory → SecureStorage
+```
 
-2. **App Authentication** (in App tab):
-   - Full app authentication with permission requests
-   - Uses `clientType = ClientType.app` with `YouAuthAppParameters`
-   - Requests specific drive permissions (e.g., photo albums, channels)
+**Key Components (lib/youAuth/):**
+- `YouAuthFlowManager` - Main entry point for UI, manages auth state and browser flow
+- `YouAuthProvider` - HTTP-level operations (token verification, exchange)
+- `OdinClientFactory` - Creates `OdinClient` from stored credentials
+- `DrivePermissionType` - Bitwise permissions (Read=1, Write=2, React=4, Comment=8)
+- `TargetDriveAccessRequest` - Drive access request with serialization
 
-**Authentication State Flow** (`AuthState` sealed class):
+**Authentication State (`YouAuthState` sealed class):**
 - `Unauthenticated` - Initial state
 - `Authenticating` - Browser launched, waiting for callback
 - `Authenticated(identity, clientAuthToken, sharedSecret)` - Successfully authenticated
 - `Error(message)` - Authentication failed
 
-**Key Components:**
-- `YouAuthManager` - Manages auth flow lifecycle per page
-- `YouAuthCallbackRouter` - Routes deeplink callbacks to correct manager instance
-- `AuthenticationManager` - Alternative authentication for Owner/WS/Video pages
+**Usage in LoginViewModel:**
+```kotlin
+class LoginViewModel(
+    private val youAuthFlowManager: YouAuthFlowManager
+) : ViewModel() {
+    // Observe auth state
+    youAuthFlowManager.authState.collect { state -> ... }
+    
+    // Start auth flow
+    youAuthFlowManager.authorize(
+        identity = "user.homebase.id",
+        scope = viewModelScope,
+        appId = "my-app-id",
+        appName = "My App"
+    )
+}
+```
+
+**Credential Persistence:**
+Credentials are automatically saved to `SecureStorage` after successful authentication:
+```kotlin
+// Check for existing session
+if (youAuthFlowManager.restoreSession()) { /* Already authenticated */ }
+
+// Manually check credentials
+if (OdinClientFactory.hasStoredCredentials()) { ... }
+
+// Clear credentials (logout)
+youAuthFlowManager.logout()
+```
+
+**Legacy Components (prototype/lib/youauth/):**
+- `YouAuthManager` - Original implementation (being replaced)
+- `YouAuthCallbackRouter` - Routes deeplink callbacks
+
 
 ### Drive Fetch Feature (Recently Implemented)
 

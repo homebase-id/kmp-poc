@@ -1,6 +1,9 @@
 package id.homebase.homebasekmppoc.di
 
-import id.homebase.homebasekmppoc.prototype.lib.youauth.YouAuthManager
+import id.homebase.homebasekmppoc.lib.youAuth.OdinClientFactory
+import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
+import id.homebase.homebasekmppoc.lib.youAuth.YouAuthProvider
+import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
 import id.homebase.homebasekmppoc.ui.screens.home.HomeViewModel
 import id.homebase.homebasekmppoc.ui.screens.login.LoginViewModel
 import org.koin.core.module.dsl.singleOf
@@ -17,8 +20,14 @@ import org.koin.dsl.module
  * - factory { ClassName() } - factory with custom initialization
  */
 val appModule = module {
-    // Authentication
-    singleOf(::YouAuthManager)
+    // OdinClient - nullable if no stored credentials
+    single<OdinClient?> { OdinClientFactory.createFromStorage() }
+
+    // YouAuthProvider - factory that creates new instance with OdinClient
+    factory { (odinClient: OdinClient) -> YouAuthProvider(odinClient) }
+
+    // YouAuthFlowManager - the main auth flow manager for UI
+    singleOf(::YouAuthFlowManager)
 
     // ViewModels
     viewModelOf(::LoginViewModel)

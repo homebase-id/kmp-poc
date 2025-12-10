@@ -8,6 +8,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
+import id.homebase.homebasekmppoc.lib.youAuth.YouAuthState
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthenticationManager
 import id.homebase.homebasekmppoc.prototype.lib.youauth.YouAuthManager
 import id.homebase.homebasekmppoc.prototype.ui.db.DbPage
@@ -27,13 +29,13 @@ import org.koin.compose.viewmodel.koinViewModel
  * protection where needed.
  *
  * @param navController Navigation controller for managing back stack
- * @param youAuthManager Manager for YouAuth authentication flow
+ * @param youAuthFlowManager Manager for YouAuth authentication flow
  * @param isAuthenticated Whether user is currently authenticated (checked on app start)
  */
 @Composable
 fun AppNavHost(
         navController: NavHostController = rememberNavController(),
-        youAuthManager: YouAuthManager,
+        youAuthFlowManager: YouAuthFlowManager,
         isAuthenticated: Boolean = false
 ) {
     // Determine start destination based on auth state
@@ -65,8 +67,8 @@ fun AppNavHost(
 
         // Protected Home route
         composable<Route.Home> {
-            AuthenticatedRoute(
-                    authState = youAuthManager.youAuthState,
+            AuthenticatedRouteWithFlowManager(
+                    authState = youAuthFlowManager.authState,
                     onUnauthenticated = {
                         navController.navigate(Route.Login) { popUpTo(0) { inclusive = true } }
                     }
@@ -92,14 +94,18 @@ fun AppNavHost(
             }
         }
 
-        // Protected DriveFetch route (uses prototype for now)
+        // Protected DriveFetch route (uses prototype, needs legacy YouAuthManager)
         composable<Route.DriveFetch> {
-            AuthenticatedRoute(
-                    authState = youAuthManager.youAuthState,
+            AuthenticatedRouteWithFlowManager(
+                    authState = youAuthFlowManager.authState,
                     onUnauthenticated = {
                         navController.navigate(Route.Login) { popUpTo(0) { inclusive = true } }
                     }
-            ) { DriveFetchPage(youAuthManager) }
+            ) {
+                // Create legacy YouAuthManager for prototype pages
+                val legacyManager = remember { YouAuthManager() }
+                DriveFetchPage(legacyManager)
+            }
         }
 
         // Database route (uses prototype, no auth required for testing)
@@ -116,5 +122,24 @@ fun AppNavHost(
             val videoAuthManager = remember { AuthenticationManager() }
             VideoPlayerTestPage(videoAuthManager)
         }
+    }
+}
+
+/** Wrapper for routes that require authentication using YouAuthFlowManager. */
+@Composable
+private fun AuthenticatedRouteWithFlowManager(
+        authState: kotlinx.coroutines.flow.StateFlow<YouAuthState>,
+        onUnauthenticated: () -> Unit,
+        content: @Composable () -> Unit
+) {
+    val currentAuthState by authState.collectAsState()
+
+    when (currentAuthState) {
+        is YouAuthState.Authenticated -> content()
+        is YouAuthState.Unauthenticated -> onUnauthenticated()
+        is YouAuthState.Authenticating -> {
+            // Show loading or nothing while authenticating
+        }
+        is YouAuthState.Error -> onUnauthenticated()
     }
 }
