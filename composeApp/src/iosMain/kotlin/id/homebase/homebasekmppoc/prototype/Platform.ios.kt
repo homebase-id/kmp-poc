@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc.lib
+package id.homebase.homebasekmppoc.prototype
 
 import id.homebase.homebasekmppoc.AuthPresentationContextProvider
 import id.homebase.homebasekmppoc.prototype.lib.youauth.YouAuthCallbackRouter

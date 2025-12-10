@@ -1,7 +1,6 @@
-package id.homebase.homebasekmppoc.lib
+package id.homebase.homebasekmppoc.prototype
 
-import android.R.anim.fade_in
-import android.R.anim.fade_out
+import android.R
 import android.app.ActivityOptions
 import android.app.AlertDialog
 import android.os.Build
@@ -38,8 +37,8 @@ actual fun launchCustomTabs(url: String, scope: CoroutineScope) {
 
     val pendingIntent = ActivityOptions.makeCustomAnimation(
         instance,
-        android.R.anim.fade_in,
-        android.R.anim.fade_out
+        R.anim.fade_in,
+        R.anim.fade_out
     ).toBundle()
 
     val customTabsIntent = CustomTabsIntent.Builder()

@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc.lib
+package id.homebase.homebasekmppoc.prototype
 
 import kotlinx.coroutines.CoroutineScope
 import kotlin.io.encoding.Base64

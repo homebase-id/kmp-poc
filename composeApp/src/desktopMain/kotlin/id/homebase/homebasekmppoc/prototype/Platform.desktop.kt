@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc.lib
+package id.homebase.homebasekmppoc.prototype
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
