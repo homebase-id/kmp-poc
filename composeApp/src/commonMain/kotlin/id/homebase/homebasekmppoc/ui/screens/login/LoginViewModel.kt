@@ -2,8 +2,11 @@ package id.homebase.homebasekmppoc.ui.screens.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import id.homebase.homebasekmppoc.lib.youAuth.DrivePermissionType
+import id.homebase.homebasekmppoc.lib.youAuth.TargetDriveAccessRequest
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthState
+import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -11,12 +14,33 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.uuid.Uuid
 
-// Default app configuration - can be moved to a config file
+
 private object AppConfig {
-    const val APP_ID = "32f0bdbf-017f-4fc0-8004-2d4631182d1e"
-    const val APP_NAME = "Homebase - Photos"
+    const val APP_ID = "0cecc6fe033e48b19ee6a4f60318be02"
+    const val APP_NAME = "Homebase - KMP POC"
 }
+
+
+val feedTargetDrive: TargetDrive = TargetDrive(
+    alias = Uuid.parse("4db49422ebad02e99ab96e9c477d1e08"),
+    type = Uuid.parse ("a3227ffba87608beeb24fee9b70d92a6")
+)
+
+var targetDriveAccessRequest : List<TargetDriveAccessRequest> = listOf(
+    TargetDriveAccessRequest(
+        alias = feedTargetDrive.alias.toString(),
+        type = feedTargetDrive.type.toString(),
+        name = "Feed Drive",
+        description = " ",
+        permissions = listOf(
+            DrivePermissionType.Read,
+            DrivePermissionType.Write,
+        )
+
+    )
+)
 
 /**
  * ViewModel for Login screen following strict MVI pattern.
@@ -62,7 +86,7 @@ class LoginViewModel(private val youAuthFlowManager: YouAuthFlowManager) : ViewM
     private fun performLogin() {
         val homebaseId = _uiState.value.homebaseId
         if (homebaseId.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "Please enter a Homebase ID") }
+            _uiState.update { it.copy(errorMessage = "Please enter a valid Homebase ID") }
             return
         }
 
@@ -73,7 +97,8 @@ class LoginViewModel(private val youAuthFlowManager: YouAuthFlowManager) : ViewM
                         identity = homebaseId,
                         scope = viewModelScope,
                         appId = AppConfig.APP_ID,
-                        appName = AppConfig.APP_NAME
+                        appName = AppConfig.APP_NAME,
+                        drives = targetDriveAccessRequest
                 )
             } catch (e: Exception) {
                 _uiState.update {

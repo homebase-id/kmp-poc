@@ -21,6 +21,8 @@ class AppAuthorizationParamsTest {
         assertEquals("app-123", params.appId)
         assertEquals("Chrome | macOS", params.friendlyName)
         assertEquals("https://callback", params.returnUrl)
+        // API requires 'd' field to always be present
+        assertEquals("[]", params.drives)
     }
 
     @Test

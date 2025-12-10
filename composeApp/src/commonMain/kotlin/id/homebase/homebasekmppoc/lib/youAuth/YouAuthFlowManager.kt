@@ -279,4 +279,47 @@ class YouAuthFlowManager {
         _authState.value = YouAuthState.Unauthenticated
         Logger.i(TAG) { "User logged out" }
     }
+
+    /** Check if authentication is in progress. */
+    val isAuthenticating: Boolean
+        get() = _authState.value == YouAuthState.Authenticating
+
+    /**
+     * Cancel the current authentication flow. Call this when the user cancels the browser or
+     * navigates away.
+     */
+    fun cancelAuth() {
+        if (_authState.value == YouAuthState.Authenticating) {
+            Logger.i(TAG) { "Authentication cancelled by user" }
+
+            // Clean up any pending state
+            authCodeFlowState?.let { flowState ->
+                // Find and remove from callback registry
+                val stateToRemove = callbackRegistry.entries.find { it.value == this }?.key
+                stateToRemove?.let { callbackRegistry.remove(it) }
+            }
+            authCodeFlowState = null
+
+            _authState.value = YouAuthState.Unauthenticated
+        }
+    }
+
+    /**
+     * Called when the app resumes from background. If we were authenticating and come back without
+     * a callback, the user likely cancelled.
+     *
+     * @param delayMs Optional delay to wait for callback before cancelling (default 500ms)
+     */
+    suspend fun onAppResumed(delayMs: Long = 500) {
+        if (_authState.value == YouAuthState.Authenticating) {
+            // Wait a short time for callback to potentially arrive
+            kotlinx.coroutines.delay(delayMs)
+
+            // If still authenticating, assume user cancelled
+            if (_authState.value == YouAuthState.Authenticating) {
+                Logger.i(TAG) { "App resumed without auth callback, assuming user cancelled" }
+                cancelAuth()
+            }
+        }
+    }
 }

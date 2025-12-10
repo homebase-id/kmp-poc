@@ -2,7 +2,7 @@ package id.homebase.homebasekmppoc.ui.screens.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import id.homebase.homebasekmppoc.prototype.lib.youauth.YouAuthManager
+import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
  * - Single entry point via onAction()
  * - One-off events via Channel
  */
-class HomeViewModel(private val youAuthManager: YouAuthManager) : ViewModel() {
+class HomeViewModel(private val youAuthFlowManager: YouAuthFlowManager) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -47,7 +47,7 @@ class HomeViewModel(private val youAuthManager: YouAuthManager) : ViewModel() {
 
     private fun performLogout() {
         viewModelScope.launch {
-            youAuthManager.logout()
+            youAuthFlowManager.logout()
             _uiEvent.send(HomeUiEvent.NavigateToLogin)
         }
     }

@@ -61,10 +61,11 @@ data class AppAuthorizationParams(
                                 name = appName,
                                 appId = appId,
                                 friendlyName = friendlyName,
+                                // API requires 'd' field to always be present, even if empty array
                                 drives =
                                         if (drives.isNotEmpty())
                                                 TargetDriveAccessRequest.encodeList(drives)
-                                        else null,
+                                        else "[]",
                                 circleDrives =
                                         circleDrives?.takeIf { it.isNotEmpty() }?.let {
                                                 TargetDriveAccessRequest.encodeList(it)
