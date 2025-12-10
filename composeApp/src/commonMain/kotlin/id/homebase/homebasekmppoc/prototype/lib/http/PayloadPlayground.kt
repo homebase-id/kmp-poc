@@ -155,6 +155,10 @@ class PayloadWrapper(
 
     //
 
+    val compositeKey: String get() = header.fileId.toString() + "-" + payload.key
+
+    //
+
     fun getPayloadUri(appOrOwner: AppOrOwner): String {
         val fileId = header.fileId
         val alias = header.targetDrive.alias
@@ -230,61 +234,20 @@ class PayloadWrapper(
 
     //
 
-    suspend fun getVideoMetaData(appOrOwner: AppOrOwner): String {
+    fun getVideoMetaData(appOrOwner: AppOrOwner): VideoMetaData {
         val playlistContent = payload.descriptorContent
             ?: throw Exception("No descriptor content found in payload")
 
         val videoMetaData = OdinSystemSerializer.deserialize<VideoMetaData>(playlistContent)
-        if (videoMetaData.hlsPlaylist == null) {
-            throw Exception("No HLS playlist found in video metadata")
-        }
+        return videoMetaData
 
-        val hls = createHlsPlaylist(appOrOwner, videoMetaData)
-        Logger.d("getVideoMetaData") { "HLS Playlist:\n$hls" }
-        return hls
-    }
-
-    //
-
-    // m3u8 playlist manipulation for HLS streaming
-    suspend fun createHlsPlaylist(appOrOwner: AppOrOwner, videoMetaData: VideoMetaData): String {
-        val aesKey = decryptKeyHeader()?.aesKey?.Base64Encode()
-
-        val lines = videoMetaData.hlsPlaylist?.lines() ?: throw Exception("No HLS playlist content found")
-        if (lines.isEmpty() || !lines[0].startsWith("#EXTM3U")) {
-            throw Exception("Invalid HLS playlist content")
-        }
-
-        val modifiedLines = ArrayList<String>(lines.size) // Pre-allocate size
-
-        for (line in lines) {
-            when {
-                // Case 1: Encryption Key
-                line.startsWith("#EXT-X-KEY:METHOD=AES-128") -> {
-                    if (aesKey == null) {
-                        throw Exception("AES key is null but playlist requires encryption key")
-                    }
-                    val uriRegex = Regex("""URI="([^"]+)"""")
-                    val match = uriRegex.find(line)
-                    if (match != null && match.groupValues.size > 1) {
-                        val originalKeyUri = match.groupValues[1]
-                        val newKeyUri = "data:application/octet-stream;base64,$aesKey"
-                        modifiedLines.add(line.replace(originalKeyUri, newKeyUri))
-                    }
-                }
-                // Case 2: Segment URL (Not a comment/tag and not empty)
-                !line.startsWith("#") && line.isNotBlank() -> {
-                    val newUrl = getEncryptedPayloadUri(appOrOwner)
-                    modifiedLines.add(newUrl)
-                }
-                // Case 3: Metadata / Comments / Empty lines
-                else -> {
-                    modifiedLines.add(line)
-                }
-            }
-        }
-
-        return modifiedLines.joinToString("\n")
+        // if (videoMetaData.hlsPlaylist == null) {
+        //     throw Exception("No HLS playlist found in video metadata")
+        // }
+        //
+        // val hls = createHlsPlaylist(appOrOwner, videoMetaData)
+        // Logger.d("getVideoMetaData") { "HLS Playlist:\n$hls" }
+        // return hls
     }
 
     //

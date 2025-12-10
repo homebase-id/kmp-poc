@@ -12,4 +12,6 @@ data class VideoMetaData (
     val duration: Double,
     val codec: String? = null,
     val hlsPlaylist: String? = null,
+
+    // SEB:TODO hlsplaylist in payload, url to payload here
 )

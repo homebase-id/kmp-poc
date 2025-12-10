@@ -72,6 +72,10 @@ class LocalVideoServer {
                     }
 
                     Logger.d("LocalVideoServer") { "Serving content: $id (${content.data.unsafeBytes.size} bytes, ${content.contentType})" }
+
+                    val hlsPlaylist = content.data.unsafeBytes.decodeToString()
+                    Logger.d("LocalVideoServer") { "hlsPlaylist: $hlsPlaylist" }
+
                     call.respondBytes(
                         bytes = content.data.unsafeBytes,
                         contentType = ContentType.parse(content.contentType)
@@ -171,10 +175,6 @@ class LocalVideoServer {
 
     /**
      * Register video data that can be served
-     * @param id Unique identifier for this video
-     * @param data Video data (can be HLS manifest, segment, or full video)
-     * @param contentType MIME type (e.g., "application/vnd.apple.mpegurl", "video/mp4")
-     * @param authToken Optional auth token to use when proxying remote URLs for this content
      */
     fun registerContent(
         id: String,

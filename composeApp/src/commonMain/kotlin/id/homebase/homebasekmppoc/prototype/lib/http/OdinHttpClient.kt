@@ -212,13 +212,15 @@ fun createHttpClient() = HttpClient {
 
 //
 
-// fun tokenFromPath(path: String, authToken: String): String {
-//     return when {
-//         path.startsWith("/api/owner") -> "$ownerCookieName=$authToken"
-//         path.startsWith("/api/apps") -> "$appCookieName=$authToken"
-//         else -> "$youAuthCookieName=$authToken"
-//     }
-// }
+fun cookieNameFrom(appOrOwner: AppOrOwner): String {
+    return if (appOrOwner == AppOrOwner.Owner) {
+        ownerCookieName
+    } else {
+        appCookieName
+    }
+}
+
+//
 
 fun HeadersBuilder.appendAuth(path: String, authToken: String) {
     if (path.startsWith("/api/owner")) {

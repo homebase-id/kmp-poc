@@ -14,11 +14,10 @@ import id.homebase.homebasekmppoc.prototype.lib.http.AppOrOwner
 import id.homebase.homebasekmppoc.prototype.lib.http.PayloadPlayground
 import id.homebase.homebasekmppoc.prototype.lib.http.PayloadWrapper
 import id.homebase.homebasekmppoc.prototype.lib.http.PublicPostsChannelDrive
-import id.homebase.homebasekmppoc.prototype.lib.http.appCookieName
 import id.homebase.homebasekmppoc.prototype.lib.video.LocalVideoServer
+import id.homebase.homebasekmppoc.prototype.lib.video.VideoMetaData
 import id.homebase.homebasekmppoc.prototype.lib.youauth.YouAuthManager
 import id.homebase.homebasekmppoc.prototype.ui.app.getFeedAppParams
-import io.ktor.http.encodeURLParameter
 import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -37,14 +36,13 @@ fun VideoPlayerTestPage(youAuthManager: YouAuthManager) {
     var resultMessage by remember { mutableStateOf("") }
     var isSuccess by remember { mutableStateOf(false) }
 
-    var videoHeaders by remember { mutableStateOf<List<PayloadWrapper>?>(null) }
-    var selectedVideoHeader by remember { mutableStateOf<PayloadWrapper?>(null) }
+    var videoPayloads by remember { mutableStateOf<List<PayloadWrapper>?>(null) }
+    var selectedVideoPayload by remember { mutableStateOf<PayloadWrapper?>(null) }
     var isLoadingVideos by remember { mutableStateOf(false) }
     var videoErrorMessage by remember { mutableStateOf<String?>(null) }
 
     // HLS player page state
-    var showHlsPlayerPage by remember { mutableStateOf(false) }
-    var hlsPlaylistUrl by remember { mutableStateOf<String?>(null) }
+    //var videoMetaData by remember { mutableStateOf<VideoMetaData?>(null) }
     var selectedVideoTitle by remember { mutableStateOf("Video") }
 
     val authState by youAuthManager.youAuthState.collectAsState()
@@ -95,13 +93,13 @@ fun VideoPlayerTestPage(youAuthManager: YouAuthManager) {
             videoErrorMessage = null
             try {
                 val payloadPlayground = PayloadPlayground(authState as AuthState.Authenticated)
-                videoHeaders = payloadPlayground.getVideosOnDrive(
+                videoPayloads = payloadPlayground.getVideosOnDrive(
                     AppOrOwner.Apps,
                     PublicPostsChannelDrive.alias,
                     PublicPostsChannelDrive.type
                 )
                 isLoadingVideos = false
-                Logger.i("VideoPlayerTestPage") { "Loaded ${videoHeaders?.size ?: 0} videos" }
+                Logger.i("VideoPlayerTestPage") { "Loaded ${videoPayloads?.size ?: 0} videos" }
             } catch (e: Exception) {
                 videoErrorMessage = e.message ?: "Unknown error"
                 Logger.e("VideoPlayerTestPage", e) { "Failed to fetch videos: $videoErrorMessage" }
@@ -109,8 +107,8 @@ fun VideoPlayerTestPage(youAuthManager: YouAuthManager) {
             }
         } else {
             // Clear videos when logged out
-            videoHeaders = null
-            selectedVideoHeader = null
+            videoPayloads = null
+            selectedVideoPayload = null
         }
     }
 
@@ -151,17 +149,17 @@ fun VideoPlayerTestPage(youAuthManager: YouAuthManager) {
     //
     // Show HLS player page if a video is selected
     //
-    if (showHlsPlayerPage && hlsPlaylistUrl != null) {
+    if (selectedVideoPayload != null) {
         val clientAuthToken = (authState as? AuthState.Authenticated)?.clientAuthToken
         Logger.i("VideoPlayerTestPage") { "Opening HLS player with clientAuthToken: $clientAuthToken" }
-        HlsVideoPlayerPage(
-            hlsPlaylistUrl = hlsPlaylistUrl!!,
-            clientAuthToken = clientAuthToken,
+        VideoPlayerPage(
+            AppOrOwner.Apps,
+            localVideoServer = videoServer,
+            videoPayload = selectedVideoPayload!!,
             videoTitle = selectedVideoTitle,
             onBack = {
-                showHlsPlayerPage = false
-                hlsPlaylistUrl = null
-                Logger.i("VideoPlayerTestPage") { "Returned from HLS player page" }
+                selectedVideoPayload = null
+                Logger.i("VideoPlayerTestPage") { "Returned from player page" }
             }
         )
     } else {
@@ -294,7 +292,9 @@ fun VideoPlayerTestPage(youAuthManager: YouAuthManager) {
                 }
             }
 
+            //
             // Video list card (only shown when authenticated)
+            //
             if (authState is AuthState.Authenticated) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -335,8 +335,8 @@ fun VideoPlayerTestPage(youAuthManager: YouAuthManager) {
                                 )
                             }
 
-                            videoHeaders != null && videoHeaders!!.isNotEmpty() -> {
-                                val headerCount = videoHeaders?.size ?: 0
+                            videoPayloads != null && videoPayloads!!.isNotEmpty() -> {
+                                val headerCount = videoPayloads?.size ?: 0
                                 Text(
                                     text = "Found $headerCount video${if (headerCount != 1) "s" else ""}",
                                     style = MaterialTheme.typography.bodyMedium,
@@ -345,7 +345,7 @@ fun VideoPlayerTestPage(youAuthManager: YouAuthManager) {
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
 
-                                videoHeaders!!.forEachIndexed { index, header ->
+                                videoPayloads!!.forEachIndexed { index, header ->
                                     Button(
                                         onClick = {
                                             Logger.i("VideoPlayerTestPage") { "Selected video ${index + 1}: ${header.header.fileId}" }
@@ -359,48 +359,48 @@ fun VideoPlayerTestPage(youAuthManager: YouAuthManager) {
                                                         return@launch
                                                     }
 
-                                                    // Get the HLS manifest content from backend
-                                                    val originalManifest =
-                                                        header.getVideoMetaData(AppOrOwner.Apps)
-                                                    Logger.i("VideoPlayerTestPage") { "Got HLS manifest content for video ${index + 1}" }
+                                                    selectedVideoPayload = header
 
-                                                    // Get the local server URL
-                                                    val serverUrl = videoServer.getServerUrl()
-                                                    Logger.d("VideoPlayerTestPage") { "Video server running at: $serverUrl" }
-
-                                                    // Register the manifest ID for auth token lookup
-                                                    val manifestId = "video-${index + 1}-manifest"
-
-                                                    // Modify the manifest to proxy remote segment URLs through local server
-                                                    val modifiedManifest = originalManifest.lines()
-                                                        .joinToString("\n") { line ->
-                                                            if (line.startsWith("https://")) {
-                                                                val encodedUrl =
-                                                                    line.encodeURLParameter()
-                                                                "$serverUrl/proxy?url=$encodedUrl&manifestId=$manifestId"
-                                                            } else {
-                                                                line
-                                                            }
-                                                        }
-                                                    Logger.d("VideoPlayerTestPage") { "Modified manifest to proxy segment URLs through $serverUrl" }
+                                                    // // Get the HLS manifest content from backend
+                                                    // val originalManifest =
+                                                    //     header.getVideoMetaData(AppOrOwner.Apps)
+                                                    // Logger.i("VideoPlayerTestPage") { "Got HLS manifest content for video ${index + 1}" }
+                                                    //
+                                                    // // Get the local server URL
+                                                    // val serverUrl = videoServer.getServerUrl()
+                                                    // Logger.d("VideoPlayerTestPage") { "Video server running at: $serverUrl" }
+                                                    //
+                                                    // // Register the manifest ID for auth token lookup
+                                                    // val manifestId = "video-${index + 1}-manifest"
+                                                    //
+                                                    // // Modify the manifest to proxy remote segment URLs through local server
+                                                    // val modifiedManifest = originalManifest.lines()
+                                                    //     .joinToString("\n") { line ->
+                                                    //         if (line.startsWith("https://")) {
+                                                    //             val encodedUrl =
+                                                    //                 line.encodeURLParameter()
+                                                    //             "$serverUrl/proxy?url=$encodedUrl&manifestId=$manifestId"
+                                                    //         } else {
+                                                    //             line
+                                                    //         }
+                                                    //     }
+                                                    // Logger.d("VideoPlayerTestPage") { "Modified manifest to proxy segment URLs through $serverUrl" }
 
                                                     // Register the modified manifest with local server and auth token
-                                                    videoServer.registerContent(
-                                                        id = manifestId,
-                                                        data = modifiedManifest.encodeToByteArray(),
-                                                        contentType = "application/vnd.apple.mpegurl",
-                                                        authTokenHeaderName = appCookieName,
-                                                        // authTokenHeaderName = youAuthCookieName,
-                                                        authToken = currentAuthToken
-                                                    )
+                                                    // videoServer.registerContent(
+                                                    //     id = manifestId,
+                                                    //     data = modifiedManifest.encodeToByteArray(),
+                                                    //     contentType = "application/vnd.apple.mpegurl",
+                                                    //     authTokenHeaderName = appCookieName,
+                                                    //     // authTokenHeaderName = youAuthCookieName,
+                                                    //     authToken = currentAuthToken
+                                                    // )
 
                                                     // Get the local URL and pass to player
-                                                    hlsPlaylistUrl =
-                                                        videoServer.getContentUrl(manifestId)
+                                                    // videoMetaData =
+                                                    //     videoServer.getContentUrl(manifestId)
                                                     selectedVideoTitle = "Video ${index + 1}"
-                                                    showHlsPlayerPage = true
 
-                                                    Logger.i("VideoPlayerTestPage") { "Starting HLS playback at: $hlsPlaylistUrl" }
                                                 } catch (e: Exception) {
                                                     if (e is CancellationException) throw e
                                                     errorMessage = e.message ?: "Unknown error"
@@ -415,7 +415,7 @@ fun VideoPlayerTestPage(youAuthManager: YouAuthManager) {
                                     ) {
                                         Text("Video ${index + 1}")
                                     }
-                                    if (index < videoHeaders!!.size - 1) {
+                                    if (index < videoPayloads!!.size - 1) {
                                         Spacer(modifier = Modifier.height(8.dp))
                                     }
                                 }
