@@ -14,7 +14,6 @@ import id.homebase.homebasekmppoc.prototype.lib.http.AppOrOwner
 import id.homebase.homebasekmppoc.prototype.lib.http.PayloadWrapper
 import id.homebase.homebasekmppoc.prototype.lib.http.cookieNameFrom
 import id.homebase.homebasekmppoc.prototype.lib.video.LocalVideoServer
-import id.homebase.homebasekmppoc.prototype.lib.video.VideoMetaData
 import io.ktor.http.encodeURLParameter
 
 /**
@@ -29,7 +28,7 @@ fun VideoPlayerPage(
     videoTitle: String = "Video Player",
     onBack: () -> Unit
 ) {
-    val hlsInfo = "Some hls info here..."
+    val hlsInfo = "Some info here..."
 
     Column(
         modifier = Modifier
@@ -108,6 +107,7 @@ private fun CreateVideoPlayer(
 ) {
     var isLoading by remember { mutableStateOf(true) }
     var hlsManifestUrl by remember { mutableStateOf<String?>(null) }
+    var videoBytes by remember { mutableStateOf<ByteArray?>(null) }
 
     LaunchedEffect(Unit) {
         val videoMetaData = videoPayload.getVideoMetaData(appOrOwner)
@@ -115,7 +115,6 @@ private fun CreateVideoPlayer(
         //
         // HLS
         //
-
         if (videoMetaData.hlsPlaylist != null) {
             val hlsPlayList = createHlsPlaylist(videoPayload, appOrOwner, videoMetaData)
             Logger.d("VideoPlayer") { "Original hlsPlayList: $hlsPlayList" }
@@ -152,6 +151,21 @@ private fun CreateVideoPlayer(
             Logger.d("VideoPlayer") { "Manifest URL: $hlsManifestUrl" }
         }
 
+        //
+        // Segmented MP4
+        //
+        else if (videoMetaData.isSegmented) {
+            // Not implemented yet
+            throw Exception("Segmented MP4 not supported yet")
+        }
+
+        //
+        // Non-segmented MP4 file
+        //
+        else {
+            videoBytes = videoPayload.getPayloadBytes(AppOrOwner.Owner)
+        }
+
         isLoading = false
     }
 
@@ -159,18 +173,17 @@ private fun CreateVideoPlayer(
         return
     }
 
-    val videoMetaData = videoPayload.getVideoMetaData(appOrOwner)
-
     // HLS video?
     if (hlsManifestUrl != null) {
-
         HlsVideoPlayer(
             manifestUrl = hlsManifestUrl!!,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(400.dp)
+            modifier = Modifier.fillMaxWidth().height(400.dp)
         )
-
+    } else if (videoBytes != null) {
+        VideoPlayer(
+            videoData = videoBytes!!,
+            modifier = Modifier.fillMaxWidth().height(400.dp)
+        )
     } else {
         throw Exception("Video not supported")
     }
