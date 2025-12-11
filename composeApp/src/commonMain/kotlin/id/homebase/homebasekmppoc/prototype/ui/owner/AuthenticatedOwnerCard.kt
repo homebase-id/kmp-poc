@@ -52,15 +52,12 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun AuthenticatedOwnerCard(
     authenticatedState: AuthState.Authenticated?,
-    onVideoClick: (PayloadWrapper) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var verifytokenReponse by remember { mutableStateOf<String?>(null) }
 
     var imageHeaders by remember { mutableStateOf<List<PayloadWrapper>?>(null) }
     var imageBytes by remember { mutableStateOf<ByteArray?>(null) }
-
-    var videoHeaders by remember { mutableStateOf<List<PayloadWrapper>?>(null) }
 
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(authenticatedState != null) }
@@ -84,11 +81,6 @@ fun AuthenticatedOwnerCard(
                         imageBytes = imageHeaders!![0].getPayloadBytes(AppOrOwner.Owner)
                     }
                 }
-
-                videoHeaders = payloadPlayground.getVideosOnDrive(
-                    AppOrOwner.Owner,
-                    PublicPostsChannelDrive.alias,
-                    PublicPostsChannelDrive.type)
 
                 isLoading = false
             } catch (e: Exception) {
@@ -240,66 +232,6 @@ fun AuthenticatedOwnerCard(
                             }
                         }
                     }
-
-                    // Payload video Section
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .border(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.outline,
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                            .padding(12.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "Video list",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        when {
-                            videoHeaders != null && videoHeaders!!.isNotEmpty() -> {
-                                val headerCount = videoHeaders?.size ?: 0
-                                Text(
-                                    text = "Header count: $headerCount",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Center
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                videoHeaders!!.forEachIndexed { index, header ->
-                                    Button(
-                                        onClick = { onVideoClick(header) },
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Text("Video ${index + 1}")
-                                    }
-                                    if (index < videoHeaders!!.size - 1) {
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                    }
-                                }
-                            }
-                            else -> {
-                                Text(
-                                    text = "No header data",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                        }
-                    }
-
-
-
 
                 }
             }
