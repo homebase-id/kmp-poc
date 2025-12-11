@@ -10,7 +10,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.UIKitView
 import co.touchlab.kermit.Logger
-import id.homebase.homebasekmppoc.prototype.lib.video.LocalVideoServer
 import kotlinx.cinterop.ExperimentalForeignApi
 import platform.AVFoundation.AVPlayer
 import platform.AVFoundation.pause
@@ -20,17 +19,13 @@ import platform.AVFAudio.AVAudioSession
 import platform.AVFAudio.AVAudioSessionCategoryPlayback
 import platform.AVFAudio.setActive
 import platform.Foundation.NSURL
-import kotlin.random.Random
 
 @OptIn(ExperimentalForeignApi::class)
 @Composable
 actual fun VideoPlayer(
-    videoData: ByteArray,
-    localVideoServer: LocalVideoServer,
+    videoUrl: String?,
     modifier: Modifier
 ) {
-    var videoUrl by remember { mutableStateOf<String?>(null) }
-
     // 1. Audio Session Configuration
     // Best Practice: Ensure video audio plays even if hardware Silent Switch is ON.
     LaunchedEffect(Unit) {
@@ -40,23 +35,6 @@ actual fun VideoPlayer(
             session.setActive(true, error = null)
         } catch (e: Exception) {
             Logger.e("VideoPlayer.iOS") { "Failed to set audio session: ${e.message}" }
-        }
-    }
-
-    // 2. Register video content with LocalVideoServer
-    LaunchedEffect(videoData) {
-        try {
-            // Generate a unique content ID using random numbers
-            val contentId = "video-${Random.nextLong()}"
-            localVideoServer.registerContent(
-                id = contentId,
-                data = videoData,
-                contentType = "video/mp4"
-            )
-            videoUrl = localVideoServer.getContentUrl(contentId)
-            Logger.d("VideoPlayer.iOS") { "Registered video content: $contentId at $videoUrl" }
-        } catch (e: Exception) {
-            Logger.e("VideoPlayer.iOS", e) { "Failed to register video content" }
         }
     }
 

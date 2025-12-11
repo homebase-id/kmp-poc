@@ -15,6 +15,7 @@ import id.homebase.homebasekmppoc.prototype.lib.http.PayloadWrapper
 import id.homebase.homebasekmppoc.prototype.lib.http.cookieNameFrom
 import id.homebase.homebasekmppoc.prototype.lib.video.LocalVideoServer
 import io.ktor.http.encodeURLParameter
+import kotlin.uuid.Uuid
 
 /**
  * Page for playing HLS videos
@@ -54,7 +55,7 @@ fun VideoPlayerPage(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant
             )
         ) {
-            CreateVideoPlayer(appOrOwner, localVideoServer, videoPayload)
+            VideoPlayerContainer(appOrOwner, localVideoServer, videoPayload)
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -100,14 +101,15 @@ fun VideoPlayerPage(
 //
 
 @Composable
-private fun CreateVideoPlayer(
+private fun VideoPlayerContainer(
     appOrOwner: AppOrOwner,
     videoServer: LocalVideoServer,
     videoPayload: PayloadWrapper
 ) {
     var isLoading by remember { mutableStateOf(true) }
     var hlsManifestUrl by remember { mutableStateOf<String?>(null) }
-    var videoBytes by remember { mutableStateOf<ByteArray?>(null) }
+    var videoUrl by remember { mutableStateOf<String?>(null) }
+    var videoServerContentId by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
         val videoMetaData = videoPayload.getVideoMetaData(appOrOwner)
@@ -123,14 +125,14 @@ private fun CreateVideoPlayer(
             val serverUrl = videoServer.getServerUrl()
             Logger.d("VideoPlayer") { "Video server running at: $serverUrl" }
 
-            val manifestId = "video-manifest-${videoPayload.compositeKey}"
+            val contentId = "video-manifest-${videoPayload.compositeKey}"
 
             // Modify the manifest to proxy remote segment URLs through local server
             val proxiedPlayList = hlsPlayList.lines()
                 .joinToString("\n") { line ->
                     if (line.startsWith("https://")) {
                         val encodedUrl = line.encodeURLParameter()
-                        "$serverUrl/proxy?url=$encodedUrl&manifestId=$manifestId"
+                        "$serverUrl/proxy?url=$encodedUrl&manifestId=$contentId"
                     } else {
                         line
                     }
@@ -140,15 +142,17 @@ private fun CreateVideoPlayer(
 
             // Register the manifest ID on Video Server
             videoServer.registerContent(
-                id = manifestId,
+                id = contentId,
                 data = proxiedPlayList.encodeToByteArray(),
                 contentType = "application/vnd.apple.mpegurl",
                 authTokenHeaderName = cookieNameFrom(appOrOwner),
                 authToken = videoPayload.authenticated.clientAuthToken
             )
 
-            hlsManifestUrl = videoServer.getContentUrl(manifestId)
+            hlsManifestUrl = videoServer.getContentUrl(contentId)
             Logger.d("VideoPlayer") { "Manifest URL: $hlsManifestUrl" }
+
+            videoServerContentId = contentId
         }
 
         //
@@ -163,7 +167,20 @@ private fun CreateVideoPlayer(
         // Non-segmented MP4 file
         //
         else {
-            videoBytes = videoPayload.getPayloadBytes(AppOrOwner.Owner)
+            val videoBytes = videoPayload.getPayloadBytes(AppOrOwner.Owner)
+
+            val contentId = "video-${Uuid.random()}"
+            videoServer.registerContent(
+                id = contentId,
+                data = videoBytes,
+                contentType = "video/mp4",
+                authTokenHeaderName = cookieNameFrom(appOrOwner),
+                authToken = videoPayload.authenticated.clientAuthToken
+            )
+            videoUrl = videoServer.getContentUrl(contentId)
+            Logger.d("VideoPlayer") { "Video URL: $hlsManifestUrl" }
+
+            videoServerContentId = contentId
         }
 
         isLoading = false
@@ -180,16 +197,27 @@ private fun CreateVideoPlayer(
             manifestUrl = hlsManifestUrl!!,
             modifier = Modifier.fillMaxWidth().height(400.dp)
         )
-    } else if (videoBytes != null) {
+    } else if (videoUrl != null) {
         Logger.i("VideoPlayer") { "Creating VideoPlayer" }
         VideoPlayer(
-            videoData = videoBytes!!,
-            localVideoServer = videoServer,
+            videoUrl,
             modifier = Modifier.fillMaxWidth().height(400.dp)
         )
     } else {
         throw Exception("Video not supported")
     }
 
+    //
+
+    DisposableEffect(Unit) {
+        onDispose {
+            if (videoServerContentId != null) {
+                videoServer.unregisterContent(videoServerContentId!!)
+                Logger.d("VideoPlayer") { "Unregistered video content: $videoServerContentId" }
+            }
+        }
+    }
+
+    //
 
 }

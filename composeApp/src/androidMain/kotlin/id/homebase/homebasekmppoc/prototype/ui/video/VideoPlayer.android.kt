@@ -23,28 +23,9 @@ import java.util.UUID
 @OptIn(UnstableApi::class)
 @Composable
 actual fun VideoPlayer(
-    videoData: ByteArray,
-    localVideoServer: LocalVideoServer,
+    videoUrl: String?,
     modifier: Modifier
 ) {
-    var videoUrl by remember { mutableStateOf<String?>(null) }
-
-    // 1. Register video content with LocalVideoServer
-    LaunchedEffect(videoData) {
-        try {
-            val contentId = "video-${UUID.randomUUID()}"
-            localVideoServer.registerContent(
-                id = contentId,
-                data = videoData,
-                contentType = "video/mp4"
-            )
-            videoUrl = localVideoServer.getContentUrl(contentId)
-            Logger.d("VideoPlayer.Android") { "Registered video content: $contentId at $videoUrl" }
-        } catch (e: Exception) {
-            Logger.e("VideoPlayer.Android", e) { "Failed to register video content" }
-        }
-    }
-
     // 2. Render
     Box(modifier = modifier) {
         val currentUrl = videoUrl
