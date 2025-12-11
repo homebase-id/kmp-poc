@@ -182,6 +182,7 @@ private fun CreateVideoPlayer(
     } else if (videoBytes != null) {
         VideoPlayer(
             videoData = videoBytes!!,
+            localVideoServer = videoServer,
             modifier = Modifier.fillMaxWidth().height(400.dp)
         )
     } else {

@@ -9,70 +9,43 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.UIKitView
-import kotlinx.cinterop.BetaInteropApi
+import co.touchlab.kermit.Logger
+import id.homebase.homebasekmppoc.prototype.lib.video.LocalVideoServer
 import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.addressOf
-import kotlinx.cinterop.usePinned
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import platform.AVFoundation.AVPlayer
-import platform.AVFoundation.play
 import platform.AVFoundation.pause
+import platform.AVFoundation.play
 import platform.AVKit.AVPlayerViewController
-import platform.Foundation.*
+import platform.Foundation.NSURL
+import kotlin.random.Random
 
-@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
+@OptIn(ExperimentalForeignApi::class)
 @Composable
 actual fun VideoPlayer(
     videoData: ByteArray,
+    localVideoServer: LocalVideoServer,
     modifier: Modifier
 ) {
-    var videoUrl by remember { mutableStateOf<NSURL?>(null) }
+    var videoUrl by remember { mutableStateOf<String?>(null) }
 
-    // 1. Write File in Background (Off Main Thread)
+    // 1. Register video content with LocalVideoServer
     LaunchedEffect(videoData) {
-        withContext(Dispatchers.Default) {
-            try {
-                val tempDir = NSTemporaryDirectory()
-                val fileName = "video_${NSDate().timeIntervalSince1970}.mp4"
-                val filePath = "${tempDir}${fileName}"
-                val url = NSURL.fileURLWithPath(filePath)
-
-                // Efficiently write data
-                val success = videoData.usePinned { pinned ->
-                    val nsData = NSData.create(
-                        bytesNoCopy = pinned.addressOf(0),
-                        length = videoData.size.toULong(),
-                        freeWhenDone = false
-                    )
-                    nsData.writeToURL(url, atomically = true)
-                }
-
-                if (success) {
-                    videoUrl = url
-                } else {
-                    println("Failed to write video file on iOS")
-                }
-            } catch (e: Exception) {
-                println("Error writing iOS video file: ${e.message}")
-            }
+        try {
+            // Generate a unique content ID using random numbers
+            val contentId = "video-${Random.nextLong()}"
+            localVideoServer.registerContent(
+                id = contentId,
+                data = videoData,
+                contentType = "video/mp4"
+            )
+            videoUrl = localVideoServer.getContentUrl(contentId)
+            Logger.d("VideoPlayer.iOS") { "Registered video content: $contentId at $videoUrl" }
+        } catch (e: Exception) {
+            Logger.e("VideoPlayer.iOS", e) { "Failed to register video content" }
         }
     }
 
-    // 2. File Cleanup
-    DisposableEffect(videoUrl) {
-        val urlToDelete = videoUrl
-        onDispose {
-            urlToDelete?.path?.let { path ->
-                val fileManager = NSFileManager.defaultManager
-                if (fileManager.fileExistsAtPath(path)) {
-                    fileManager.removeItemAtPath(path, null)
-                }
-            }
-        }
-    }
-
-    // 3. UI and Player Lifecycle
+    // 2. UI and Player Lifecycle
     Box(
         modifier = modifier.background(MaterialTheme.colorScheme.surfaceVariant),
         contentAlignment = Alignment.Center
@@ -81,37 +54,53 @@ actual fun VideoPlayer(
 
         if (currentUrl != null) {
             // Keep track of player to pause it later
-            val player = remember(currentUrl) { AVPlayer.playerWithURL(currentUrl) }
+            val nsUrl = NSURL.URLWithString(currentUrl)
+            val player = remember(currentUrl) {
+                if (nsUrl != null) {
+                    AVPlayer.playerWithURL(nsUrl)
+                } else {
+                    Logger.e("VideoPlayer.iOS") { "Invalid URL: $currentUrl" }
+                    null
+                }
+            }
             val playerViewController = remember(currentUrl) {
-                AVPlayerViewController().apply {
-                    this.player = player
-                    this.showsPlaybackControls = true
+                if (player != null) {
+                    AVPlayerViewController().apply {
+                        this.player = player
+                        this.showsPlaybackControls = true
+                    }
+                } else {
+                    null
                 }
             }
 
             // Lifecycle: Pause on Dispose
             DisposableEffect(Unit) {
                 onDispose {
-                    player.pause()
+                    player?.pause()
                     // Explicitly clearing ref helps generic KMP cleanup sometimes
-                    playerViewController.player = null
+                    playerViewController?.player = null
                 }
             }
 
-            UIKitView(
-                factory = {
-                    // Start Playback
-                    player.play()
-                    playerViewController.view
-                },
-                modifier = Modifier.fillMaxSize(),
-                update = { view ->
-                    // No-op creates stable view.
-                    // If you needed to update layout constraints, do it here.
-                }
-            )
+            if (player != null && playerViewController != null) {
+                UIKitView(
+                    factory = {
+                        // Start Playback
+                        player.play()
+                        playerViewController.view
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                    update = { view ->
+                        // No-op creates stable view.
+                        // If you needed to update layout constraints, do it here.
+                    }
+                )
+            } else {
+                CircularProgressIndicator()
+            }
         } else {
-            // Loading Indicator while writing file
+            // Loading Indicator while registering content
             CircularProgressIndicator()
         }
     }

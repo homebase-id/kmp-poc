@@ -1,6 +1,5 @@
 package id.homebase.homebasekmppoc.prototype.ui.video
 
-import android.net.Uri
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.annotation.OptIn
@@ -18,48 +17,39 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import co.touchlab.kermit.Logger
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.FileOutputStream
+import id.homebase.homebasekmppoc.prototype.lib.video.LocalVideoServer
 import java.util.UUID
 
 @OptIn(UnstableApi::class)
 @Composable
 actual fun VideoPlayer(
     videoData: ByteArray,
+    localVideoServer: LocalVideoServer,
     modifier: Modifier
 ) {
-    val context = LocalContext.current
-    var videoUri by remember { mutableStateOf<Uri?>(null) }
+    var videoUrl by remember { mutableStateOf<String?>(null) }
 
-    // 1. IO Operation (Correct Best Practice: Off Main Thread)
+    // 1. Register video content with LocalVideoServer
     LaunchedEffect(videoData) {
-        withContext(Dispatchers.IO) {
-            try {
-                val fileName = "temp_video_${UUID.randomUUID()}.mp4"
-                val file = File(context.cacheDir, fileName)
-                FileOutputStream(file).use { it.write(videoData) }
-                videoUri = Uri.fromFile(file)
-            } catch (e: Exception) {
-                Logger.e("VideoPlayer", e) { "Failed to write video" }
-            }
+        try {
+            val contentId = "video-${UUID.randomUUID()}"
+            localVideoServer.registerContent(
+                id = contentId,
+                data = videoData,
+                contentType = "video/mp4"
+            )
+            videoUrl = localVideoServer.getContentUrl(contentId)
+            Logger.d("VideoPlayer.Android") { "Registered video content: $contentId at $videoUrl" }
+        } catch (e: Exception) {
+            Logger.e("VideoPlayer.Android", e) { "Failed to register video content" }
         }
     }
 
-    // 2. Cleanup
-    DisposableEffect(videoUri) {
-        val fileToDelete = videoUri
-        onDispose {
-            fileToDelete?.path?.let { File(it).delete() }
-        }
-    }
-
-    // 3. Render
+    // 2. Render
     Box(modifier = modifier) {
-        val currentUri = videoUri
-        if (currentUri != null) {
-            ExoPlayerContainer(uri = currentUri)
+        val currentUrl = videoUrl
+        if (currentUrl != null) {
+            ExoPlayerContainer(url = currentUrl)
         } else {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
         }
@@ -68,7 +58,7 @@ actual fun VideoPlayer(
 
 @OptIn(UnstableApi::class)
 @Composable
-private fun ExoPlayerContainer(uri: Uri) {
+private fun ExoPlayerContainer(url: String) {
     val context = LocalContext.current
 
     // Initialize ExoPlayer (Best Practice Standard)
@@ -80,8 +70,8 @@ private fun ExoPlayerContainer(uri: Uri) {
     }
 
     // Load Media
-    LaunchedEffect(uri) {
-        exoPlayer.setMediaItem(MediaItem.fromUri(uri))
+    LaunchedEffect(url) {
+        exoPlayer.setMediaItem(MediaItem.fromUri(url))
         exoPlayer.prepare()
     }
 
@@ -92,7 +82,7 @@ private fun ExoPlayerContainer(uri: Uri) {
         }
     }
 
-    // 4. The View Implementation
+    // 3. The View Implementation
     AndroidView(
         factory = { ctx ->
             // Create the view ONCE
