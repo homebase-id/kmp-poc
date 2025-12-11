@@ -228,6 +228,19 @@ class LocalVideoServer {
     }
 
     /**
+     * Unregister content to free up memory
+     * @param id The content identifier to remove
+     */
+    fun unregisterContent(id: String) {
+        val removed = contentRegistry.remove(id)
+        if (removed != null) {
+            Logger.d("LocalVideoServer") { "Unregistered content: $id (freed ${removed.data.unsafeBytes.size} bytes)" }
+        } else {
+            Logger.w("LocalVideoServer") { "Attempted to unregister non-existent content: $id" }
+        }
+    }
+
+    /**
      * Get the URL for accessing registered content
      * @param id The content identifier
      * @return Full URL to access the content
