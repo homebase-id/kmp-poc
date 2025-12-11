@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     companion object {
+        // TODO(biswa) : Remove this lateinit var instance shit
         @Deprecated(
                 message =
                         "Singleton pattern should be avoided. Pass Activity/Context through DI or parameters instead.",
