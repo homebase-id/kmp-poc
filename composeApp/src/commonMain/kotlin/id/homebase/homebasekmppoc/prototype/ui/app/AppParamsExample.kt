@@ -1,7 +1,7 @@
 package id.homebase.homebasekmppoc.prototype.ui.app
 
-import id.homebase.homebasekmppoc.lib.drives.TargetDrive
-import id.homebase.homebasekmppoc.lib.serialization.OdinSystemSerializer
+import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
+import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import id.homebase.homebasekmppoc.prototype.lib.youauth.YouAuthAppParameters
 import id.homebase.homebasekmppoc.prototype.lib.youauth.YouAuthDriveParameters
 import kotlin.uuid.Uuid

@@ -91,6 +91,10 @@ kotlin {
             implementation(libs.cryptography.provider.optimal)
             implementation(libs.sqldelight.runtime)
             implementation(libs.sqldelight.coroutines.extensions)
+            implementation(libs.navigation.compose)
+            implementation(libs.koin.core)
+            implementation(libs.koin.compose)
+            implementation(libs.koin.compose.viewmodel)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
@@ -110,6 +114,7 @@ kotlin {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.kotlinx.datetime)
+            implementation(libs.ktor.client.mock)
         }
         androidUnitTest.dependencies {
             implementation(libs.sqldelight.sqlite.driver)

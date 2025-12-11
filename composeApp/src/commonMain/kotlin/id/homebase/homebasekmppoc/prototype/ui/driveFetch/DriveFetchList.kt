@@ -11,7 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import id.homebase.homebasekmppoc.lib.drives.SharedSecretEncryptedFileHeader
+import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
 
 @Composable
 fun DriveFetchList(items: List<SharedSecretEncryptedFileHeader>, modifier: Modifier = Modifier) {

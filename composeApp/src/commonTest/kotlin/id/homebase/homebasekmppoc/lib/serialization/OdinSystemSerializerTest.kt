@@ -1,5 +1,6 @@
 package id.homebase.homebasekmppoc.lib.serialization
 
+import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import kotlinx.serialization.Serializable
 import kotlin.test.Test
 import kotlin.test.assertEquals

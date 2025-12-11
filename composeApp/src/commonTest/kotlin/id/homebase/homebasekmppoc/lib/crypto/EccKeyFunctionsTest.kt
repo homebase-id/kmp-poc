@@ -1,6 +1,14 @@
 package id.homebase.homebasekmppoc.lib.crypto
 
-import id.homebase.homebasekmppoc.lib.core.SecureByteArray
+import id.homebase.homebasekmppoc.prototype.lib.core.SecureByteArray
+import id.homebase.homebasekmppoc.prototype.lib.crypto.EccKeySize
+import id.homebase.homebasekmppoc.prototype.lib.crypto.decryptPrivateKey
+import id.homebase.homebasekmppoc.prototype.lib.crypto.generateEccKeyPair
+import id.homebase.homebasekmppoc.prototype.lib.crypto.performEcdhKeyAgreement
+import id.homebase.homebasekmppoc.prototype.lib.crypto.publicKeyFromJwk
+import id.homebase.homebasekmppoc.prototype.lib.crypto.publicKeyFromJwkBase64Url
+import id.homebase.homebasekmppoc.prototype.lib.crypto.publicKeyToJwk
+import id.homebase.homebasekmppoc.prototype.lib.crypto.publicKeyToJwkBase64Url
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
