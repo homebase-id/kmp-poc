@@ -125,7 +125,7 @@ private fun VideoPlayerContainer(
             val serverUrl = videoServer.getServerUrl()
             Logger.d("VideoPlayer") { "Video server running at: $serverUrl" }
 
-            val contentId = "video-manifest-${videoPayload.compositeKey}"
+            val contentId = "video-manifest-${videoPayload.compositeKey}.m3u8"
 
             // Modify the manifest to proxy remote segment URLs through local server
             val proxiedPlayList = hlsPlayList.lines()
@@ -190,17 +190,12 @@ private fun VideoPlayerContainer(
         return
     }
 
-    // HLS video?
-    if (hlsManifestUrl != null) {
-        Logger.i("VideoPlayer") { "Creating HlsVideoPlayer" }
-        HlsVideoPlayer(
-            manifestUrl = hlsManifestUrl!!,
-            modifier = Modifier.fillMaxWidth().height(400.dp)
-        )
-    } else if (videoUrl != null) {
-        Logger.i("VideoPlayer") { "Creating VideoPlayer" }
+    // Use unified VideoPlayer for both HLS and regular video
+    val finalUrl = hlsManifestUrl ?: videoUrl
+    if (finalUrl != null) {
+        Logger.i("VideoPlayer") { "Creating VideoPlayer for: $finalUrl" }
         VideoPlayer(
-            videoUrl,
+            videoUrl = finalUrl,
             modifier = Modifier.fillMaxWidth().height(400.dp)
         )
     } else {
