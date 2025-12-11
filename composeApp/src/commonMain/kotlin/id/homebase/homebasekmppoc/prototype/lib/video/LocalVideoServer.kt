@@ -56,7 +56,7 @@ class LocalVideoServer {
 
         server = embeddedServer(CIO, port = 0) {
             routing {
-                // Serve registered content by ID
+                // Serve registered content by ID with Range request support
                 get("/content/{id}") {
                     val id = call.parameters["id"]
                     if (id == null) {
@@ -71,15 +71,48 @@ class LocalVideoServer {
                         return@get
                     }
 
-                    Logger.d("LocalVideoServer") { "Serving content: $id (${content.data.unsafeBytes.size} bytes, ${content.contentType})" }
+                    val data = content.data.unsafeBytes
+                    val totalSize = data.size.toLong()
 
-                    val hlsPlaylist = content.data.unsafeBytes.decodeToString()
-                    Logger.d("LocalVideoServer") { "hlsPlaylist: $hlsPlaylist" }
+                    // Parse Range header (e.g., "bytes=0-1023")
+                    val rangeHeader = call.request.headers["Range"]
 
-                    call.respondBytes(
-                        bytes = content.data.unsafeBytes,
-                        contentType = ContentType.parse(content.contentType)
-                    )
+                    if (rangeHeader != null && rangeHeader.startsWith("bytes=")) {
+                        // Handle range request
+                        val rangeSpec = rangeHeader.substringAfter("bytes=")
+                        val (startStr, endStr) = rangeSpec.split("-", limit = 2)
+
+                        val start = startStr.toLongOrNull() ?: 0
+                        val end = if (endStr.isEmpty()) totalSize - 1 else (endStr.toLongOrNull() ?: totalSize - 1)
+
+                        val actualEnd = minOf(end, totalSize - 1)
+                        val length = (actualEnd - start + 1).toInt()
+
+                        Logger.d("LocalVideoServer") { "Range request for $id: bytes=$start-$actualEnd/$totalSize (${content.contentType})" }
+
+                        // Set 206 Partial Content status
+                        call.response.status(HttpStatusCode.PartialContent)
+                        call.response.headers.append("Content-Range", "bytes $start-$actualEnd/$totalSize")
+                        call.response.headers.append("Accept-Ranges", "bytes")
+                        call.response.headers.append("Content-Length", length.toString())
+
+                        // Send the requested range
+                        call.respondBytes(
+                            bytes = data.sliceArray(start.toInt()..actualEnd.toInt()),
+                            contentType = ContentType.parse(content.contentType)
+                        )
+                    } else {
+                        // Normal request - send entire content
+                        Logger.d("LocalVideoServer") { "Serving full content: $id (${data.size} bytes, ${content.contentType})" }
+
+                        call.response.headers.append("Accept-Ranges", "bytes")
+                        call.response.headers.append("Content-Length", totalSize.toString())
+
+                        call.respondBytes(
+                            bytes = data,
+                            contentType = ContentType.parse(content.contentType)
+                        )
+                    }
                 }
 
                 // Proxy endpoint for remote URLs with auth header

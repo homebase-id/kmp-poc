@@ -146,7 +146,7 @@ fun VideoPlayerTestPage(youAuthManager: YouAuthManager) {
     //
     if (selectedVideoPayload != null) {
         val clientAuthToken = (authState as? AuthState.Authenticated)?.clientAuthToken
-        Logger.i("VideoPlayerTestPage") { "Opening HLS player with clientAuthToken: $clientAuthToken" }
+        Logger.i("VideoPlayerTestPage") { "Opening player page with clientAuthToken: $clientAuthToken" }
         VideoPlayerPage(
             AppOrOwner.Apps,
             localVideoServer = videoServer,

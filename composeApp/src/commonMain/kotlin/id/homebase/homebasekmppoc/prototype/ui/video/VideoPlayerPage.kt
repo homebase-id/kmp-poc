@@ -175,11 +175,13 @@ private fun CreateVideoPlayer(
 
     // HLS video?
     if (hlsManifestUrl != null) {
+        Logger.i("VideoPlayer") { "Creating HlsVideoPlayer" }
         HlsVideoPlayer(
             manifestUrl = hlsManifestUrl!!,
             modifier = Modifier.fillMaxWidth().height(400.dp)
         )
     } else if (videoBytes != null) {
+        Logger.i("VideoPlayer") { "Creating VideoPlayer" }
         VideoPlayer(
             videoData = videoBytes!!,
             localVideoServer = videoServer,

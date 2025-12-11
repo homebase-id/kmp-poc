@@ -16,6 +16,9 @@ import platform.AVFoundation.AVPlayer
 import platform.AVFoundation.pause
 import platform.AVFoundation.play
 import platform.AVKit.AVPlayerViewController
+import platform.AVFAudio.AVAudioSession
+import platform.AVFAudio.AVAudioSessionCategoryPlayback
+import platform.AVFAudio.setActive
 import platform.Foundation.NSURL
 import kotlin.random.Random
 
@@ -28,7 +31,19 @@ actual fun VideoPlayer(
 ) {
     var videoUrl by remember { mutableStateOf<String?>(null) }
 
-    // 1. Register video content with LocalVideoServer
+    // 1. Audio Session Configuration
+    // Best Practice: Ensure video audio plays even if hardware Silent Switch is ON.
+    LaunchedEffect(Unit) {
+        try {
+            val session = AVAudioSession.sharedInstance()
+            session.setCategory(AVAudioSessionCategoryPlayback, error = null)
+            session.setActive(true, error = null)
+        } catch (e: Exception) {
+            Logger.e("VideoPlayer.iOS") { "Failed to set audio session: ${e.message}" }
+        }
+    }
+
+    // 2. Register video content with LocalVideoServer
     LaunchedEffect(videoData) {
         try {
             // Generate a unique content ID using random numbers
@@ -45,7 +60,7 @@ actual fun VideoPlayer(
         }
     }
 
-    // 2. UI and Player Lifecycle
+    // 3. UI and Player Lifecycle
     Box(
         modifier = modifier.background(MaterialTheme.colorScheme.surfaceVariant),
         contentAlignment = Alignment.Center
@@ -53,42 +68,42 @@ actual fun VideoPlayer(
         val currentUrl = videoUrl
 
         if (currentUrl != null) {
-            // Keep track of player to pause it later
-            val nsUrl = NSURL.URLWithString(currentUrl)
-            val player = remember(currentUrl) {
+            // Create player and controller together to ensure they stay linked
+            val playerStack = remember(currentUrl) {
+                val nsUrl = NSURL.URLWithString(currentUrl)
                 if (nsUrl != null) {
-                    AVPlayer.playerWithURL(nsUrl)
+                    val player = AVPlayer.playerWithURL(nsUrl)
+                    val vc = AVPlayerViewController().apply {
+                        this.player = player
+                        this.showsPlaybackControls = true
+                    }
+                    Pair(player, vc)
                 } else {
                     Logger.e("VideoPlayer.iOS") { "Invalid URL: $currentUrl" }
                     null
                 }
             }
-            val playerViewController = remember(currentUrl) {
-                if (player != null) {
-                    AVPlayerViewController().apply {
-                        this.player = player
-                        this.showsPlaybackControls = true
-                    }
-                } else {
-                    null
-                }
-            }
 
-            // Lifecycle: Pause on Dispose
-            DisposableEffect(Unit) {
+            // Lifecycle: Start playback and cleanup on dispose
+            DisposableEffect(playerStack) {
+                val player = playerStack?.first
+                val vc = playerStack?.second
+
+                // Start playback after view is ready
+                player?.play()
+
                 onDispose {
+                    Logger.d("VideoPlayer.iOS") { "Stopping playback and cleaning up" }
                     player?.pause()
-                    // Explicitly clearing ref helps generic KMP cleanup sometimes
-                    playerViewController?.player = null
+                    // Break the retention cycle between VC and Player
+                    vc?.player = null
                 }
             }
 
-            if (player != null && playerViewController != null) {
+            if (playerStack != null) {
                 UIKitView(
                     factory = {
-                        // Start Playback
-                        player.play()
-                        playerViewController.view
+                        playerStack.second.view
                     },
                     modifier = Modifier.fillMaxSize(),
                     update = { view ->
