@@ -8,6 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.lifecycleScope
+import id.homebase.homebasekmppoc.lib.core.ActivityProvider
 import id.homebase.homebasekmppoc.lib.storage.SecureStorage
 import id.homebase.homebasekmppoc.lib.storage.SharedPreferences
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
@@ -17,25 +18,13 @@ import id.homebase.homebasekmppoc.prototype.lib.youauth.YouAuthCallbackRouter
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
-    companion object {
-        // TODO(biswa) : Remove this lateinit var instance shit
-        @Deprecated(
-                message =
-                        "Singleton pattern should be avoided. Pass Activity/Context through DI or parameters instead.",
-                level = DeprecationLevel.WARNING
-        )
-        lateinit var instance: MainActivity
-            private set
-    }
-
-    // Track if we launched browser for auth (to detect cancellation on resume)
-    private var launchedBrowserForAuth = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
-        @Suppress("DEPRECATION") instance = this
+        // Initialize ActivityProvider (replaces old lateinit var instance pattern)
+        ActivityProvider.initialize(this)
 
         // Initialize storage (must be done before App() which may access storage)
         SecureStorage.initialize(applicationContext)
@@ -69,7 +58,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        @Suppress("DEPRECATION") instance = this
+        // Update ActivityProvider reference on resume
+        ActivityProvider.initialize(this)
 
         // Check if browser was closed without completing auth
         // This is called when user returns from Custom Tab without completing auth

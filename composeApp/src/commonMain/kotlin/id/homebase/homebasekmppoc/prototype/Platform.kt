@@ -1,6 +1,5 @@
 package id.homebase.homebasekmppoc.prototype
 
-import kotlinx.coroutines.CoroutineScope
 import kotlin.io.encoding.Base64
 import kotlin.uuid.Uuid
 
@@ -14,12 +13,6 @@ expect fun getPlatform(): Platform
 
 expect fun isAndroid(): Boolean
 
-expect fun getRedirectScheme(): String
-
-expect fun getRedirectUri(clientId: String): String
-
-expect fun launchCustomTabs(url: String, scope: CoroutineScope)
-
 expect fun showMessage(title: String, message: String)
 
 // URL encoder compatible with UTF-8 encoding
@@ -28,8 +21,14 @@ fun encodeUrl(value: String): String {
     val sb = StringBuilder()
     for (byte in bytes) {
         val b = byte.toInt() and 0xFF
-        if ((b >= 48 && b <= 57) || (b >= 65 && b <= 90) || (b >= 97 && b <= 122) ||
-            b == 45 || b == 46 || b == 95 || b == 126) { // unreserved characters
+        if ((b >= 48 && b <= 57) ||
+                        (b >= 65 && b <= 90) ||
+                        (b >= 97 && b <= 122) ||
+                        b == 45 ||
+                        b == 46 ||
+                        b == 95 ||
+                        b == 126
+        ) { // unreserved characters
             sb.append(b.toChar())
         } else {
             sb.append('%')
@@ -48,7 +47,9 @@ fun decodeUrl(value: String): String {
         val c = value[i]
         if (c == '%') {
             if (i + 2 >= value.length) {
-                throw IllegalArgumentException("Invalid URL encoding: incomplete percent sequence at position $i")
+                throw IllegalArgumentException(
+                        "Invalid URL encoding: incomplete percent sequence at position $i"
+                )
             }
             val hex = value.substring(i + 1, i + 3)
             try {
@@ -56,7 +57,10 @@ fun decodeUrl(value: String): String {
                 bytes.add(b)
                 i += 3
             } catch (e: NumberFormatException) {
-                throw IllegalArgumentException("Invalid URL encoding: invalid hex sequence '$hex' at position $i", e)
+                throw IllegalArgumentException(
+                        "Invalid URL encoding: invalid hex sequence '$hex' at position $i",
+                        e
+                )
             }
         } else if (c == '+') {
             bytes.add(' '.code.toByte())

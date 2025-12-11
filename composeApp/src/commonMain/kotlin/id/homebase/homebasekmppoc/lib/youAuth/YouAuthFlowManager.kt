@@ -1,11 +1,11 @@
 package id.homebase.homebasekmppoc.lib.youAuth
 
 import co.touchlab.kermit.Logger
+import id.homebase.homebasekmppoc.lib.browser.BrowserLauncher
+import id.homebase.homebasekmppoc.lib.browser.RedirectConfig
 import id.homebase.homebasekmppoc.prototype.decodeUrl
 import id.homebase.homebasekmppoc.prototype.generateUuidBytes
 import id.homebase.homebasekmppoc.prototype.generateUuidString
-import id.homebase.homebasekmppoc.prototype.getRedirectUri
-import id.homebase.homebasekmppoc.prototype.launchCustomTabs
 import id.homebase.homebasekmppoc.prototype.lib.core.SecureByteArray
 import id.homebase.homebasekmppoc.prototype.lib.crypto.EccKeyPair
 import id.homebase.homebasekmppoc.prototype.lib.crypto.EccKeySize
@@ -160,7 +160,7 @@ class YouAuthFlowManager {
             callbackRegistry[state] = this
 
             // Build redirect URI
-            val redirectUri = getRedirectUri(appId)
+            val redirectUri = RedirectConfig.buildRedirectUri(appId)
 
             // Build permission request
             val permissionRequest =
@@ -195,7 +195,7 @@ class YouAuthFlowManager {
                             .toString()
 
             // Launch browser
-            launchCustomTabs(authorizeUrl, scope)
+            BrowserLauncher.launchAuthBrowser(authorizeUrl, scope)
         } catch (e: Exception) {
             Logger.e(TAG, e) { "Error starting authorization" }
             _authState.value = YouAuthState.Error(e.message ?: "Unknown error")
