@@ -1,6 +1,6 @@
 import co.touchlab.kermit.Logger
+import id.homebase.homebasekmppoc.prototype.lib.drives.PayloadDescriptor
 import id.homebase.homebasekmppoc.prototype.lib.http.AppOrOwner
-import id.homebase.homebasekmppoc.prototype.lib.http.PayloadPlayground
 import id.homebase.homebasekmppoc.prototype.lib.http.PayloadWrapper
 import id.homebase.homebasekmppoc.prototype.lib.http.cookieNameFrom
 import id.homebase.homebasekmppoc.prototype.lib.video.LocalVideoServer
@@ -33,12 +33,15 @@ suspend fun prepareVideoContentForPlayback(
         if (isHls) {
             Logger.i ("VideoPreparer") { "Preparing HLS video playback" }
 
-            val hlsPlayList = createHlsPlaylist(appOrOwner, videoPayload, videoMetaData)
+            val hlsPlayList = createHlsPlaylist(
+                appOrOwner,
+                videoPayload,
+                videoMetaData)
 
             val serverUrl = videoServer.getServerUrl()
-            val contentId = "video-manifest-${videoPayload.compositeKey}.m3u8"
+            val contentId = "video-manifest-${videoPayload.getCompositeKey()}.m3u8"
 
-            // Pure logic: Rewrite the playlist
+            // Rewrite the playlist
             val proxiedPlayList = hlsPlayList.lines().joinToString("\n") { line ->
                 if (line.startsWith("https://")) {
                     val encodedUrl = line.encodeURLParameter()
@@ -70,7 +73,7 @@ suspend fun prepareVideoContentForPlayback(
 
             videoServer.registerContent(
                 id = contentId,
-                data = videoBytes, // Ideally this should be a File Path, not ByteArray
+                data = videoBytes,
                 contentType = "video/mp4",
                 authTokenHeaderName = cookieNameFrom(appOrOwner),
                 authToken = videoPayload.authenticated.clientAuthToken

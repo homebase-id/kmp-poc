@@ -76,31 +76,6 @@ class PayloadPlayground(private val authenticated: AuthState.Authenticated) {
 
     //
 
-    suspend fun getImagesOnDrive(
-        appOrOwner: AppOrOwner,
-        driveAlias: Uuid,
-        driveType: Uuid): List<PayloadWrapper> {
-        val headers = getHeadersOnDrive(appOrOwner, driveAlias, driveType, FileState.Active)
-
-        return buildList {
-            headers.forEach { header ->
-                header.fileMetadata.payloads?.forEach { payload ->
-                    if (payload.contentType?.contains("image") == true) {
-                        add(PayloadWrapper(authenticated, header, payload))
-                    }
-                }
-            }
-        }
-    }
-
-    //
-
-    suspend fun getImage(appOrOwner: AppOrOwner, payload: PayloadWrapper): ByteArray {
-        return payload.getPayloadBytes(appOrOwner)
-    }
-
-    //
-
     suspend fun getVideosOnDrive(appOrOwner: AppOrOwner, driveAlias: Uuid, driveType: Uuid): List<PayloadWrapper> {
         val headers = getHeadersOnDrive(appOrOwner, driveAlias, driveType, FileState.Active)
 
@@ -113,12 +88,6 @@ class PayloadPlayground(private val authenticated: AuthState.Authenticated) {
                 }
             }
         }
-    }
-
-    //
-
-    suspend fun getVideo(appOrOwner: AppOrOwner, payload: PayloadWrapper): ByteArray {
-        return payload.getPayloadBytes(appOrOwner)
     }
 
     //
@@ -144,113 +113,4 @@ class PayloadPlayground(private val authenticated: AuthState.Authenticated) {
 
 //
 
-class PayloadWrapper(
-    val authenticated: AuthState.Authenticated,
-    val header: SharedSecretEncryptedFileHeader,
-    val payload: PayloadDescriptor) {
-
-    //
-
-    val isEncrypted: Boolean get() = header.fileMetadata.isEncrypted
-
-    //
-
-    val compositeKey: String get() = header.fileId.toString() + "-" + payload.key
-
-    //
-
-    fun getPayloadUri(appOrOwner: AppOrOwner): String {
-        val fileId = header.fileId
-        val alias = header.targetDrive.alias
-        val type = header.targetDrive.type
-        val payloadKey = payload.key
-
-        // calls backend DriveStorageControllerBase.GetPayloadStream
-        val uri = "https://${authenticated.identity}/api/$appOrOwner/v1/drive/files/payload?alias=$alias&type=$type&fileId=$fileId&key=$payloadKey&xfst=128"
-
-        return uri
-    }
-
-    //
-
-    suspend fun getEncryptedPayloadUri(appOrOwner: AppOrOwner): String {
-        val plain = getPayloadUri(appOrOwner)
-        val cipher = CryptoHelper.uriWithEncryptedQueryString(plain, authenticated.sharedSecret)
-        return cipher
-    }
-
-    //
-
-    suspend fun getPayloadBytes(appOrOwner: AppOrOwner): ByteArray {
-        Logger.d("PayloadPlayground") { "Payload key: ${payload.key}" }
-
-        val encryptedUri = getEncryptedPayloadUri(appOrOwner)
-
-        Logger.d("PayloadPlayground") { "Making GET request to: $encryptedUri" }
-
-        val client = createHttpClient()
-        val response = client.get(encryptedUri) {
-            headers {
-                append("Cookie", "$ownerCookieName=${authenticated.clientAuthToken}")
-                // append(ownerCookieName, authenticated.clientAuthToken)
-            }
-        }
-
-        Logger.d("PayloadPlayground") { "Response length: ${response.contentLength()}" }
-
-        val bytes = response.body<ByteArray>()
-        Logger.d("PayloadPlayground") { "Payload length: ${bytes.size}" }
-
-        if (!isEncrypted) {
-            return bytes
-        } else {
-            val payloadIvBase64 = payload.iv ?: throw Exception("No IV found in payload descriptor")
-            val keyHeader = decryptKeyHeader() ?: throw Exception("Failed to decrypt KeyHeader")
-
-            // Decrypt the payload using the KeyHeader's AES key BUT the payload's IV
-            val payloadIv = Base64.decode(payloadIvBase64)
-            Logger.d("PayloadPlayground") { "Using payload IV: ${payloadIv.size} bytes" }
-
-            val decryptedBytes = keyHeader.decryptWithIv(bytes, payloadIv)
-            Logger.d("PayloadPlayground") { "Decrypted payload length: ${decryptedBytes.size}" }
-
-            return decryptedBytes
-        }
-    }
-
-    //
-
-    suspend fun decryptKeyHeader(): KeyHeader? {
-        if (!isEncrypted) {
-            return null
-        }
-
-        val sharedSecretBytes = Base64.decode(authenticated.sharedSecret)
-        val result =  header.sharedSecretEncryptedKeyHeader.decryptAesToKeyHeader(
-            SecureByteArray(sharedSecretBytes)
-        )
-        return result
-    }
-
-    //
-
-    fun getVideoMetaData(appOrOwner: AppOrOwner): VideoMetaData {
-        val playlistContent = payload.descriptorContent
-            ?: throw Exception("No descriptor content found in payload")
-
-        val videoMetaData = OdinSystemSerializer.deserialize<VideoMetaData>(playlistContent)
-        return videoMetaData
-
-        // if (videoMetaData.hlsPlaylist == null) {
-        //     throw Exception("No HLS playlist found in video metadata")
-        // }
-        //
-        // val hls = createHlsPlaylist(appOrOwner, videoMetaData)
-        // Logger.d("getVideoMetaData") { "HLS Playlist:\n$hls" }
-        // return hls
-    }
-
-    //
-
-}
 
