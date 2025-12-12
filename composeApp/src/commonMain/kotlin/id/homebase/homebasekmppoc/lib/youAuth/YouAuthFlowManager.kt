@@ -16,6 +16,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlin.io.encoding.Base64
 
 /** Authentication state for the YouAuth flow. */
 sealed class YouAuthState {
@@ -242,7 +243,7 @@ class YouAuthFlowManager {
             OdinClientFactory.saveCredentials(
                     identity = result.identity,
                     clientAuthToken = result.clientAuthToken,
-                    sharedSecret = kotlin.io.encoding.Base64.decode(result.sharedSecret)
+                    sharedSecret = Base64.decode(result.sharedSecret)
             )
 
             // Update state
