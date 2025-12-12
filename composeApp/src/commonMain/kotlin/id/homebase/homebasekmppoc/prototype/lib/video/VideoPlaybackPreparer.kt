@@ -1,5 +1,6 @@
 import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.prototype.lib.http.AppOrOwner
+import id.homebase.homebasekmppoc.prototype.lib.http.PayloadPlayground
 import id.homebase.homebasekmppoc.prototype.lib.http.PayloadWrapper
 import id.homebase.homebasekmppoc.prototype.lib.http.cookieNameFrom
 import id.homebase.homebasekmppoc.prototype.lib.video.LocalVideoServer
@@ -9,11 +10,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.uuid.Uuid
 
-// VideoPreparer.kt
-
-sealed class VideoPreparationResult {
-    data class Success(val url: String, val contentId: String) : VideoPreparationResult()
-    data class Error(val message: String) : VideoPreparationResult()
+sealed class VideoPlaybackPreparationResult {
+    data class Success(val url: String, val contentId: String) : VideoPlaybackPreparationResult()
+    data class Error(val message: String) : VideoPlaybackPreparationResult()
 }
 
 //
@@ -22,13 +21,20 @@ suspend fun prepareVideoContentForPlayback(
     appOrOwner: AppOrOwner,
     videoServer: LocalVideoServer,
     videoPayload: PayloadWrapper
-): VideoPreparationResult = withContext(Dispatchers.Default) {
+): VideoPlaybackPreparationResult = withContext(Dispatchers.Default) {
     try {
         val videoMetaData = videoPayload.getVideoMetaData(appOrOwner)
 
         // --- HLS Logic ---
-        if (videoMetaData.hlsPlaylist != null) {
-            val hlsPlayList = createHlsPlaylist(videoPayload, appOrOwner, videoMetaData)
+        val isHls = videoMetaData.isSegmented && (
+                (videoMetaData.hlsPlaylist != null && videoMetaData.key == null) ||
+                (videoMetaData.hlsPlaylist == null && videoMetaData.key != null))
+
+        if (isHls) {
+            Logger.i ("VideoPreparer") { "Preparing HLS video playback" }
+
+            val hlsPlayList = createHlsPlaylist(appOrOwner, videoPayload, videoMetaData)
+
             val serverUrl = videoServer.getServerUrl()
             val contentId = "video-manifest-${videoPayload.compositeKey}.m3u8"
 
@@ -50,7 +56,7 @@ suspend fun prepareVideoContentForPlayback(
                 authToken = videoPayload.authenticated.clientAuthToken
             )
 
-            return@withContext VideoPreparationResult.Success(
+            return@withContext VideoPlaybackPreparationResult.Success(
                 url = videoServer.getContentUrl(contentId),
                 contentId = contentId
             )
@@ -70,17 +76,17 @@ suspend fun prepareVideoContentForPlayback(
                 authToken = videoPayload.authenticated.clientAuthToken
             )
 
-            return@withContext VideoPreparationResult.Success(
+            return@withContext VideoPlaybackPreparationResult.Success(
                 url = videoServer.getContentUrl(contentId),
                 contentId = contentId
             )
         }
 
-        return@withContext VideoPreparationResult.Error("Segmented MP4/Unknown format not supported")
+        return@withContext VideoPlaybackPreparationResult.Error("Segmented MP4/Unknown format not supported")
 
     } catch (e: Exception) {
         Logger.e("VideoPreparer", e) { "Failed to prepare video" }
-        return@withContext VideoPreparationResult.Error(e.message ?: "Unknown error")
+        return@withContext VideoPlaybackPreparationResult.Error(e.message ?: "Unknown error")
     }
 }
 
@@ -93,19 +99,41 @@ fun unprepareVideoContent(contentId: String, videoServer: LocalVideoServer) {
 //
 
 private suspend fun createHlsPlaylist(
-    payloadWrapper: PayloadWrapper,
     appOrOwner: AppOrOwner,
+    videoPayload: PayloadWrapper,
     videoMetaData: VideoMetaData): String {
 
-    val aesKey = payloadWrapper.decryptKeyHeader()?.aesKey?.Base64Encode()
+    if (!videoMetaData.isSegmented) {
+        throw Exception("Video is not segmented; HLS playlist cannot be created")
+    }
 
-    val lines = videoMetaData.hlsPlaylist?.lines() ?: throw Exception("No HLS playlist content found")
+    if (videoMetaData.hlsPlaylist == null && videoMetaData.key == null) {
+        throw Exception("Insufficient data to create HLS playlist")
+    }
+
+    var hlsPlaylist: String
+
+    if (videoMetaData.hlsPlaylist != null) {
+        // Backwards compatibility: HLS playlist is directly in metadata
+        hlsPlaylist = videoMetaData.hlsPlaylist
+    } else {
+
+
+        //val hlsPayload = videoPayload.getPayloadBytes(appOrOwner, videoMetaData.key!!)
+        //hlsPlaylist = hlsPayload.decodeToString()
+
+        throw Exception("TODO: HLS playlist in separate payload not implemented")
+
+    }
+
+    val lines = hlsPlaylist.lines()
     if (lines.isEmpty() || !lines[0].startsWith("#EXTM3U")) {
         throw Exception("Invalid HLS playlist content")
     }
 
     val modifiedLines = ArrayList<String>(lines.size) // Pre-allocate size
 
+    val aesKey = videoPayload.decryptKeyHeader()?.aesKey?.Base64Encode()
     for (line in lines) {
         when {
             // Case 1: Encryption Key
@@ -123,7 +151,7 @@ private suspend fun createHlsPlaylist(
             }
             // Case 2: Segment URL (Not a comment/tag and not empty)
             !line.startsWith("#") && line.isNotBlank() -> {
-                val newUrl = payloadWrapper.getEncryptedPayloadUri(appOrOwner)
+                val newUrl = videoPayload.getEncryptedPayloadUri(appOrOwner)
                 modifiedLines.add(newUrl)
             }
             // Case 3: Metadata / Comments / Empty lines

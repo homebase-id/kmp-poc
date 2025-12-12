@@ -1,6 +1,6 @@
 package id.homebase.homebasekmppoc.prototype.ui.video
 
-import VideoPreparationResult
+import VideoPlaybackPreparationResult
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -25,7 +25,7 @@ fun VideoPlayerContainer(
     videoPayload: PayloadWrapper
 ) {
     // 1. Manage State
-    var viewState by remember { mutableStateOf<VideoPreparationResult?>(null) }
+    var viewState by remember { mutableStateOf<VideoPlaybackPreparationResult?>(null) }
 
     // 2. Trigger Preparation (Logic moved to helper function)
     LaunchedEffect(videoPayload) {
@@ -34,7 +34,7 @@ fun VideoPlayerContainer(
 
     // 3. Cleanup Logic
     // We derive the ID purely for the effect key
-    val activeContentId = (viewState as? VideoPreparationResult.Success)?.contentId
+    val activeContentId = (viewState as? VideoPlaybackPreparationResult.Success)?.contentId
 
     DisposableEffect(activeContentId) {
         // CAPTURE: Store the ID associated with THIS effect cycle locally.
@@ -54,14 +54,14 @@ fun VideoPlayerContainer(
             null -> {
                 CircularProgressIndicator(Modifier.align(Alignment.Center))
             }
-            is VideoPreparationResult.Error -> {
+            is VideoPlaybackPreparationResult.Error -> {
                 Text(
                     text = "Unable to load video: ${state.message}",
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.align(Alignment.Center)
                 )
             }
-            is VideoPreparationResult.Success -> {
+            is VideoPlaybackPreparationResult.Success -> {
                 // If this is HLS, state.url is the Manifest. If MP4, it's the direct link.
                 // We delegate to the HLS player (which handles proxied files)
                 // or the standard player depending on your preference.
