@@ -3,6 +3,7 @@ package id.homebase.homebasekmppoc.di
 import id.homebase.homebasekmppoc.lib.youAuth.OdinClientFactory
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthProvider
+import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
 import id.homebase.homebasekmppoc.ui.screens.home.HomeViewModel
 import id.homebase.homebasekmppoc.ui.screens.login.LoginViewModel
@@ -26,16 +27,18 @@ val appModule = module {
     // YouAuthProvider - factory that creates new instance with OdinClient
     factory { (odinClient: OdinClient) -> YouAuthProvider(odinClient) }
 
+    // DriveQueryProvider - factory that creates instance with OdinClient (null-safe)
+    factory<DriveQueryProvider?> {
+        val odinClient: OdinClient? = get()
+        odinClient?.let { DriveQueryProvider(it) }
+    }
+
     // YouAuthFlowManager - the main auth flow manager for UI
     singleOf(::YouAuthFlowManager)
 
     // ViewModels
     viewModelOf(::LoginViewModel)
     viewModelOf(::HomeViewModel)
-
-    // Add more dependencies here as needed:
-    // singleOf(::SomeRepository)
-    // factoryOf(::SomeUseCase)
 }
 
 /**

@@ -12,8 +12,12 @@ import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -27,37 +31,56 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import co.touchlab.kermit.Logger
+import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
+import id.homebase.homebasekmppoc.lib.youAuth.YouAuthState
+import id.homebase.homebasekmppoc.prototype.lib.drives.FileQueryParams
+import id.homebase.homebasekmppoc.prototype.lib.drives.FileState
+import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchRequest
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResponse
-import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthState
-import id.homebase.homebasekmppoc.prototype.lib.drives.DriveQueryProvider
-import id.homebase.homebasekmppoc.prototype.lib.youauth.YouAuthManager
+import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResultOptionsRequest
+import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.prototype.ui.app.feedTargetDrive
 import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun DriveFetchPage(youAuthManager: YouAuthManager) {
-    val authState by youAuthManager.youAuthState.collectAsState()
+fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () -> Unit) {
+    val authState by youAuthFlowManager.authState.collectAsState()
     var queryBatchResponse by remember { mutableStateOf<QueryBatchResponse?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var isRefreshing by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
 
-    fun refresh(state: AuthState.Authenticated) {
+    // Inject DriveQueryProvider from Koin
+    val driveQueryProvider: DriveQueryProvider? = koinInject()
+
+    fun refresh() {
+        val provider = driveQueryProvider
+        if (provider == null) {
+            errorMessage = "Not authenticated - no credentials stored"
+            return
+        }
+
         isLoading = true
         errorMessage = null
         coroutineScope.launch {
             try {
-                val dqr = DriveQueryProvider.create()
-                queryBatchResponse =
-                    dqr.queryBatch(
-                        state.identity,
-                        state.clientAuthToken,
-                        state.sharedSecret,
-                        feedTargetDrive.alias.toString(),
-                        feedTargetDrive.type.toString(),
-                    )
+                val request =
+                        QueryBatchRequest(
+                                queryParams =
+                                        FileQueryParams(
+                                                targetDrive = feedTargetDrive,
+                                                fileState = listOf(FileState.Active)
+                                        ),
+                                resultOptionsRequest =
+                                        QueryBatchResultOptionsRequest(
+                                                maxRecords = 1000,
+                                                includeMetadataHeader = true,
+                                        )
+                        )
+                queryBatchResponse = provider.queryBatch(request)
             } catch (e: Exception) {
                 Logger.e("Error fetching Drive Fetch data", e)
                 errorMessage = e.message ?: "Unknown error"
@@ -68,12 +91,16 @@ fun DriveFetchPage(youAuthManager: YouAuthManager) {
         }
     }
 
-    val pullRefreshState = rememberPullRefreshState(isRefreshing, {
-        if (authState is AuthState.Authenticated) {
-            isRefreshing = true
-            refresh(authState as AuthState.Authenticated)
-        }
-    })
+    val pullRefreshState =
+            rememberPullRefreshState(
+                    isRefreshing,
+                    {
+                        if (authState is YouAuthState.Authenticated) {
+                            isRefreshing = true
+                            refresh()
+                        }
+                    }
+            )
 
     // Reset state when auth changes
     LaunchedEffect(authState) {
@@ -83,49 +110,61 @@ fun DriveFetchPage(youAuthManager: YouAuthManager) {
         isRefreshing = false
     }
 
-    Box(modifier = Modifier.fillMaxSize().pullRefresh(pullRefreshState)) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+    Scaffold(
+            topBar = {
+                TopAppBar(
+                        title = { Text("Drive Fetch") },
+                        navigationIcon = {
+                            IconButton(onClick = onNavigateBack) {
+                                Text("←", style = MaterialTheme.typography.headlineMedium)
+                            }
+                        }
+                )
+            }
+    ) { paddingValues ->
+        Box(
+                modifier =
+                        Modifier.fillMaxSize().padding(paddingValues).pullRefresh(pullRefreshState)
         ) {
-            Text(text = "Drive Fetch", style = MaterialTheme.typography.headlineMedium)
+            Column(
+                    modifier = Modifier.fillMaxSize().padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                when (authState) {
+                    is YouAuthState.Authenticated -> {
+                        Button(onClick = { refresh() }, enabled = !isLoading) {
+                            Text(if (isLoading) "Fetching..." else "Fetch Files")
+                        }
 
-            Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
-            when (val state = authState) {
-                is AuthState.Authenticated -> {
-                    Button(
-                        onClick = {
-                            refresh(state)
-                        },
-                        enabled = !isLoading
-                    ) { Text(if (isLoading) "Fetching..." else "Fetch Files") }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    if (isLoading) {
-                        CircularProgressIndicator()
-                    } else if (errorMessage != null) {
-                        Text(text = "Error: $errorMessage", color = MaterialTheme.colorScheme.error)
-                    } else {
-                        queryBatchResponse?.let { response ->
-                            DriveFetchList(items = response.searchResults)
+                        if (isLoading) {
+                            CircularProgressIndicator()
+                        } else if (errorMessage != null) {
+                            Text(
+                                    text = "Error: $errorMessage",
+                                    color = MaterialTheme.colorScheme.error
+                            )
+                        } else {
+                            queryBatchResponse?.let { response ->
+                                DriveFetchList(items = response.searchResults)
+                            }
                         }
                     }
-                }
-                else -> {
-                    Text(
-                        text = "Please authenticate in the App tab first.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center
-                    )
+                    else -> {
+                        Text(
+                                text = "Please authenticate in the App tab first.",
+                                style = MaterialTheme.typography.bodyLarge,
+                                textAlign = TextAlign.Center
+                        )
+                    }
                 }
             }
+            PullRefreshIndicator(
+                    refreshing = isRefreshing,
+                    state = pullRefreshState,
+                    modifier = Modifier.align(Alignment.TopCenter)
+            )
         }
-        PullRefreshIndicator(
-            refreshing = isRefreshing,
-            state = pullRefreshState,
-            modifier = Modifier.align(Alignment.TopCenter)
-        )
     }
 }
