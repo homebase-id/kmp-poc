@@ -33,18 +33,20 @@ class HeaderWrapper(
 
     //
 
-    fun getPayloadDescriptor(key: String): PayloadDescriptor {
+    fun getPayloadWrapper(key: String): PayloadWrapper {
         val payload = payloads.find { it.key == key }
         if (payload == null) {
             throw Exception("Payload with key $key not found")
         }
-        return payload
+        return PayloadWrapper(authenticated, header, payload)
     }
 
     //
 
-    fun getVideoPayloadDescriptors(): List<PayloadDescriptor> {
-        return payloads.filter { it.contentType?.contains("video") == true }
+    fun getVideoPayloadWrappers(): List<PayloadWrapper> {
+        return payloads
+            .filter { it.contentType?.contains("video") == true }
+            .map { payloadDescriptor -> PayloadWrapper(authenticated, header, payloadDescriptor) }
     }
 
     //

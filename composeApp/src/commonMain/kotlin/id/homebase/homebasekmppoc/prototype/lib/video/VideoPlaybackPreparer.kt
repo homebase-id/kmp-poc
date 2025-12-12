@@ -1,4 +1,5 @@
 import co.touchlab.kermit.Logger
+import id.homebase.homebasekmppoc.lib.serialization.OdinSystemSerializer
 import id.homebase.homebasekmppoc.prototype.lib.drives.PayloadDescriptor
 import id.homebase.homebasekmppoc.prototype.lib.http.AppOrOwner
 import id.homebase.homebasekmppoc.prototype.lib.http.PayloadWrapper
@@ -23,14 +24,24 @@ suspend fun prepareVideoContentForPlayback(
     videoPayload: PayloadWrapper
 ): VideoPlaybackPreparationResult = withContext(Dispatchers.Default) {
     try {
-        val videoMetaData = videoPayload.getVideoMetaData(appOrOwner)
+        var videoMetaData = videoPayload.getVideoMetaData(appOrOwner)
 
-        // --- HLS Logic ---
+        //
+        // HLS
+        //
         val isHls = videoMetaData.isSegmented && (
                 (videoMetaData.hlsPlaylist != null && videoMetaData.key == null) ||
                 (videoMetaData.hlsPlaylist == null && videoMetaData.key != null))
 
         if (isHls) {
+
+            // For HLS, when hlsPlaylist is null, we need to get a new VideoMetaData from a different payload
+            if (videoMetaData.hlsPlaylist == null) {
+                val videoMetaDataPayload = videoPayload.headerWrapper.getPayloadWrapper(videoMetaData.key!!)
+                val json = videoMetaDataPayload.getPayloadBytes(appOrOwner).decodeToString()
+                videoMetaData = OdinSystemSerializer.deserialize<VideoMetaData>(json)
+            }
+
             Logger.i ("VideoPreparer") { "Preparing HLS video playback" }
 
             val hlsPlayList = createHlsPlaylist(
@@ -110,24 +121,11 @@ private suspend fun createHlsPlaylist(
         throw Exception("Video is not segmented; HLS playlist cannot be created")
     }
 
-    if (videoMetaData.hlsPlaylist == null && videoMetaData.key == null) {
+    if (videoMetaData.hlsPlaylist == null) {
         throw Exception("Insufficient data to create HLS playlist")
     }
 
-    var hlsPlaylist: String
-
-    if (videoMetaData.hlsPlaylist != null) {
-        // Backwards compatibility: HLS playlist is directly in metadata
-        hlsPlaylist = videoMetaData.hlsPlaylist
-    } else {
-
-
-        //val hlsPayload = videoPayload.getPayloadBytes(appOrOwner, videoMetaData.key!!)
-        //hlsPlaylist = hlsPayload.decodeToString()
-
-        throw Exception("TODO: HLS playlist in separate payload not implemented")
-
-    }
+    val hlsPlaylist = videoMetaData.hlsPlaylist
 
     val lines = hlsPlaylist.lines()
     if (lines.isEmpty() || !lines[0].startsWith("#EXTM3U")) {

@@ -13,7 +13,7 @@ plugins {
 val testImagesDir = project.file("src/commonTest/resources/test-images").absolutePath
 
 kotlin {
-    // explicitApi() // or explicitApiWarning()
+    // explicitApi()
 
     // Global opt-ins
     sourceSets.all {
