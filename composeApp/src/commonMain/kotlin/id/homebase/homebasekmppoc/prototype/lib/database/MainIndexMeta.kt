@@ -1,9 +1,9 @@
 package id.homebase.homebasekmppoc.prototype.lib.database
 
-import id.homebase.homebasekmppoc.lib.database.DriveLocalTagIndex
 import id.homebase.homebasekmppoc.lib.database.DriveMainIndex
-import id.homebase.homebasekmppoc.lib.database.DriveTagIndex
 import id.homebase.homebasekmppoc.lib.database.OdinDatabase
+import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
+import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.QueryBatchCursor
 import kotlin.uuid.Uuid
 
@@ -17,36 +17,25 @@ object MainIndexMetaHelpers {
      */
     fun upsertDriveMainIndex(
        database: OdinDatabase,
-       driveMainIndex: DriveMainIndex
+       driveMainIndexRecord: DriveMainIndex
     ) {
         database.driveMainIndexQueries.upsertDriveMainIndex(
-            identityId = driveMainIndex.identityId,
-            driveId = driveMainIndex.driveId,
-            fileId = driveMainIndex.fileId,
-            globalTransitId = driveMainIndex.globalTransitId,
-            fileState = driveMainIndex.fileState,
-            requiredSecurityGroup = driveMainIndex.requiredSecurityGroup,
-            fileSystemType = driveMainIndex.fileSystemType,
-            userDate = driveMainIndex.userDate,
-            fileType = driveMainIndex.fileType,
-            dataType = driveMainIndex.dataType,
-            archivalStatus = driveMainIndex.archivalStatus,
-            historyStatus = driveMainIndex.historyStatus,
-            senderId = driveMainIndex.senderId,
-            groupId = driveMainIndex.groupId,
-            uniqueId = driveMainIndex.uniqueId,
-            byteCount = driveMainIndex.byteCount,
-            hdrEncryptedKeyHeader = driveMainIndex.hdrEncryptedKeyHeader,
-            hdrVersionTag = driveMainIndex.hdrVersionTag,
-            hdrAppData = driveMainIndex.hdrAppData,
-            hdrLocalVersionTag = driveMainIndex.hdrLocalVersionTag,
-            hdrLocalAppData = driveMainIndex.hdrLocalAppData,
-            hdrReactionSummary = driveMainIndex.hdrReactionSummary,
-            hdrServerData = driveMainIndex.hdrServerData,
-            hdrTransferHistory = driveMainIndex.hdrTransferHistory,
-            hdrFileMetaData = driveMainIndex.hdrFileMetaData,
-            created = driveMainIndex.created,
-            modified = driveMainIndex.modified
+            identityId = driveMainIndexRecord.identityId,
+            driveId = driveMainIndexRecord.driveId,
+            fileId = driveMainIndexRecord.fileId,
+            globalTransitId = driveMainIndexRecord.globalTransitId,
+            uniqueId = driveMainIndexRecord.uniqueId,
+            groupId = driveMainIndexRecord.groupId,
+            senderId = driveMainIndexRecord.senderId,
+            fileType = driveMainIndexRecord.fileType,
+            dataType = driveMainIndexRecord.dataType,
+            archivalStatus = driveMainIndexRecord.archivalStatus,
+            historyStatus = driveMainIndexRecord.historyStatus,
+            userDate = driveMainIndexRecord.userDate,
+            created = driveMainIndexRecord.created,
+            modified = driveMainIndexRecord.modified,
+            systemFileType = driveMainIndexRecord.systemFileType,
+            jsonHeader = driveMainIndexRecord.jsonHeader,
         )
     }
 }
@@ -55,7 +44,7 @@ object MainIndexMetaHelpers {
  * Processes file metadata with associated tags from different index tables.
  * Takes a DriveMainIndex record and lists of DriveTagIndex and DriveLocalTagIndex records.
  */
-class FileMetadataProcessor(
+class FileHeaderProcessor(
     private val database: OdinDatabase
 ) {
 
@@ -66,48 +55,108 @@ class FileMetadataProcessor(
         fileId : Uuid
     ) {
         database.transaction {
-            database.driveMainIndexQueries.deleteBy(identityId, driveId, fileId);
-            database.driveTagIndexQueries.deleteByFile(identityId,driveId,fileId);
-            database.driveLocalTagIndexQueries.deleteByFile(identityId,driveId,fileId);
+            database.driveMainIndexQueries.deleteBy(identityId, driveId, fileId)
+            database.driveTagIndexQueries.deleteByFile(identityId,driveId,fileId)
+            database.driveLocalTagIndexQueries.deleteByFile(identityId,driveId,fileId)
         }
     }
 
 
     /**
-     * Stores driveMainIndex and tags and optionally a cursor in one commit
-     * @param driveMainIndex The main file record
-     * @param tagIndexRecords List of tag index records for this file
-     * @param localTagIndexRecords List of local tag index records for this file
+     * Converts SharedSecretEncryptedFileHeader to ParsedHeaderResult
+     * 
+     * @param identityId Identity ID (required, not in header)
+     * @param driveId Drive ID (required, not in header)
+     * @param header SharedSecretEncryptedFileHeader containing file metadata
+     * @return ParsedHeaderResult containing DriveMainIndex and tag records
+     */
+    fun convertFileHeaderToDriveMainIndexRecord(
+        identityId: Uuid,
+        driveId: Uuid,
+        header: SharedSecretEncryptedFileHeader
+    ): DriveMainIndex {
+        // Serialize header back to JSON for storage
+        val jsonHeader = OdinSystemSerializer.serialize(header)
+
+        val driveMainIndex = DriveMainIndex(
+            rowId = 0L, // Will be auto-generated by database
+            identityId = identityId,
+            driveId = driveId,
+            fileId = header.fileId,
+            uniqueId = header.fileMetadata.appData.uniqueId,
+            globalTransitId = header.fileMetadata.globalTransitId,
+            senderId = header.fileMetadata.senderOdinId,
+            groupId = header.fileMetadata.appData.groupId,
+            fileType = (header.fileMetadata.appData.fileType ?: 0).toLong(),
+            dataType = (header.fileMetadata.appData.dataType ?: 0).toLong(),
+            archivalStatus = (header.fileMetadata.appData.archivalStatus?.value ?: 0).toLong(),
+            historyStatus = 0L,
+            userDate = header.fileMetadata.appData.userDate ?: 0L,
+            created = header.fileMetadata.created.milliseconds,
+            modified = header.fileMetadata.updated.milliseconds,
+            systemFileType = 0L, // Default value
+            jsonHeader = jsonHeader
+        )
+
+        return driveMainIndex
+    }
+
+    /**
+     * Converts DriveMainIndex.jsonHeader back to SharedSecretEncryptedFileHeader
+     * This is the inverse function of convertFileHeaderToDriveMainIndexRecord
+     * 
+     * @param driveMainIndex DriveMainIndex record containing the jsonHeader
+     * @return SharedSecretEncryptedFileHeader reconstructed from the stored JSON
+     * @throws Exception if JSON deserialization fails
+     */
+    fun convertDriveMainIndexRecordToFileHeader(
+        driveMainIndex: DriveMainIndex
+    ): SharedSecretEncryptedFileHeader {
+        return OdinSystemSerializer.deserialize<SharedSecretEncryptedFileHeader>(driveMainIndex.jsonHeader)
+    }
+
+    /**
+     * Upserts multiple file entries into the database using the provided SharedSecretEncryptedFileHeaders
+     * All operations are performed within a single database transaction for atomicity.
+     * 
+     * @param identityId Identity ID (required, not in header)
+     * @param driveId Drive ID (required, not in header)
+     * @param fileHeaders List of SharedSecretEncryptedFileHeader containing file metadata
      * @param cursor Optional current cursor to be saved
      */
     fun BaseUpsertEntryZapZap(
-        driveMainIndex: DriveMainIndex,
-        tagIndexRecords: List<DriveTagIndex>,
-        localTagIndexRecords: List<DriveLocalTagIndex>,
+        identityId: Uuid,
+        driveId: Uuid,
+        fileHeaders: List<SharedSecretEncryptedFileHeader>,
         cursor : QueryBatchCursor?
     ) {
         database.transaction {
-            MainIndexMetaHelpers.upsertDriveMainIndex(database, driveMainIndex);
+            fileHeaders.forEach { fileHeader ->
+                // Convert SharedSecretEncryptedFileHeader to extract DriveMainIndex fields and tag records
+                val driveMainIndexRecord = convertFileHeaderToDriveMainIndexRecord(identityId, driveId, fileHeader)
 
-            database.driveTagIndexQueries.deleteByFile(identityId = driveMainIndex.identityId, driveId = driveMainIndex.driveId, fileId = driveMainIndex.fileId);
-            database.driveLocalTagIndexQueries.deleteByFile(identityId = driveMainIndex.identityId, driveId = driveMainIndex.driveId, fileId = driveMainIndex.fileId);
+                MainIndexMetaHelpers.upsertDriveMainIndex(database, driveMainIndexRecord)
 
-            tagIndexRecords.forEach { tagRecord ->
-                database.driveTagIndexQueries.insertTag(
-                    identityId = tagRecord.identityId,
-                    driveId = tagRecord.driveId,
-                    fileId = tagRecord.fileId,
-                    tagId = tagRecord.tagId
-                )
-            }
+                database.driveTagIndexQueries.deleteByFile(identityId = identityId, driveId = driveId, fileId = driveMainIndexRecord.fileId)
+                database.driveLocalTagIndexQueries.deleteByFile(identityId = identityId, driveId = driveId, fileId = driveMainIndexRecord.fileId)
 
-            localTagIndexRecords.forEach { localTagRecord ->
-                database.driveLocalTagIndexQueries.insertLocalTag(
-                    identityId = localTagRecord.identityId,
-                    driveId = localTagRecord.driveId,
-                    fileId = localTagRecord.fileId,
-                    tagId = localTagRecord.tagId
-                )
+                fileHeader.fileMetadata.appData.tags?.forEach { tagRecord ->
+                    database.driveTagIndexQueries.insertTag(
+                        identityId = identityId,
+                        driveId = driveId,
+                        fileId = driveMainIndexRecord.fileId,
+                        tagId = tagRecord
+                    )
+                }
+
+                fileHeader.fileMetadata.localAppData?.tags?.forEach { tagRecord ->
+                    database.driveLocalTagIndexQueries.insertLocalTag(
+                        identityId = identityId,
+                        driveId = driveId,
+                        fileId = driveMainIndexRecord.fileId,
+                        tagId = tagRecord
+                    )
+                }
             }
 
             if (cursor != null)
@@ -116,5 +165,23 @@ class FileMetadataProcessor(
                 cursorSync.saveCursor(cursor)
             }
         }
+    }
+
+    /**
+     * Upserts a single file entry into the database using the provided SharedSecretEncryptedFileHeader
+     * This is a backwards-compatible helper that calls the batch version with a single-item list.
+     * 
+     * @param identityId Identity ID (required, not in header)
+     * @param driveId Drive ID (required, not in header)
+     * @param fileHeader SharedSecretEncryptedFileHeader containing file metadata
+     * @param cursor Optional current cursor to be saved
+     */
+    fun BaseUpsertEntryZapZap(
+        identityId: Uuid,
+        driveId: Uuid,
+        fileHeader: SharedSecretEncryptedFileHeader,
+        cursor : QueryBatchCursor?
+    ) {
+        BaseUpsertEntryZapZap(identityId, driveId, listOf(fileHeader), cursor)
     }
 }

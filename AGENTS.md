@@ -8,30 +8,256 @@ This is a Kotlin Multiplatform (KMP) project targeting Android and iOS, built wi
 
 **Package:** `id.homebase.homebasekmppoc`
 
+## Current Development Context
+
+### App Architecture
+
+The application uses **Navigation 3** with type-safe routes and **Koin** for dependency injection:
+
+- **Entry Point**: `App.kt` - Sets up Koin, theme, and navigation
+- **Navigation**: `ui/navigation/AppNavHost.kt` - Defines all routes using MVI Mvvm pattern
+- **Architecture**: Strict MVI-styled MVVM (Single State, Single Action, One-off Events)
+- **Theme**: `ui/theme/` - Material 3 theme with dark/light mode support
+- **DI**: `di/AppModule.kt` - Koin modules for dependency injection
+
+### Project Structure
+
+```
+composeApp/src/commonMain/kotlin/id/homebase/homebasekmppoc/
+├── App.kt                    # Main entry point with Koin & Navigation
+├── di/                       # Dependency Injection
+│   └── AppModule.kt          # Koin module definitions
+├── lib/                      # Shared library code (reusable components)
+│   ├── core/                 # Core utilities (SecureByteArray, etc.)
+│   ├── crypto/               # Cryptography (ECC, AES, HKDF, etc.)
+│   ├── drives/               # Drive API models and queries
+│   ├── http/                 # HTTP utilities (UriBuilder, etc.)
+│   ├── image/                # Image processing utilities
+│   ├── serialization/        # JSON serialization (OdinSystemSerializer)
+│   ├── storage/              # Secure storage (SecureStorage expect/actual)
+│   └── youAuth/              # YouAuth authentication (NEW)
+│       ├── ClientType.kt             # domain/app enum
+│       ├── DrivePermissionType.kt    # Bitwise permissions (Read=1, Write=2, etc.)
+│       ├── TargetDriveAccessRequest.kt # Drive access params
+│       ├── YouAuthorizationParams.kt # OAuth authorization params
+│       ├── AppAuthorizationParams.kt # App-level auth params
+│       ├── YouAuthTokenResponse.kt   # Token response
+│       ├── YouAuthStorageKeys.kt     # SecureStorage keys
+│       ├── OdinClientFactory.kt      # Creates OdinClient from storage
+│       ├── YouAuthProvider.kt        # HTTP-level auth operations
+│       └── YouAuthFlowManager.kt     # Complete auth flow with state
+├── ui/                       # UI layer
+│   ├── navigation/           # Navigation components
+│   │   ├── Routes.kt         # Type-safe route definitions
+│   │   ├── AuthGuard.kt      # Auth protection wrapper
+│   │   └── AppNavHost.kt     # Navigation host
+│   ├── screens/              # Screen composables
+│   │   ├── LoginScreen.kt    # Login/auth screen
+│   │   └── HomeScreen.kt     # Main home screen
+│   └── theme/                # Theming
+│       ├── Color.kt          # Light/dark color palettes
+│       ├── Type.kt           # Typography
+│       └── Theme.kt          # HomebaseTheme composable
+└── prototype/                # Prototype/testing code (will be refactored)
+    ├── lib/                  # Feature-specific libraries
+    │   ├── authentication/   # AuthenticationManager, AuthState
+    │   ├── youauth/          # Legacy YouAuthManager (being replaced)
+    │   ├── drives/           # DriveQueryProvider
+    │   ├── database/         # Database operations
+    │   ├── http/             # HTTP client creation
+    │   ├── video/            # Video handling
+    │   └── websockets/       # WebSocket client
+    └── ui/                   # Legacy UI pages
+```
+
+
+### Secure Storage (SecureStorage)
+
+Cross-platform secure key-value storage using platform-native mechanisms:
+
+| Platform | Mechanism | Location |
+|----------|-----------|----------|
+| Android | Android KeyStore + AES-GCM | `androidMain/.../lib/storage/SecureStorage.android.kt` |
+| iOS | Keychain Services | `iosMain/.../lib/storage/SecureStorage.ios.kt` |
+| Desktop | Java KeyStore (PKCS12) + AES-GCM | `desktopMain/.../lib/storage/SecureStorage.desktop.kt` |
+
+**Usage:**
+```kotlin
+// Android: Initialize with context first
+SecureStorage.initialize(context)
+
+// All platforms
+SecureStorage.put("key", "sensitive_value")
+val value = SecureStorage.get("key")
+SecureStorage.remove("key")
+SecureStorage.contains("key")
+SecureStorage.clear()
+```
+
+**Notes:**
+- Android requires `initialize(context)` before any other operation
+- iOS Keychain doesn't work in simulator test environment (tests skipped)
+- Desktop stores encrypted data in `~/.homebase-kmp-poc/`
+
+### Dependency Injection (Koin)
+
+See [DEPENDENCY_INJECTION.md](./DEPENDENCY_INJECTION.md) for detailed guide.
+
+**Quick Reference:**
+```kotlin
+// Inject in Composable
+val myService: MyService = koinInject()
+
+// Register in di/AppModule.kt
+val appModule = module {
+    singleOf(::MyService)  // Singleton
+    factoryOf(::MyUseCase) // New instance each call
+}
+```
+
+### MVI Architecture (Strict)
+
+The UI follows a strict MVI-styled MVVM pattern to ensure unidirectional data flow and easy testing.
+
+**Core Rules:**
+1.  **Single State**: The UI observes a single immutable `data class [Feature]UiState`.
+2.  **Single Entry Point**: The ViewModel exposes exactly ONE public function: `fun onAction(action: [Feature]UiAction)`.
+3.  **Actions**: User interactions are defined as a sealed interface `[Feature]UiAction`.
+4.  **One-Off Events**: Side effects (navigation, snackbars) use a `Channel<[Feature]UiEvent>` exposed as a `Flow`.
+5.  **Dumb Composables**: UI components only take `state` and `(Action) -> Unit`. Logic resides in the Witness.
+
+**Example Structure:**
+```kotlin
+// Contract
+data class LoginUiState(...)
+sealed interface LoginUiAction { ... }
+sealed interface LoginUiEvent { ... }
+
+// ViewModel
+class LoginViewModel : ViewModel() {
+    val uiState = MutableStateFlow(LoginUiState())
+    val uiEvent = Channel<LoginUiEvent>()
+    
+    fun onAction(action: LoginUiAction) { ... }
+}
+
+// Composable
+@Composable
+fun LoginScreen(state: LoginUiState, onAction: (LoginUiAction) -> Unit) { ... }
+```
+
+
+
+### YouAuth Authentication System
+
+The app implements browser-based OAuth2-like authentication using the new `lib/youAuth/` module:
+
+**Architecture:**
+```
+LoginViewModel → YouAuthFlowManager → YouAuthProvider → OdinClient
+                       ↓
+               OdinClientFactory → SecureStorage
+```
+
+**Key Components (lib/youAuth/):**
+- `YouAuthFlowManager` - Main entry point for UI, manages auth state and browser flow
+- `YouAuthProvider` - HTTP-level operations (token verification, exchange)
+- `OdinClientFactory` - Creates `OdinClient` from stored credentials
+- `DrivePermissionType` - Bitwise permissions (Read=1, Write=2, React=4, Comment=8)
+- `TargetDriveAccessRequest` - Drive access request with serialization
+
+**Authentication State (`YouAuthState` sealed class):**
+- `Unauthenticated` - Initial state
+- `Authenticating` - Browser launched, waiting for callback
+- `Authenticated(identity, clientAuthToken, sharedSecret)` - Successfully authenticated
+- `Error(message)` - Authentication failed
+
+**Usage in LoginViewModel:**
+```kotlin
+class LoginViewModel(
+    private val youAuthFlowManager: YouAuthFlowManager
+) : ViewModel() {
+    // Observe auth state
+    youAuthFlowManager.authState.collect { state -> ... }
+    
+    // Start auth flow
+    youAuthFlowManager.authorize(
+        identity = "user.homebase.id",
+        scope = viewModelScope,
+        appId = "my-app-id",
+        appName = "My App"
+    )
+}
+```
+
+**Credential Persistence:**
+Credentials are automatically saved to `SecureStorage` after successful authentication:
+```kotlin
+// Check for existing session
+if (youAuthFlowManager.restoreSession()) { /* Already authenticated */ }
+
+// Manually check credentials
+if (OdinClientFactory.hasStoredCredentials()) { ... }
+
+// Clear credentials (logout)
+youAuthFlowManager.logout()
+```
+
+**Legacy Components (prototype/lib/youauth/):**
+- `YouAuthManager` - Original implementation (being replaced)
+- `YouAuthCallbackRouter` - Routes deeplink callbacks
+
+
+### Drive Fetch Feature (Recently Implemented)
+
+Located in `prototype/ui/driveFetch/`:
+
+- **`DriveFetchPage.kt`** - Main page that:
+  - Requires prior authentication from App tab
+  - Fetches files from authenticated user's drive
+  - Uses `DriveQueryProvider.create().queryBatch()` to fetch data
+  - Displays results in `DriveFetchList`
+
+- **`DriveFetchList.kt`** - Display component for drive items:
+  - `DriveFetchList` - LazyColumn of file headers
+  - `DriveFetchItemCard` - Card displaying file ID and content
+
+**Usage Flow:**
+1. Authenticate in App tab (YouAuth with app permissions)
+2. Navigate to use Drive Fetch functionality
+3. Click "Fetch Files" to call `queryBatch` API
+4. Results displayed as list of `SharedSecretEncryptedFileHeader`
+
+### Known Issues & Recent Work
+
+- **YouAuth callback routing** - Fixed "lateinit property instance has not been initialized" by implementing `YouAuthCallbackRouter` to properly route callbacks to the correct `YouAuthManager` instance
+- **State persistence** - `YouAuthManager` instances are hoisted to `App.kt` level to survive tab navigation
+- **Token exchange** - Sometimes returns 404, related to `exchangeSecretDigest` encoding compatibility across platforms (marked as TODO in code)
+
 ## Build Commands
 
 ### Android
 
 ```bash
-./gradlew :composeApp:assembleDebug          # Build debug APK
-./gradlew :composeApp:assembleRelease        # Build release APK
-./gradlew build                               # Build entire project
+gradlew :composeApp:assembleDebug          # Build debug APK
+gradlew :composeApp:assembleRelease        # Build release APK
+gradlew build                               # Build entire project
 ```
 
 ### Testing
 
 ```bash
-./gradlew test                                # Run all tests
-./gradlew :composeApp:testDebugUnitTest      # Run Android unit tests
-./gradlew test --tests "id.homebase.homebasekmppoc.ComposeAppCommonTest.example"  # Run specific test
+gradlew test                                # Run all tests
+gradlew :composeApp:testDebugUnitTest      # Run Android unit tests
+gradlew test --tests "id.homebase.homebasekmppoc.ComposeAppCommonTest.example"  # Run specific test
 ```
 
 ### Other Commands
 
 ```bash
-./gradlew lint                                # Lint code
-./gradlew lintFix                             # Auto-fix lint issues
-./gradlew clean                               # Clean build artifacts
+gradlew lint                                # Lint code
+gradlew lintFix                             # Auto-fix lint issues
+gradlew clean                               # Clean build artifacts
 ```
 
 ## Architecture
@@ -368,7 +594,7 @@ kotlin {
   - `compileOnly` - Needed at compile time only
 - **Group related libraries** - Use same version reference
 - **Keep alphabetical** - Easier to find and avoid duplicates
-- **Update gradle wrapper** - `./gradlew wrapper --gradle-version=8.14.3`
+- **Update gradle wrapper** - `gradlew wrapper --gradle-version=8.14.3`
 
 #### DON'T ❌
 
@@ -386,15 +612,15 @@ After adding dependencies:
 
 ```bash
 # Sync Gradle
-./gradlew --refresh-dependencies
+gradlew --refresh-dependencies
 
 # Clean build
-./gradlew clean build
+gradlew clean build
 
 # Verify all platforms compile
-./gradlew compileKotlinAndroid
-./gradlew compileKotlinIosSimulatorArm64
-./gradlew compileKotlinDesktop
+gradlew compileKotlinAndroid
+gradlew compileKotlinIosSimulatorArm64
+gradlew compileKotlinDesktop
 ```
 
 ### Troubleshooting Dependencies
@@ -403,7 +629,7 @@ After adding dependencies:
 **Solution:**
 
 1. Check dependency is in correct sourceSet (commonMain vs androidMain)
-2. Run `./gradlew --refresh-dependencies`
+2. Run `gradlew --refresh-dependencies`
 3. Invalidate caches in IDE
 
 **Problem:** "Duplicate class" error
@@ -427,13 +653,13 @@ configurations.all {
 
 ```bash
 # Check for dependency updates
-./gradlew dependencyUpdates
+gradlew dependencyUpdates
 
 # View dependency tree
-./gradlew :composeApp:dependencies
+gradlew :composeApp:dependencies
 
 # Check specific configuration
-./gradlew :composeApp:dependencies --configuration commonMainCompileClasspath
+gradlew :composeApp:dependencies --configuration commonMainCompileClasspath
 ```
 
 Key dependencies (defined in `gradle/libs.versions.toml` and `build.gradle.kts`):
@@ -710,24 +936,24 @@ kotlin {
 
 ```bash
 # Run ALL tests (all platforms)
-./gradlew test
+gradlew test
 
 # Android tests only
-./gradlew testDebugUnitTest
-./gradlew testDebugUnitTest --tests "id.homebase.homebasekmppoc.{feature}.FeatureAndroidTest"
+gradlew testDebugUnitTest
+gradlew testDebugUnitTest --tests "id.homebase.homebasekmppoc.{feature}.FeatureAndroidTest"
 
 # Single Android test
-./gradlew testDebugUnitTest --tests "id.homebase.homebasekmppoc.{feature}.FeatureAndroidTest.specificTest"
+gradlew testDebugUnitTest --tests "id.homebase.homebasekmppoc.{feature}.FeatureAndroidTest.specificTest"
 
 # iOS tests
-./gradlew iosSimulatorArm64Test
-./gradlew iosArm64Test
+gradlew iosSimulatorArm64Test
+gradlew iosArm64Test
 
 # Desktop tests
-./gradlew desktopTest
+gradlew desktopTest
 
 # With detailed output
-./gradlew test --info
+gradlew test --info
 
 # View test reports
 open composeApp/build/reports/tests/testDebugUnitTest/index.html

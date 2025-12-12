@@ -7,7 +7,6 @@ import kotlinx.serialization.Serializable
 /**
  * Query batch result options request model
  *
- * Ported from C# Odin.Services.Drives.QueryBatchResultOptionsRequest
  */
 @Serializable
 data class QueryBatchResultOptionsRequest(
@@ -40,7 +39,7 @@ data class QueryBatchResultOptionsRequest(
             cursor = if (cursorState.isNullOrEmpty()) {
                 QueryBatchCursor()
             } else {
-                QueryBatchCursor.fromJson(cursorState)
+                QueryBatchCursor.Companion.fromJson(cursorState)
             },
             maxRecords = maxRecords,
             includeHeaderContent = includeMetadataHeader,
@@ -51,6 +50,6 @@ data class QueryBatchResultOptionsRequest(
     }
 
     companion object {
-        val Default = QueryBatchResultOptionsRequest(maxRecords = 10)
+        val Default = QueryBatchResultOptionsRequest(maxRecords = 10, includeMetadataHeader = true)
     }
 }

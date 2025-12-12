@@ -7,6 +7,7 @@ import id.homebase.homebasekmppoc.prototype.lib.core.SecureByteArray
 import id.homebase.homebasekmppoc.prototype.lib.core.time.UnixTimeUtc
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
 
 /**
  * Serializable ECC public key data
@@ -112,7 +113,7 @@ suspend fun publicKeyToJwk(publicKey: EccPublicKey): String {
         "y" to Base64UrlEncoder.encode(yPadded)
     )
 
-    return Json.encodeToString(kotlinx.serialization.serializer(), jwk)
+    return Json.encodeToString(serializer(), jwk)
 }
 
 /**

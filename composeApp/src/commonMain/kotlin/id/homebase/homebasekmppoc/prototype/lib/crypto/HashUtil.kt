@@ -13,9 +13,9 @@ import kotlinx.io.readByteArray
 object HashUtil {
     const val SHA256_ALGORITHM = "SHA-256"
 
-    private val crypto = CryptographyProvider.Default
+    private val crypto = CryptographyProvider.Companion.Default
     private val sha256Algo = crypto.get(SHA256)
-    private val hkdfAlgo = crypto.get(HKDF)
+    private val hkdfAlgo = crypto.get(HKDF.Companion)
 
     /**
      * Compute SHA-256 hash of input

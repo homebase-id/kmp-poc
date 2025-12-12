@@ -1,5 +1,8 @@
 package id.homebase.homebasekmppoc.prototype.lib
 
+import id.homebase.homebasekmppoc.prototype.decodeUrl
+import id.homebase.homebasekmppoc.prototype.encodeUrl
+import id.homebase.homebasekmppoc.prototype.generateUuidBytes
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

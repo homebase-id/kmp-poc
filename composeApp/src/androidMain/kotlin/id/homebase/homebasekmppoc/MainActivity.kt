@@ -8,6 +8,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.lifecycleScope
+import id.homebase.homebasekmppoc.lib.storage.SecureStorage
+import id.homebase.homebasekmppoc.lib.storage.SharedPreferences
+import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseDriverFactory
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
 import id.homebase.homebasekmppoc.prototype.lib.youauth.YouAuthCallbackRouter
@@ -15,22 +18,35 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     companion object {
+        // TODO(biswa) : Remove this lateinit var instance shit
+        @Deprecated(
+                message =
+                        "Singleton pattern should be avoided. Pass Activity/Context through DI or parameters instead.",
+                level = DeprecationLevel.WARNING
+        )
         lateinit var instance: MainActivity
+            private set
     }
+
+    // Track if we launched browser for auth (to detect cancellation on resume)
+    private var launchedBrowserForAuth = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        instance = this
+
+        @Suppress("DEPRECATION") instance = this
+
+        // Initialize storage (must be done before App() which may access storage)
+        SecureStorage.initialize(applicationContext)
+        SharedPreferences.initialize(applicationContext)
 
         // Initialize database
         DatabaseManager.initialize(DatabaseDriverFactory(applicationContext))
 
         handleIntent(intent)
 
-        setContent {
-            App()
-        }
+        setContent { App() }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -43,10 +59,29 @@ class MainActivity : ComponentActivity() {
         val data = intent.data
         if (data != null && data.scheme == "youauth") {
             val callbackURL = data.toString()
-            //showMessage("Auth Callback", "Received URL: $callbackURL")
             lifecycleScope.launch {
+                // Handle with both old and new callback handlers
                 YouAuthCallbackRouter.handleCallback(callbackURL)
+                YouAuthFlowManager.handleCallback(callbackURL)
             }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        @Suppress("DEPRECATION") instance = this
+
+        // Check if browser was closed without completing auth
+        // This is called when user returns from Custom Tab without completing auth
+        // We use a small delay to allow the callback to be processed first if it arrives
+        lifecycleScope.launch {
+            // Small delay to allow callback to be processed first
+            kotlinx.coroutines.delay(300)
+
+            // If no callback arrived and we're still authenticating, the user likely cancelled
+            // This is handled inside YouAuthFlowManager.onAppResumed()
+            // Note: We can't easily get YouAuthFlowManager from Koin here,
+            // so the cancellation is handled in LoginViewModel instead
         }
     }
 }

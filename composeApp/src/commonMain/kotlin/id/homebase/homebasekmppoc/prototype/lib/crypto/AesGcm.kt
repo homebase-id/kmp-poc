@@ -13,7 +13,7 @@ import id.homebase.homebasekmppoc.prototype.lib.core.SecureByteArray
  */
 object AesGcm {
 
-    private val crypto = CryptographyProvider.Default
+    private val crypto = CryptographyProvider.Companion.Default
     private val aes = crypto.get(AES.GCM)
 
     /**

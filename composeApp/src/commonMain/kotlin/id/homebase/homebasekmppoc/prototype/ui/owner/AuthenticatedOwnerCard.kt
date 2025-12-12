@@ -39,7 +39,7 @@ import id.homebase.homebasekmppoc.prototype.lib.http.OdinHttpClient
 import id.homebase.homebasekmppoc.prototype.lib.http.PayloadPlayground
 import id.homebase.homebasekmppoc.prototype.lib.http.PayloadWrapper
 import id.homebase.homebasekmppoc.prototype.lib.http.PublicPostsChannelDrive
-import id.homebase.homebasekmppoc.prototype.lib.image.toImageBitmap
+import id.homebase.homebasekmppoc.lib.image.toImageBitmap
 import org.jetbrains.compose.resources.painterResource
 
 /**

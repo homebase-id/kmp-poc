@@ -1,6 +1,5 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives
 
-
 import id.homebase.homebasekmppoc.prototype.lib.core.time.UnixTimeUtc
 import kotlinx.serialization.Serializable
 
@@ -24,7 +23,7 @@ data class QueryBatchResponse(
      * Indicates when this result was generated
      */
 
-    val queryTime: UnixTimeUtc = UnixTimeUtc.ZeroTime,
+    val queryTime: UnixTimeUtc = UnixTimeUtc.Companion.ZeroTime,
 
     val includeMetadataHeader: Boolean = false,
 

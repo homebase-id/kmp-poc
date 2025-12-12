@@ -1,12 +1,9 @@
-@file:OptIn(ExperimentalUuidApi::class)
-
 package id.homebase.homebasekmppoc.prototype.lib.drives
 
-import id.homebase.homebasekmppoc.lib.serialization.UuidSerializer
+import id.homebase.homebasekmppoc.prototype.lib.serialization.UuidSerializer
 import io.ktor.utils.io.charsets.Charsets
 import io.ktor.utils.io.core.toByteArray
 import kotlinx.serialization.Serializable
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /**
@@ -22,13 +19,6 @@ data class TargetDrive(
     @Serializable(with = UuidSerializer::class)
     val type: Uuid
 ) {
-
-    fun clone(): TargetDrive {
-        return TargetDrive(
-            alias = alias,
-            type = type
-        )
-    }
 
     fun toKey(): ByteArray {
         // Combine type and alias as bytes

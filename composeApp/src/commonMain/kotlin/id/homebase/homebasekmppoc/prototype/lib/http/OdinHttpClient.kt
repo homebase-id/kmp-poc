@@ -5,8 +5,8 @@ import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthState
 import id.homebase.homebasekmppoc.prototype.lib.crypto.CryptoHelper
 import id.homebase.homebasekmppoc.prototype.lib.drives.GetQueryBatchRequest
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResponse
-import id.homebase.homebasekmppoc.prototype.lib.encodeUrl
-import id.homebase.homebasekmppoc.lib.serialization.OdinSystemSerializer
+import id.homebase.homebasekmppoc.prototype.encodeUrl
+import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation

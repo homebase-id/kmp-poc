@@ -6,9 +6,9 @@ import id.homebase.homebasekmppoc.prototype.lib.crypto.AesCbc
 import id.homebase.homebasekmppoc.prototype.lib.crypto.ByteArrayUtil
 import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
 import id.homebase.homebasekmppoc.prototype.lib.http.SharedSecretEncryptedPayload
-import id.homebase.homebasekmppoc.lib.serialization.OdinSystemSerializer
+import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
+import id.homebase.homebasekmppoc.prototype.toBase64
 import id.homebase.homebasekmppoc.prototype.lib.http.ownerCookieName
-import id.homebase.homebasekmppoc.prototype.lib.toBase64
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.WebSockets
