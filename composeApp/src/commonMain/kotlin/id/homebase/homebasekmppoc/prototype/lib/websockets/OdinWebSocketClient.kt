@@ -8,6 +8,7 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
 import id.homebase.homebasekmppoc.prototype.lib.http.SharedSecretEncryptedPayload
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import id.homebase.homebasekmppoc.prototype.toBase64
+import id.homebase.homebasekmppoc.prototype.lib.http.ownerCookieName
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.WebSockets
@@ -116,7 +117,7 @@ class OdinWebSocketClient(
                 client.webSocket(
                     urlString = wsUrl,
                     request = {
-                        headers.append("Cookie", "DY0810=${authenticatedState.clientAuthToken}")
+                        headers.append("Cookie", "$ownerCookieName=${authenticatedState.clientAuthToken}")
                     }
                 ) {
                     session = this // Store session reference for sending messages

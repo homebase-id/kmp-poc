@@ -34,8 +34,10 @@ import homebasekmppoc.composeapp.generated.resources.Res
 import homebasekmppoc.composeapp.generated.resources.compose_multiplatform
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthState
 import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
+import id.homebase.homebasekmppoc.prototype.lib.http.AppOrOwner
 import id.homebase.homebasekmppoc.prototype.lib.http.OdinHttpClient
 import id.homebase.homebasekmppoc.prototype.lib.http.PayloadPlayground
+import id.homebase.homebasekmppoc.prototype.lib.http.PayloadWrapper
 import id.homebase.homebasekmppoc.prototype.lib.http.PublicPostsChannelDrive
 import id.homebase.homebasekmppoc.lib.image.toImageBitmap
 import org.jetbrains.compose.resources.painterResource
@@ -50,15 +52,9 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun AuthenticatedOwnerCard(
     authenticatedState: AuthState.Authenticated?,
-    onVideoClick: (SharedSecretEncryptedFileHeader) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var verifytokenReponse by remember { mutableStateOf<String?>(null) }
-
-    var imageHeaders by remember { mutableStateOf<List<SharedSecretEncryptedFileHeader>?>(null) }
-    var imageBytes by remember { mutableStateOf<ByteArray?>(null) }
-
-    var videoHeaders by remember { mutableStateOf<List<SharedSecretEncryptedFileHeader>?>(null) }
 
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(authenticatedState != null) }
@@ -69,24 +65,6 @@ fun AuthenticatedOwnerCard(
             try {
                 val client = OdinHttpClient(authenticatedState)
                 verifytokenReponse = client.verifyOwnerToken()
-
-                val payloadPlayground = PayloadPlayground(authenticatedState)
-                // val drives = payloadPlayground.getDrivesByType(SystemDriveConstants.publicPostChannelDrive.type)
-
-                imageHeaders = payloadPlayground.getImagesOnDrive(
-                    PublicPostsChannelDrive.alias,
-                    PublicPostsChannelDrive.type)
-                imageHeaders?.size?.let {
-                    if (it > 0) {
-                        val header = imageHeaders?.get(0)
-                        imageBytes = payloadPlayground.getImage(header!!)
-                    }
-                }
-
-                videoHeaders = payloadPlayground.getVideosOnDrive(
-                    PublicPostsChannelDrive.alias,
-                    PublicPostsChannelDrive.type)
-
                 isLoading = false
             } catch (e: Exception) {
                 errorMessage = e.message ?: "Unknown error"
@@ -181,123 +159,6 @@ fun AuthenticatedOwnerCard(
                             textAlign = TextAlign.Center
                         )
                     }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Payload Image Section
-                    val imageBitmap = remember(imageBytes) {
-                        imageBytes?.toImageBitmap()
-                    }
-
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .border(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.outline,
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                            .padding(12.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "Payload Image",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        when {
-                            imageBitmap != null -> {
-                                Image(
-                                    bitmap = imageBitmap,
-                                    contentDescription = "Retrieved payload image",
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(200.dp),
-                                    contentScale = ContentScale.Fit
-                                )
-                            }
-                            imageBytes != null -> {
-                                Text(
-                                    text = "Error displaying image",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.error,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                            else -> {
-                                Text(
-                                    text = "No image data",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                        }
-                    }
-
-                    // Payload video Section
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .border(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.outline,
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                            .padding(12.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "Video list",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        when {
-                            videoHeaders != null && videoHeaders!!.isNotEmpty() -> {
-                                val headerCount = videoHeaders?.size ?: 0
-                                Text(
-                                    text = "Header count: $headerCount",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Center
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                videoHeaders!!.forEachIndexed { index, header ->
-                                    Button(
-                                        onClick = { onVideoClick(header) },
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Text("Video ${index + 1}")
-                                    }
-                                    if (index < videoHeaders!!.size - 1) {
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                    }
-                                }
-                            }
-                            else -> {
-                                Text(
-                                    text = "No header data",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                        }
-                    }
-
-
-
-
                 }
             }
         }

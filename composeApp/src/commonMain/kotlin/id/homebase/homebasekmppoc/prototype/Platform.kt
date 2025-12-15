@@ -23,6 +23,7 @@ expect fun launchCustomTabs(url: String, scope: CoroutineScope)
 expect fun showMessage(title: String, message: String)
 
 // URL encoder compatible with UTF-8 encoding
+// SEB:TODO KMP Codecs.kt has library functions for this, use those instead
 fun encodeUrl(value: String): String {
     val bytes = value.encodeToByteArray()
     val sb = StringBuilder()
@@ -41,6 +42,7 @@ fun encodeUrl(value: String): String {
 }
 
 // URL decoder compatible with UTF-8 encoding
+// SEB:TODO KMP Codecs.kt has library functions for this, use those instead
 fun decodeUrl(value: String): String {
     val bytes = mutableListOf<Byte>()
     var i = 0

@@ -1,5 +1,6 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -13,6 +14,20 @@ plugins {
 val testImagesDir = project.file("src/commonTest/resources/test-images").absolutePath
 
 kotlin {
+    // SEB:TODO enable this when one of us has time to fix all the API visibility issues
+    // explicitApi()
+
+    compilerOptions {
+        // allWarningsAsErrors.set(true)
+    }
+
+    // Apply Native-specific opt-ins
+    targets.withType<KotlinNativeTarget>().configureEach {
+        compilerOptions {
+            optIn.add("kotlinx.cinterop.ExperimentalForeignApi")
+        }
+    }
+
     // Global opt-ins
     sourceSets.all {
         languageSettings.apply {
@@ -65,6 +80,9 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.browser)
+            implementation(libs.androidx.media3.exoplayer)
+            implementation(libs.androidx.media3.exoplayer.hls)
+            implementation(libs.androidx.media3.ui)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.sqldelight.android.driver)
         }

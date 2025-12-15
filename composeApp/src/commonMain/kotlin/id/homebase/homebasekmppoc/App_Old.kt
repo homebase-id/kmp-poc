@@ -44,7 +44,7 @@ fun AppOld() {
         // Hoist YouAuthManager to App level so it survives tab navigation
         val authenticationManager = remember { AuthenticationManager() }
         val wsAuthenticationManager = remember { AuthenticationManager() }
-        val videoAuthenticationManager = remember { AuthenticationManager() }
+        val videoYouAuthManager = remember { YouAuthManager() }
         val domainYouAuthManager = remember { YouAuthManager() }
         val appYouAuthManager = remember { YouAuthManager() }
 
@@ -99,7 +99,7 @@ fun AppOld() {
                         2 -> AppPage(appYouAuthManager)
                         3 -> DbPage()
                         4 -> WebsocketPage(wsAuthenticationManager)
-                        5 -> VideoPlayerTestPage(videoAuthenticationManager)
+                        5 -> VideoPlayerTestPage(videoYouAuthManager)
                         6 -> DriveFetchPage(appYouAuthManager)
                     }
                 }

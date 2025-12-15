@@ -27,9 +27,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthState
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthenticationManager
 import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
+import id.homebase.homebasekmppoc.prototype.lib.http.PayloadWrapper
+import id.homebase.homebasekmppoc.prototype.lib.video.LocalVideoServer
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -42,10 +45,16 @@ fun OwnerPage(authenticationManager: AuthenticationManager) {
     var resultMessage by remember { mutableStateOf("") }
     var isSuccess by remember { mutableStateOf(false) }
 
-    var selectedVideo by remember { mutableStateOf<SharedSecretEncryptedFileHeader?>(null) }
-
     val authState by authenticationManager.authState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        try {
+            Logger.i("OwnerPage") { "Video server started" }
+        } catch (e: Exception) {
+            Logger.e("OwnerPage", e) { "Failed to start video server" }
+        }
+    }
 
     // Show dialog when authentication completes
     LaunchedEffect(authState) {
@@ -55,11 +64,13 @@ fun OwnerPage(authenticationManager: AuthenticationManager) {
                 isSuccess = true
                 showResultDialog = false
             }
+
             is AuthState.Error -> {
                 resultMessage = "Authentication failed:\n${state.message}"
                 isSuccess = false
                 showResultDialog = true
             }
+
             else -> {}
         }
     }
@@ -82,36 +93,27 @@ fun OwnerPage(authenticationManager: AuthenticationManager) {
         )
     }
 
-    // Show video player if a video is selected
-    if (selectedVideo != null) {
-        OwnerVideoPlayer(
-            authenticatedState = if (authState is AuthState.Authenticated) authState as AuthState.Authenticated else null,
-            videoHeader = selectedVideo!!,
-            onBack = { selectedVideo = null }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.primaryContainer)
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "Owner",
+            style = MaterialTheme.typography.headlineMedium,
+            textAlign = TextAlign.Center
         )
-    } else {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.primaryContainer)
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "Owner",
-                style = MaterialTheme.typography.headlineMedium,
-                textAlign = TextAlign.Center
-            )
 
-            Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
-            // Always show the authenticated owner card
-            AuthenticatedOwnerCard(
-                authenticatedState = if (authState is AuthState.Authenticated) authState as AuthState.Authenticated else null,
-                onVideoClick = { header -> selectedVideo = header },
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
+        // Always show the authenticated owner card
+        AuthenticatedOwnerCard(
+            authenticatedState = if (authState is AuthState.Authenticated) authState as AuthState.Authenticated else null,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -144,6 +146,7 @@ fun OwnerPage(authenticationManager: AuthenticationManager) {
                     Text("Log in")
                 }
             }
+
             is AuthState.Authenticating -> {
                 CircularProgressIndicator()
                 Spacer(modifier = Modifier.height(8.dp))
@@ -153,6 +156,7 @@ fun OwnerPage(authenticationManager: AuthenticationManager) {
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
+
             is AuthState.Authenticated -> {
                 Button(
                     onClick = {
@@ -165,6 +169,7 @@ fun OwnerPage(authenticationManager: AuthenticationManager) {
                     Text("Log out")
                 }
             }
+
             is AuthState.Error -> {
                 Text(
                     text = "Error: ${state.message}",
@@ -199,7 +204,7 @@ fun OwnerPage(authenticationManager: AuthenticationManager) {
                 }
             }
         }
-        }
+
     }
 }
 
