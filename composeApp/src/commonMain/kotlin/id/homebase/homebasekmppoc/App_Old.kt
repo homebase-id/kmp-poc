@@ -102,7 +102,7 @@ fun AppOld() {
                         3 -> DbPage()
                         4 -> WebsocketPage(wsAuthenticationManager)
                         5 -> VideoPlayerTestPage(videoYouAuthManager)
-                        6 -> DriveFetchPage(appYouAuthManager)
+//                        6 -> DriveFetchPage(appYouAuthManager)
                         7 -> CdnTestPage(appYouAuthManager)
                     }
                 }

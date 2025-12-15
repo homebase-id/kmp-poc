@@ -18,7 +18,7 @@ kotlin {
     // explicitApi()
 
     compilerOptions {
-        // allWarningsAsErrors.set(true)
+         allWarningsAsErrors.set(true)
     }
 
     // Apply Native-specific opt-ins
