@@ -47,6 +47,8 @@ fun HomeScreen(state: HomeUiState, onAction: (HomeUiAction) -> Unit) {
 
             NavigationButton("Video") { onAction(HomeUiAction.VideoClicked) }
 
+            NavigationButton("CdnTest") { onAction(HomeUiAction.CdnTestClicked) }
+
             Spacer(modifier = Modifier.weight(1f))
 
             OutlinedButton(

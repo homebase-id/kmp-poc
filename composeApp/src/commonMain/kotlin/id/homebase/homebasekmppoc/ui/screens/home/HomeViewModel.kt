@@ -39,6 +39,9 @@ class HomeViewModel(private val youAuthFlowManager: YouAuthFlowManager) : ViewMo
             is HomeUiAction.VideoClicked -> {
                 sendEvent(HomeUiEvent.NavigateToVideo)
             }
+            is HomeUiAction.CdnTestClicked -> {
+                sendEvent(HomeUiEvent.NavigateToCdnTest)
+            }
             is HomeUiAction.LogoutClicked -> {
                 performLogout()
             }
