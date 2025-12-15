@@ -1,6 +1,8 @@
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -11,7 +13,7 @@ plugins {
     kotlin("plugin.serialization") version "2.2.21"
 }
 
-val testImagesDir = project.file("src/commonTest/resources/test-images").absolutePath
+val testImagesDir: String = project.file("src/commonTest/resources/test-images").absolutePath
 
 kotlin {
     // SEB:TODO enable this when one of us has time to fix all the API visibility issues
@@ -157,8 +159,20 @@ kotlin {
     }
 }
 
+// Disable allWarningsAsErrors for metadata compilation tasks only
+// This works around KLIB duplicate unique_name warnings (known KMP issue: KT-66568)
+// https://youtrack.jetbrains.com/issue/KT-66568
+// while keeping strict warnings for actual source compilation
+tasks.matching { it.name.contains("KotlinMetadata") }.configureEach {
+    if (this is org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>) {
+        compilerOptions {
+            allWarningsAsErrors.set(false)
+        }
+    }
+}
+
 // Inject TEST_IMAGES_DIR into all ios test tasks
-tasks.withType<org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest>().configureEach {
+tasks.withType<KotlinNativeTest>().configureEach {
     environment("TEST_IMAGES_DIR", testImagesDir)
     environment("SIMCTL_CHILD_TEST_IMAGES_DIR", testImagesDir)
 }
@@ -172,7 +186,7 @@ tasks.named<Test>("desktopTest") {
         showExceptions = true
         showCauses = true
         showStackTraces = true
-        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        exceptionFormat = TestExceptionFormat.FULL
     }
     forkEvery = 1
     maxParallelForks = Runtime.getRuntime().availableProcessors()
