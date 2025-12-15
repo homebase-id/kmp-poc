@@ -24,8 +24,6 @@ fun VideoPlayerPage(
     videoTitle: String = "Video Player",
     onBack: () -> Unit
 ) {
-    val hlsInfo = "Some info here..."
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -69,12 +67,7 @@ fun VideoPlayerPage(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "HLS Manifest URL:",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-                Text(
-                    text = hlsInfo,
+                    text = "some info here",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer
                 )

@@ -60,24 +60,37 @@ class PayloadPlayground(private val authenticated: AuthState.Authenticated) {
         appOrOwner: AppOrOwner,
         driveAlias: Uuid,
         driveType: Uuid,
-        fileState: FileState): List<SharedSecretEncryptedFileHeader> {
+        fileState: FileState,
+        fileSystemType: FileSystemType = FileSystemType.Standard): List<SharedSecretEncryptedFileHeader> {
         val qb = GetQueryBatchRequest(
             alias = driveAlias,
             type = driveType,
             fileState = listOf(fileState),
-            maxRecords = 1000,
+            maxRecords = 10000,
             includeMetadataHeader = true
         )
 
         val client = OdinHttpClient(authenticated)
-        val response = client.queryBatch(appOrOwner, qb)
-        return response.searchResults
+        val response = client.queryBatch(appOrOwner, qb, fileSystemType)
+        val result = response.searchResults
+        return result
     }
 
     //
 
     suspend fun getVideosOnDrive(appOrOwner: AppOrOwner, driveAlias: Uuid, driveType: Uuid): List<PayloadWrapper> {
         val headers = getHeadersOnDrive(appOrOwner, driveAlias, driveType, FileState.Active)
+        val comments = getHeadersOnDrive(appOrOwner, driveAlias, driveType, FileState.Active, FileSystemType.Comment)
+
+        Logger.d { "header count: ${headers.size}" }
+        Logger.d { "comment count: ${comments.size}" }
+
+        headers.forEach { header ->
+            Logger.d { "header payload count: ${header.fileMetadata.payloads?.size ?: 0}" }
+            header.fileMetadata.payloads?.forEach { payload ->
+                Logger.d { ("  " + payload.contentType) }
+            }
+        }
 
         return buildList {
             headers.forEach { header ->

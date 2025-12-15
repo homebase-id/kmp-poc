@@ -76,9 +76,10 @@ suspend fun prepareVideoContentForPlayback(
             )
         }
 
-        // --- MP4 Logic ---
-        else if (!videoMetaData.isSegmented) {
-            // WARNING: getPayloadBytes puts entire file in RAM.
+        //
+        // Non-HLS - load entire video into RAM
+        //
+        else {
             val videoBytes = videoPayload.getPayloadBytes(AppOrOwner.Owner)
             val contentId = "video-${Uuid.random()}"
 
@@ -96,7 +97,7 @@ suspend fun prepareVideoContentForPlayback(
             )
         }
 
-        return@withContext VideoPlaybackPreparationResult.Error("Segmented MP4/Unknown format not supported")
+        // return@withContext VideoPlaybackPreparationResult.Error("Segmented MP4/Unknown format not supported")
 
     } catch (e: Exception) {
         Logger.e("VideoPreparer", e) { "Failed to prepare video" }

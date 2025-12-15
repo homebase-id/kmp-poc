@@ -4,14 +4,11 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class VideoMetaData (
-    val mimeType: String,
+    val mimeType: String? = null,
     val isSegmented: Boolean = false,
-    val isDescriptorContentComplete: Boolean = true,
     val fileSize: Long? = null,
     val key: String? = null,
-    val duration: Double,
+    val duration: Double? = null,
     val codec: String? = null,
     val hlsPlaylist: String? = null,
-
-    // SEB:TODO hlsplaylist in payload, url to payload here
 )

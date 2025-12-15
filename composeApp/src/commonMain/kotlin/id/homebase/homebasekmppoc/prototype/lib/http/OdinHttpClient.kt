@@ -68,9 +68,10 @@ class OdinHttpClient(
      */
     suspend fun performRequest(path: String): String {
         val fullUri = "https://$identity$path"
-        val encryptedUri = buildUriWithEncryptedQueryString(fullUri)
+        Logger.d("OdinHttpClient") { "Plain GET request:     $fullUri" }
 
-        Logger.d("OdinHttpClient") { "Making GET request to: $encryptedUri" }
+        val encryptedUri = buildUriWithEncryptedQueryString(fullUri)
+        Logger.d("OdinHttpClient") { "Encrypted GET request: $encryptedUri" }
 
         val client = createHttpClient()
 
@@ -187,11 +188,9 @@ class OdinHttpClient(
     suspend fun queryBatch(
         appOrOwner: AppOrOwner,
         request: GetQueryBatchRequest,
-        fileSystemType: String = "128"
+        fileSystemType: FileSystemType = FileSystemType.Standard
     ): QueryBatchResponse {
-        val uri = "/api/$appOrOwner/v1/drive/query/batch?${request.toQueryString()}&xfst=${
-            encodeUrl(fileSystemType)
-        }"
+        val uri = "/api/$appOrOwner/v1/drive/query/batch?${request.toQueryString()}&xfst=$fileSystemType"
         val response = get<QueryBatchResponse>(uri)
         return response
     }

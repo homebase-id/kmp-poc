@@ -2,8 +2,8 @@ package id.homebase.homebasekmppoc.ui.screens.login
 
 /** Single immutable state for Login screen. */
 data class LoginUiState(
-        // val homebaseId: String = "frodo.baggins.demo.rocks",
-        val homebaseId: String = "frodo.dotyou.cloud",
+        val homebaseId: String = "frodo.baggins.demo.rocks",
+        //val homebaseId: String = "frodo.dotyou.cloud",
         val isLoading: Boolean = false,
         val isAuthenticated: Boolean = false,
         val errorMessage: String? = null
