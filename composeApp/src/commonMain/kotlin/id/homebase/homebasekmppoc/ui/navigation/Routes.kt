@@ -21,6 +21,8 @@ sealed class Route {
     @Serializable data object WebSocket : Route()
 
     @Serializable data object Video : Route()
+
+    @Serializable data object CdnTest : Route()
 }
 
 /** Deep link configuration */
