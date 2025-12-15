@@ -65,7 +65,7 @@ composeApp/src/commonMain/kotlin/id/homebase/homebasekmppoc/
     ├── lib/                  # Feature-specific libraries
     │   ├── authentication/   # AuthenticationManager, AuthState
     │   ├── youauth/          # Legacy YouAuthManager (being replaced)
-    │   ├── drives/           # DriveQueryProvider
+    │   ├── drives/           # Drive API - query (DriveQueryProvider) and upload types
     │   ├── database/         # Database operations
     │   ├── http/             # HTTP client creation
     │   ├── video/            # Video handling
@@ -286,6 +286,57 @@ Located in `prototype/ui/driveFetch/`:
 - **YouAuth callback routing** - Fixed "lateinit property instance has not been initialized" by implementing `YouAuthCallbackRouter` to properly route callbacks to the correct `YouAuthManager` instance
 - **State persistence** - `YouAuthManager` instances are hoisted to `App.kt` level to survive tab navigation
 - **Token exchange** - Sometimes returns 404, related to `exchangeSecretDigest` encoding compatibility across platforms (marked as TODO in code)
+
+### Drive Upload Types
+
+Located in `prototype/lib/drives/upload/`:
+
+**Serializable DTOs for file upload/update operations, ported from TypeScript:**
+
+| File | Types |
+|------|-------|
+| `UploadEnums.kt` | `SendContents`, `ScheduleOptions`, `PriorityOptions`, `TransferUploadStatus` |
+| `PushNotificationOptions.kt` | `PushNotificationOptions` |
+| `StorageOptions.kt` | `StorageOptions` |
+| `TransitOptions.kt` | `TransitOptions` with factory methods |
+| `UploadInstructionSet.kt` | `UploadInstructionSet` |
+| `UpdateInstructionSet.kt` | `FileIdFileIdentifier`, `UpdateLocale`, `UpdatePeerInstructionSet`, `UpdateLocalInstructionSet`, `UpdateInstructionSet` |
+| `UploadFileDescriptor.kt` | `UploadEmbeddedThumb`, `UploadAppFileMetaData`, `UploadFileMetadata`, `UploadFileDescriptor`, `UploadKeyHeader` |
+| `UploadManifest.kt` | `UploadPayloadDescriptor`, `UploadThumbnailDescriptor`, `UploadManifest`, `UpdatePayloadInstruction`, `PayloadOperationType`, `UpdateManifest` |
+| `UploadResult.kt` | `UploadResult`, `UpdateResult` |
+
+**Reuses existing types:**
+- `EncryptedKeyHeader` from `prototype/lib/crypto/`
+- `AccessControlList` from `prototype/lib/drives/ServerMetadata.kt`
+- `ArchivalStatus`, `GlobalTransitIdFileIdentifier`, `TargetDrive`, `FileSystemType` from drives package
+
+**Note:** `UploadKeyHeader` and `UploadEmbeddedThumb` are serializable DTOs for API responses. For cryptographic operations, use `crypto.KeyHeader` and `crypto.EncryptedKeyHeader` which use `SecureByteArray` for security.
+
+### Drive File Types
+
+Located in `prototype/lib/drives/files/`:
+
+**Serializable DTOs for file management, ported from TypeScript:**
+
+| File | Types |
+|------|-------|
+| `SecurityGroupType.kt` | `SecurityGroupType` enum (Anonymous, Authenticated, Connected, AutoConnected, Owner) |
+| `TransferStatus.kt` | `TransferStatus` enum with `failedStatuses` list and `isFailedStatus()` helper |
+| `RichText.kt` | `RichTextNode`, `RichText` typealias, `ReactionBase`, `CommentReaction`, `EmojiReaction` |
+| `TransferHistory.kt` | `RecipientTransferSummary`, `RecipientTransferHistoryEntry`, `TransferHistory`, `TransferHistoryPage` |
+| `HomebaseFile.kt` | `HomebaseFileState`, `HomebaseFile` (similar to `SharedSecretEncryptedFileHeader`) |
+| `FileIdentifiers.kt` | `BaseFileIdentifier`, `FileIdFileIdentifier`, `GlobalTransitIdFileIdentifier`, `UniqueIdFileIdentifier`, `FileIdentifierUnion` |
+| `MediaFile.kt` | `MediaFile`, `NewMediaFile`, `PayloadFile`, `PayloadEmbeddedThumb` |
+| `NewHomebaseFile.kt` | `NewFileMetadata`, `NewAppFileMetaData`, `NewPayloadDescriptor`, `UploadProgress`, `NewHomebaseFile`, `NewServerMetaData`, `FileAccessControlList` |
+
+**Existing types to reuse (don't duplicate):**
+- `ClientFileMetadata`, `AppFileMetaData`, `PayloadDescriptor`, `ThumbnailDescriptor` from `drives/ClientFileMetadata.kt`
+- `ServerMetadata`, `AccessControlList` from `drives/ServerMetadata.kt`
+- `ArchivalStatus`, `FileSystemType`, `FileState`, `TargetDrive` from drives package
+- `KeyHeader`, `EncryptedKeyHeader` from `crypto/` package
+- `ImageSize`, `ThumbnailFile`, `EmbeddedThumb` from `lib/image/models.kt`
+
+**Note:** `HomebaseFile` is similar to `SharedSecretEncryptedFileHeader` but uses string-based `HomebaseFileState`. `FileAccessControlList` uses typed `SecurityGroupType` enum while `AccessControlList` uses `String?`.
 
 ## Build Commands
 
