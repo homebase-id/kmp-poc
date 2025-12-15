@@ -29,6 +29,7 @@ import id.homebase.homebasekmppoc.prototype.ui.driveFetch.DriveFetchPage
 import id.homebase.homebasekmppoc.prototype.ui.video.VideoPlayerTestPage
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthenticationManager
 import id.homebase.homebasekmppoc.prototype.lib.youauth.YouAuthManager
+import id.homebase.homebasekmppoc.prototype.ui.cdn.CdnTestPage
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
@@ -36,7 +37,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 @Preview
 fun AppOld() {
     MaterialTheme {
-        var selectedTabIndex by remember { mutableStateOf(0) }
+        var selectedTabIndex by remember { mutableStateOf(7) }
         val tabs = listOf("Owner", "Domain", "App", "db", "ws", "Video", "DriveFetch")
         val drawerState = rememberDrawerState(DrawerValue.Closed)
         val scope = rememberCoroutineScope()
@@ -47,6 +48,7 @@ fun AppOld() {
         val videoYouAuthManager = remember { YouAuthManager() }
         val domainYouAuthManager = remember { YouAuthManager() }
         val appYouAuthManager = remember { YouAuthManager() }
+        val cdnYouAuthManager = remember { YouAuthManager() }
 
         ModalNavigationDrawer(
             drawerState = drawerState,
@@ -101,6 +103,7 @@ fun AppOld() {
                         4 -> WebsocketPage(wsAuthenticationManager)
                         5 -> VideoPlayerTestPage(videoYouAuthManager)
                         6 -> DriveFetchPage(appYouAuthManager)
+                        7 -> CdnTestPage(appYouAuthManager)
                     }
                 }
             }

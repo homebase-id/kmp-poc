@@ -12,6 +12,7 @@ import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthState
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthenticationManager
 import id.homebase.homebasekmppoc.prototype.lib.youauth.YouAuthManager
+import id.homebase.homebasekmppoc.prototype.ui.cdn.CdnTestPage
 import id.homebase.homebasekmppoc.prototype.ui.db.DbPage
 import id.homebase.homebasekmppoc.prototype.ui.driveFetch.DriveFetchPage
 import id.homebase.homebasekmppoc.prototype.ui.video.VideoPlayerTestPage
@@ -84,6 +85,7 @@ fun AppNavHost(
                         is HomeUiEvent.NavigateToWebSocket ->
                                 navController.navigate(Route.WebSocket)
                         is HomeUiEvent.NavigateToVideo -> navController.navigate(Route.Video)
+                        is HomeUiEvent.NavigateToCdnTest -> navController.navigate(Route.CdnTest)
                         is HomeUiEvent.NavigateToLogin -> {
                             navController.navigate(Route.Login) { popUpTo(0) { inclusive = true } }
                         }
@@ -122,6 +124,13 @@ fun AppNavHost(
             val videoYouAuthManager = remember { YouAuthManager() }
             VideoPlayerTestPage(videoYouAuthManager)
         }
+
+        // CdnTest route (uses prototype, no auth required for testing)
+        composable<Route.CdnTest> {
+            val cdnYouAuthManager = remember { YouAuthManager() }
+            CdnTestPage(cdnYouAuthManager)
+        }
+
     }
 }
 
