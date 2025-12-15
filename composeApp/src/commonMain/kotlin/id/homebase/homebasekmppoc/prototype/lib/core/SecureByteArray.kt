@@ -1,6 +1,7 @@
 package id.homebase.homebasekmppoc.prototype.lib.core
 
 import kotlinx.serialization.Serializable
+import kotlin.io.encoding.Base64
 
 @Serializable
 class SecureByteArray(private val bytes: ByteArray) {
@@ -8,6 +9,10 @@ class SecureByteArray(private val bytes: ByteArray) {
     val unsafeBytes: ByteArray get() = bytes
 
     fun toByteArray(): ByteArray = bytes.copyOf()
+
+    fun Base64Encode(): String {
+        return Base64.encode(bytes)
+    }
 
     fun clear() {
         bytes.fill(0)

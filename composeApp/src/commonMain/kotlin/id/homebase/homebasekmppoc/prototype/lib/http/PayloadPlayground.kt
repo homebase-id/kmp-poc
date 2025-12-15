@@ -6,15 +6,20 @@ import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.PagedResult
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthState
 import id.homebase.homebasekmppoc.prototype.lib.core.SecureByteArray
+import id.homebase.homebasekmppoc.prototype.lib.crypto.CryptoHelper
+import id.homebase.homebasekmppoc.prototype.lib.crypto.KeyHeader
 import id.homebase.homebasekmppoc.prototype.lib.drives.DriveDefinition
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileState
 import id.homebase.homebasekmppoc.prototype.lib.drives.GetDrivesByTypeRequest
 import id.homebase.homebasekmppoc.prototype.lib.drives.GetQueryBatchRequest
+import id.homebase.homebasekmppoc.prototype.lib.drives.PayloadDescriptor
 import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
+import id.homebase.homebasekmppoc.prototype.lib.video.VideoMetaData
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.headers
 import io.ktor.http.contentLength
+import kotlin.io.encoding.Base64
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -51,92 +56,63 @@ class PayloadPlayground(private val authenticated: AuthState.Authenticated) {
 
     //
 
-    suspend fun getHeadersOnDrive(driveAlias: Uuid, driveType: Uuid, fileState: FileState): List<SharedSecretEncryptedFileHeader> {
+    suspend fun getHeadersOnDrive(
+        appOrOwner: AppOrOwner,
+        driveAlias: Uuid,
+        driveType: Uuid,
+        fileState: FileState,
+        fileSystemType: FileSystemType = FileSystemType.Standard): List<SharedSecretEncryptedFileHeader> {
         val qb = GetQueryBatchRequest(
             alias = driveAlias,
             type = driveType,
             fileState = listOf(fileState),
-            maxRecords = 1000,
+            maxRecords = 10000,
             includeMetadataHeader = true
         )
 
         val client = OdinHttpClient(authenticated)
-        val response = client.queryBatch(qb)
-        return response.searchResults
+        val response = client.queryBatch(appOrOwner, qb, fileSystemType)
+        val result = response.searchResults
+        return result
     }
 
     //
 
-    suspend fun getImagesOnDrive(driveAlias: Uuid, driveType: Uuid): List<SharedSecretEncryptedFileHeader> {
-        val headers = getHeadersOnDrive(driveAlias, driveType, FileState.Active)
+    suspend fun getVideosOnDrive(appOrOwner: AppOrOwner, driveAlias: Uuid, driveType: Uuid): List<PayloadWrapper> {
+        val headers = getHeadersOnDrive(appOrOwner, driveAlias, driveType, FileState.Active)
+        val comments = getHeadersOnDrive(appOrOwner, driveAlias, driveType, FileState.Active, FileSystemType.Comment)
 
-        val imageHeaders = headers.filter {
-            val payloads = it.fileMetadata.payloads
-            if (payloads.isNullOrEmpty()) {
-                false
-            } else {
-                payloads[0].contentType?.contains("image") == true
+        Logger.d { "header count: ${headers.size}" }
+        Logger.d { "comment count: ${comments.size}" }
+
+        headers.forEach { header ->
+            Logger.d { "header payload count: ${header.fileMetadata.payloads?.size ?: 0}" }
+            header.fileMetadata.payloads?.forEach { payload ->
+                Logger.d { ("  " + payload.contentType) }
             }
         }
 
-        return imageHeaders
-    }
-
-    //
-
-    suspend fun getImage(header: SharedSecretEncryptedFileHeader): ByteArray {
-        val fileSystemType = "128"
-
-        Logger.d("PayloadPlayground") { "getImage: Fetching image bytes..." }
-        val payloadBytes = getPayloadBytes(header, fileSystemType)
-
-        Logger.d("PayloadPlayground") { "getImage: got ${payloadBytes.size} bytes" }
-
-        return payloadBytes
-    }
-
-    //
-
-    suspend fun getVideosOnDrive(driveAlias: Uuid, driveType: Uuid): List<SharedSecretEncryptedFileHeader> {
-        val headers = getHeadersOnDrive(driveAlias, driveType, FileState.Active)
-
-        val videoHeaders = headers.filter {
-            val payloads = it.fileMetadata.payloads
-            if (payloads.isNullOrEmpty()) {
-                false
-            } else {
-                payloads[0].contentType?.contains("video") == true
+        return buildList {
+            headers.forEach { header ->
+                header.fileMetadata.payloads?.forEach { payload ->
+                    if (payload.contentType?.contains("video") == true) {
+                        add(PayloadWrapper(authenticated, header, payload))
+                    }
+                }
             }
         }
-
-        return videoHeaders
     }
 
     //
 
-    suspend fun getVideo(header: SharedSecretEncryptedFileHeader): ByteArray {
-        val fileSystemType = "128"
-
-        Logger.d("PayloadPlayground") { "getVideo: Fetching payload bytes..." }
-        val payloadBytes = getPayloadBytes(header, fileSystemType)
-
-        Logger.d("PayloadPlayground") { "getVideo: got ${payloadBytes.size} bytes" }
-
-        return payloadBytes
-    }
-
-    //
-
-    suspend fun getVideoMetaData(header: SharedSecretEncryptedFileHeader) {
-        Logger.d("VideoPlayerTestPage") { "Getting video metadata for file: ${header.fileId}" }
-
-        // header.fileMetadata.payloads
-
-    }
-
-    suspend fun getFileHeader(fileId: String, alias: String, type: String, fileSystemType: String): SharedSecretEncryptedFileHeader
+    suspend fun getFileHeader(
+        appOrOwner: AppOrOwner,
+        fileId: String,
+        alias: String,
+        type: String,
+        fileSystemType: String): SharedSecretEncryptedFileHeader
     {
-        val uri = "/api/owner/v1/drive/files/header?alias=$alias&type=$type&fileId=$fileId&xfst=$fileSystemType"
+        val uri = "/api/$appOrOwner/v1/drive/files/header?alias=$alias&type=$type&fileId=$fileId&xfst=$fileSystemType"
 
         val client = OdinHttpClient(authenticated)
         val result = client.get<SharedSecretEncryptedFileHeader>(uri)
@@ -146,58 +122,8 @@ class PayloadPlayground(private val authenticated: AuthState.Authenticated) {
 
     //
 
-    suspend fun getPayloadBytes(header: SharedSecretEncryptedFileHeader, fileSystemType: String): ByteArray
-    {
-        val fileId = header.fileId
-        val alias = header.targetDrive.alias
-        val type = header.targetDrive.type
-
-        // Get the payload descriptor (assuming first payload for now)
-        val payload = header.fileMetadata.payloads?.get(0)
-            ?: throw Exception("No payload found in file metadata")
-
-        val payloadKey = payload.key
-        val payloadIvBase64 = payload.iv ?: throw Exception("No IV found in payload descriptor")
-
-        Logger.d("PayloadPlayground") { "Payload key: $payloadKey" }
-        Logger.d("PayloadPlayground") { "Payload IV (base64): $payloadIvBase64" }
-
-        // call backend DriveStorageControllerBase.GetPayloadStream
-        val uri = "https://${authenticated.identity}/api/owner/v1/drive/files/payload?alias=$alias&type=$type&fileId=$fileId&key=$payloadKey&xfst=$fileSystemType"
-
-        val odinClient = OdinHttpClient(authenticated)
-        val encryptedUri = odinClient.buildUriWithEncryptedQueryString(uri)
-
-        Logger.d("PayloadPlayground") { "Making GET request to: $encryptedUri" }
-
-        val client = createHttpClient()
-        val response = client.get(encryptedUri) {
-            headers {
-                append("Cookie", "DY0810=${authenticated.clientAuthToken}")
-            }
-        }
-
-        Logger.d("PayloadPlayground") { "Response length: ${response.contentLength()}" }
-
-        // Decrypt the KeyHeader using the shared secret
-        val sharedSecretBytes = kotlin.io.encoding.Base64.decode(authenticated.sharedSecret)
-        val keyHeader = header.sharedSecretEncryptedKeyHeader.decryptAesToKeyHeader(
-            SecureByteArray(sharedSecretBytes)
-        )
-
-        // Get encrypted payload bytes
-        val encryptedBytes = response.body<ByteArray>()
-        Logger.d("PayloadPlayground") { "Encrypted payload length: ${encryptedBytes.size}" }
-
-        // Decrypt the payload using the KeyHeader's AES key BUT the payload's IV
-        val payloadIv = kotlin.io.encoding.Base64.decode(payloadIvBase64)
-        Logger.d("PayloadPlayground") { "Using payload IV: ${payloadIv.size} bytes" }
-
-        val decryptedBytes = keyHeader.decryptWithIv(encryptedBytes, payloadIv)
-        Logger.d("PayloadPlayground") { "Decrypted payload length: ${decryptedBytes.size}" }
-
-        return decryptedBytes
-    }
-
-
 }
+
+//
+
+

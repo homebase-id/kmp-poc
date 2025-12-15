@@ -119,8 +119,8 @@ fun AppNavHost(
 
         // Video route (uses prototype, no auth required for testing)
         composable<Route.Video> {
-            val videoAuthManager = remember { AuthenticationManager() }
-            VideoPlayerTestPage(videoAuthManager)
+            val videoYouAuthManager = remember { YouAuthManager() }
+            VideoPlayerTestPage(videoYouAuthManager)
         }
     }
 }

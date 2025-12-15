@@ -18,6 +18,7 @@ import id.homebase.homebasekmppoc.prototype.lib.crypto.publicKeyFromJwkBase64Url
 import id.homebase.homebasekmppoc.prototype.lib.crypto.publicKeyToJwk
 import id.homebase.homebasekmppoc.prototype.lib.http.createHttpClient
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
+import id.homebase.homebasekmppoc.prototype.lib.http.ownerCookieName
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.post
@@ -87,9 +88,9 @@ class AuthenticationManager {
             }
 
             val clientAuthToken = response.setCookie()
-                .find { it.name == "DY0810" }
+                .find { it.name == ownerCookieName }
                 ?.value
-                ?: throw IllegalStateException("DY0810 cookie not found in response")
+                ?: throw IllegalStateException("$ownerCookieName cookie not found in response")
 
             val result = OdinSystemSerializer.deserialize<AuthenticationResponse>(response.body())
 

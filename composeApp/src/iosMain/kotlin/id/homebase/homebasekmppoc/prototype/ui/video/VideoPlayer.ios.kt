@@ -2,100 +2,109 @@ package id.homebase.homebasekmppoc.prototype.ui.video
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.remember
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.interop.UIKitView
-import androidx.compose.ui.unit.dp
-import kotlinx.cinterop.BetaInteropApi
+import androidx.compose.ui.viewinterop.UIKitView
+import co.touchlab.kermit.Logger
 import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.addressOf
-import kotlinx.cinterop.usePinned
 import platform.AVFoundation.AVPlayer
+import platform.AVFoundation.pause
 import platform.AVFoundation.play
 import platform.AVKit.AVPlayerViewController
-import platform.Foundation.*
+import platform.AVFAudio.AVAudioSession
+import platform.AVFAudio.AVAudioSessionCategoryPlayback
+import platform.AVFAudio.setActive
+import platform.Foundation.NSURL
 
-@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
+@OptIn(ExperimentalForeignApi::class)
 @Composable
 actual fun VideoPlayer(
-    videoData: ByteArray,
+    videoUrl: String?,
     modifier: Modifier
 ) {
-    // Create a temporary file URL from the byte array
-    val videoUrl = remember(videoData) {
+    Logger.i("VideoPlayer.iOS") { "VideoPlayer with URL: $videoUrl" }
+
+    // 1. Audio Session Configuration
+    // Best Practice: Ensure video audio plays even if hardware Silent Switch is ON.
+    LaunchedEffect(Unit) {
         try {
-            val tempDir = NSTemporaryDirectory()
-            val timestamp = NSDate().timeIntervalSince1970.toLong()
-            val fileName = "video_${timestamp}.mp4"
-            val filePath = "${tempDir}${fileName}"
-            val fileUrl = NSURL.fileURLWithPath(filePath)
-
-            // Create NSData from ByteArray
-            val success = videoData.usePinned { pinned ->
-                val nsData = NSData.create(
-                    bytes = pinned.addressOf(0),
-                    length = videoData.size.toULong()
-                )
-
-                // Write to file using NSFileManager
-                NSFileManager.defaultManager.createFileAtPath(
-                    path = filePath,
-                    contents = nsData,
-                    attributes = null
-                )
-            }
-
-            println("Video file created at: $filePath, success: $success, size: ${videoData.size}")
-            if (success) fileUrl else null
+            val session = AVAudioSession.sharedInstance()
+            session.setCategory(AVAudioSessionCategoryPlayback, error = null)
+            session.setActive(true, error = null)
         } catch (e: Exception) {
-            println("Error creating video file: ${e.message}")
-            null
-        }
-    }
-
-    DisposableEffect(videoUrl) {
-        onDispose {
-            videoUrl?.let { url ->
-                try {
-                    val path = url.path
-                    if (path != null) {
-                        NSFileManager.defaultManager.removeItemAtPath(path, null)
-                    }
-                } catch (e: Exception) {
-                    // Ignore cleanup errors
-                }
-            }
+            Logger.e("VideoPlayer.iOS") { "Failed to set audio session: ${e.message}" }
         }
     }
 
     Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(300.dp)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+        modifier = modifier.background(MaterialTheme.colorScheme.surfaceVariant),
+        contentAlignment = Alignment.Center
     ) {
-        if (videoUrl != null) {
+        // Handle null URL (loading state)
+        if (videoUrl == null) {
+            CircularProgressIndicator()
+            return@Box
+        }
+
+        // Handle empty URL
+        if (videoUrl.isEmpty()) {
+            Text(
+                text = "No URL",
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            return@Box
+        }
+
+        // 2. Create player and controller together to ensure they stay linked
+        val playerStack = remember(videoUrl) {
+            val url = NSURL.URLWithString(videoUrl)
+            if (url == null) {
+                Logger.e("VideoPlayer.iOS") { "Invalid URL: $videoUrl" }
+                null
+            } else {
+                val player = AVPlayer.playerWithURL(url)
+                val vc = AVPlayerViewController().apply {
+                    this.player = player
+                    this.showsPlaybackControls = true
+                }
+                Pair(player, vc)
+            }
+        }
+
+        // 3. Lifecycle Management
+        DisposableEffect(playerStack) {
+            val player = playerStack?.first
+            val vc = playerStack?.second
+
+            player?.play()
+
+            onDispose {
+                Logger.d("VideoPlayer.iOS") { "Stopping playback and cleaning up" }
+                player?.pause()
+                // Important: Break the retention cycle between VC and Player
+                vc?.player = null
+            }
+        }
+
+        // 4. Render
+        if (playerStack != null) {
             UIKitView(
                 factory = {
-                    println("Creating AVPlayerViewController with URL: $videoUrl")
-                    val player = AVPlayer.playerWithURL(videoUrl)
-
-                    val playerViewController = AVPlayerViewController()
-                    playerViewController.player = player
-                    playerViewController.showsPlaybackControls = true
-
-                    // Start playback
-                    player.play()
-
-                    playerViewController.view
+                    playerStack.second.view
                 },
-                modifier = Modifier.matchParentSize()
+                modifier = Modifier.fillMaxSize(),
+                update = { }
             )
+        } else {
+            Text("Invalid URL", color = MaterialTheme.colorScheme.error)
         }
     }
 }
+
+
+

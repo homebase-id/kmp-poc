@@ -3,6 +3,8 @@ package id.homebase.homebasekmppoc.prototype.lib.serialization
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
 import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.modules.SerializersModule
+import kotlin.uuid.Uuid
 
 /**
  * Custom camelCase naming strategy to match C# JsonNamingPolicy.CamelCase
@@ -43,6 +45,11 @@ object OdinSystemSerializer {
         prettyPrint = false
         explicitNulls = false
         coerceInputValues = false
+
+        serializersModule = SerializersModule {
+            contextual(Uuid::class, UuidSerializer)
+            // more custom serializers can be registered here as needed...
+        }
     }
 
     /**
