@@ -192,13 +192,4 @@ class DriveQueryProviderTest {
         assertEquals(capturedUrl?.startsWith("https://test.domain.com/api/apps/v1/drive/query/batch"), true)
     }
 
-    @Test
-    fun testCreate_returnsConfiguredProvider() {
-        // Act
-        val provider = DriveQueryProvider.create()
-
-        // Assert
-        // Just verify it doesn't throw and returns a valid instance
-        assertTrue(provider is DriveQueryProvider)
-    }
 }

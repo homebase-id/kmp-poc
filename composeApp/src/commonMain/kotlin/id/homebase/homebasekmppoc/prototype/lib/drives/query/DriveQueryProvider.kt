@@ -1,17 +1,19 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives.query
 
 import id.homebase.homebasekmppoc.prototype.lib.core.SecureByteArray
-import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchRequest
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResponse
+import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
 import io.ktor.client.call.body
+import io.ktor.client.request.accept
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
 
-/**
- * Drive query provider for querying files from a drive
- */
+/** Drive query provider for querying files from a drive */
 class DriveQueryProvider(private val odinClient: OdinClient) {
 
     /**
@@ -22,22 +24,22 @@ class DriveQueryProvider(private val odinClient: OdinClient) {
      * @return QueryBatchResponse containing the results
      */
     suspend fun queryBatch(
-        request: QueryBatchRequest,
-        options: QueryBatchOptions? = null
+            request: QueryBatchRequest,
+            options: QueryBatchOptions? = null
     ): QueryBatchResponse {
         // Set includeMetadataHeader if decrypt is enabled
-        val finalRequest = if (options?.decrypt == true) {
-            request.copy(
-                resultOptionsRequest = request.resultOptionsRequest.copy(
-                    includeMetadataHeader = true
-                )
-            )
-        } else {
-            request
-        }
+        val finalRequest =
+                if (options?.decrypt == true) {
+                    request.copy(
+                            resultOptionsRequest =
+                                    request.resultOptionsRequest.copy(includeMetadataHeader = true)
+                    )
+                } else {
+                    request
+                }
 
         val queryParams = finalRequest.toQueryString()
-        val getUrl = "/drive/query/batch?$queryParams"
+        val getUrl = "drive/query/batch?$queryParams"
 
         // Max URL is 1800 so we keep room for encryption overhead
         // Check if baseURL + getUrl length > 1800
@@ -53,86 +55,92 @@ class DriveQueryProvider(private val odinClient: OdinClient) {
         }
     }
 
-    /**
-     * Query batch using GET request
-     */
+    /** Query batch using GET request */
     private suspend fun queryBatchGet(
-        url: String,
-        options: QueryBatchOptions? = null
+            url: String,
+            options: QueryBatchOptions? = null
     ): QueryBatchResponse {
         val client = odinClient.createHttpClient()
 
-        val response = client.get(url) {
-            // Apply custom HTTP configuration if provided
-            options?.httpConfig?.invoke(this)
-        }.body<QueryBatchResponse>()
+        val response =
+                client
+                        .get(url) {
+                            accept(ContentType.Application.Json)
+                            // Apply custom HTTP configuration if provided
+                            options?.httpConfig?.invoke(this)
+                        }
+                        .body<QueryBatchResponse>()
 
         return handleResponse(response, options)
     }
 
-    /**
-     * Query batch using POST request
-     */
+    /** Query batch using POST request */
     private suspend fun queryBatchPost(
-        request: QueryBatchRequest,
-        options: QueryBatchOptions? = null
+            request: QueryBatchRequest,
+            options: QueryBatchOptions? = null
     ): QueryBatchResponse {
         val client = odinClient.createHttpClient()
 
-        val url = "/drive/query/batch"
+        val url = "drive/query/batch"
 
-        val response: QueryBatchResponse = client.post(url) {
-            setBody(request)
-            // Apply custom HTTP configuration if provided
-            options?.httpConfig?.invoke(this)
-        }.body<QueryBatchResponse>()
+        val response: QueryBatchResponse =
+                client
+                        .post(url) {
+                            contentType(ContentType.Application.Json)
+                            accept(ContentType.Application.Json)
+                            setBody(request)
+                            // Apply custom HTTP configuration if provided
+                            options?.httpConfig?.invoke(this)
+                        }
+                        .body<QueryBatchResponse>()
 
         return handleResponse(response, options)
     }
 
-    /**
-     * Handle the HTTP response and decrypt if needed
-     */
+    /** Handle the HTTP response and decrypt if needed */
     private suspend fun handleResponse(
-        response: QueryBatchResponse,
-        options: QueryBatchOptions? = null
+            response: QueryBatchResponse,
+            options: QueryBatchOptions? = null
     ): QueryBatchResponse {
         val shouldDecrypt = options?.decrypt ?: false
-        if(shouldDecrypt)  {
-            val decryptedResults = response.searchResults.map { dsr ->
-                if(dsr.fileMetadata.appData.content == null) {
-                    return@map dsr
-                }
-                // Decrypt key header if file is encrypted
-                val ss = odinClient.getSharedSecret()
+        if (shouldDecrypt) {
+            val decryptedResults =
+                    response.searchResults.map { dsr ->
+                        if (dsr.fileMetadata.appData.content == null) {
+                            return@map dsr
+                        }
+                        // Decrypt key header if file is encrypted
+                        val ss = odinClient.getSharedSecret()
 
-                val keyHeader = if (dsr.fileMetadata.isEncrypted && ss != null) {
-                    dsr.sharedSecretEncryptedKeyHeader.decryptAesToKeyHeader(SecureByteArray(ss))
-                } else {
-                    null
-                }
+                        val keyHeader =
+                                if (dsr.fileMetadata.isEncrypted && ss != null) {
+                                    dsr.sharedSecretEncryptedKeyHeader.decryptAesToKeyHeader(
+                                            SecureByteArray(ss)
+                                    )
+                                } else {
+                                    null
+                                }
 
-                // Decrypt JSON content
-                val decryptedContent = keyHeader?.decrypt(dsr.fileMetadata.appData.content)?.decodeToString()
+                        // Decrypt JSON content
+                        val decryptedContent =
+                                keyHeader
+                                        ?.decrypt(dsr.fileMetadata.appData.content)
+                                        ?.decodeToString()
 
-                // Return updated search result with decrypted content
-                dsr.copy(
-                    fileMetadata = dsr.fileMetadata.copy(
-                        appData = dsr.fileMetadata.appData.copy(
-                            content = decryptedContent
+                        // Return updated search result with decrypted content
+                        dsr.copy(
+                                fileMetadata =
+                                        dsr.fileMetadata.copy(
+                                                appData =
+                                                        dsr.fileMetadata.appData.copy(
+                                                                content = decryptedContent
+                                                        )
+                                        )
                         )
-                    )
-                )
-            }
+                    }
 
             return response.copy(searchResults = decryptedResults)
         }
         return response
-
     }
-
-
-
-
-
 }

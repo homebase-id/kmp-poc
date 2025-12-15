@@ -28,6 +28,9 @@ composeApp/src/commonMain/kotlin/id/homebase/homebasekmppoc/
 ├── di/                       # Dependency Injection
 │   └── AppModule.kt          # Koin module definitions
 ├── lib/                      # Shared library code (reusable components)
+│   ├── browser/              # Browser launching for OAuth (NEW)
+│   │   ├── BrowserLauncher.kt        # expect - Platform browser launching
+│   │   └── RedirectConfig.kt         # expect - Redirect URI configuration
 │   ├── core/                 # Core utilities (SecureByteArray, etc.)
 │   ├── crypto/               # Cryptography (ECC, AES, HKDF, etc.)
 │   ├── drives/               # Drive API models and queries
@@ -35,7 +38,7 @@ composeApp/src/commonMain/kotlin/id/homebase/homebasekmppoc/
 │   ├── image/                # Image processing utilities
 │   ├── serialization/        # JSON serialization (OdinSystemSerializer)
 │   ├── storage/              # Secure storage (SecureStorage expect/actual)
-│   └── youAuth/              # YouAuth authentication (NEW)
+│   └── youAuth/              # YouAuth authentication
 │       ├── ClientType.kt             # domain/app enum
 │       ├── DrivePermissionType.kt    # Bitwise permissions (Read=1, Write=2, etc.)
 │       ├── TargetDriveAccessRequest.kt # Drive access params
@@ -98,6 +101,56 @@ SecureStorage.clear()
 - Android requires `initialize(context)` before any other operation
 - iOS Keychain doesn't work in simulator test environment (tests skipped)
 - Desktop stores encrypted data in `~/.homebase-kmp-poc/`
+
+### Browser Launcher (BrowserLauncher)
+
+Platform-specific browser launching for OAuth/authentication flows:
+
+| Platform | Mechanism | Location |
+|----------|-----------|----------|
+| Android | Chrome Custom Tabs | `androidMain/.../lib/browser/BrowserLauncher.android.kt` |
+| iOS | ASWebAuthenticationSession | `iosMain/.../lib/browser/BrowserLauncher.ios.kt` |
+| Desktop | System Browser + LocalCallbackServer | `desktopMain/.../lib/browser/BrowserLauncher.desktop.kt` |
+
+**Usage:**
+```kotlin
+// Launch browser for OAuth flow
+BrowserLauncher.launchAuthBrowser(authorizeUrl, coroutineScope)
+
+// Get redirect URI for current platform
+val redirectUri = RedirectConfig.buildRedirectUri("my-app-id")
+val scheme = RedirectConfig.scheme  // "youauth" (mobile) or "http" (desktop)
+```
+
+**Notes:**
+- Android/iOS use `youauth://` custom URL scheme
+- Desktop uses `http://localhost:{PORT}` with dynamic port allocation
+- Android requires `ActivityProvider.initialize(activity)` before launching
+
+### Activity Provider (Android-only)
+
+Provides access to Android Activity without static singletons:
+
+**Location:** `androidMain/.../lib/core/ActivityProvider.kt`
+
+**Usage:**
+```kotlin
+// Initialize in Activity.onCreate() and onResume()
+ActivityProvider.initialize(this)
+
+// Get activity (nullable)
+val activity: ComponentActivity? = ActivityProvider.getActivity()
+
+// Get activity or throw
+val activity = ActivityProvider.requireActivity()
+
+// Clear reference (optional, uses WeakReference anyway)
+ActivityProvider.clear()
+```
+
+**Notes:**
+- Uses WeakReference to avoid memory leaks
+- Must be initialized before using BrowserLauncher on Android
 
 ### Dependency Injection (Koin)
 
@@ -275,13 +328,24 @@ The project follows standard KMP structure with platform-specific and shared cod
 
 - **`composeApp/src/androidMain/kotlin`**: Android-specific implementations
 
-  - `MainActivity.kt`: Entry point with deeplink handling
-  - `Platform.android.kt`: Android platform implementations (Custom Tabs)
+  - `MainActivity.kt`: Entry point with deeplink handling, initializes `ActivityProvider`
+  - `lib/core/ActivityProvider.kt`: WeakReference-based activity access
+  - `lib/browser/BrowserLauncher.android.kt`: Chrome Custom Tabs
+  - `lib/browser/RedirectConfig.android.kt`: youauth:// scheme
+  - `Platform.android.kt`: Platform info and showMessage
 
 - **`composeApp/src/iosMain/kotlin`**: iOS-specific implementations
 
-  - `MainViewController.kt`: iOS entry point with ASWebAuthenticationSession
-  - `Platform.ios.kt`: iOS platform implementations
+  - `MainViewController.kt`: iOS entry point
+  - `lib/browser/BrowserLauncher.ios.kt`: ASWebAuthenticationSession
+  - `lib/browser/RedirectConfig.ios.kt`: youauth:// scheme
+  - `Platform.ios.kt`: Platform info and showMessage
+
+- **`composeApp/src/desktopMain/kotlin`**: Desktop-specific implementations
+
+  - `lib/browser/BrowserLauncher.desktop.kt`: System browser + LocalCallbackServer
+  - `lib/browser/RedirectConfig.desktop.kt`: http://localhost with dynamic port
+  - `Platform.desktop.kt`: Platform info and showMessage
 
 - **`iosApp/`**: Native iOS application wrapper (SwiftUI entry point)
 

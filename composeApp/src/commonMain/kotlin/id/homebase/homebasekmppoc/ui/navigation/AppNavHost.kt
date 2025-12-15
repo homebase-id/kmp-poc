@@ -96,7 +96,7 @@ fun AppNavHost(
             }
         }
 
-        // Protected DriveFetch route (uses prototype, needs legacy YouAuthManager)
+        // Protected DriveFetch route
         composable<Route.DriveFetch> {
             AuthenticatedRouteWithFlowManager(
                     authState = youAuthFlowManager.authState,
@@ -104,9 +104,10 @@ fun AppNavHost(
                         navController.navigate(Route.Login) { popUpTo(0) { inclusive = true } }
                     }
             ) {
-                // Create legacy YouAuthManager for prototype pages
-                val legacyManager = remember { YouAuthManager() }
-                DriveFetchPage(legacyManager)
+                DriveFetchPage(
+                        youAuthFlowManager = youAuthFlowManager,
+                        onNavigateBack = { navController.popBackStack() }
+                )
             }
         }
 
