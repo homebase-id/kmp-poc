@@ -1,5 +1,6 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives.files
 
+import id.homebase.homebasekmppoc.prototype.lib.drives.upload.EmbeddedThumb
 import kotlinx.serialization.Serializable
 
 /** Media file reference for existing files. Ported from TypeScript MediaFile interface. */
@@ -42,7 +43,7 @@ data class NewMediaFile(
 data class PayloadFile(
         val key: String,
         val payload: ByteArray,
-        val previewThumbnail: PayloadEmbeddedThumb? = null,
+        val previewThumbnail: EmbeddedThumb? = null,
         val descriptorContent: String? = null,
         val skipEncryption: Boolean = false,
         /** IV for manual encryption mode (when skipEncryption = true). */
@@ -77,12 +78,3 @@ data class PayloadFile(
         return result
     }
 }
-
-/** Embedded thumbnail for payloads. Matches TypeScript EmbeddedThumb with base64 content. */
-@Serializable
-data class PayloadEmbeddedThumb(
-        val pixelWidth: Int,
-        val pixelHeight: Int,
-        val contentType: String,
-        val content: String
-)

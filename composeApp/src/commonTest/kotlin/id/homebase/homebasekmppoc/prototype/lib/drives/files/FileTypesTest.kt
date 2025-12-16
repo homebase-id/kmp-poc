@@ -1,10 +1,9 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives.files
 
 import id.homebase.homebasekmppoc.prototype.lib.crypto.EncryptedKeyHeader
-import id.homebase.homebasekmppoc.prototype.lib.drives.ArchivalStatus
-import id.homebase.homebasekmppoc.prototype.lib.drives.ClientFileMetadata
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileSystemType
 import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
+import id.homebase.homebasekmppoc.prototype.lib.drives.upload.EmbeddedThumb
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -189,7 +188,7 @@ class FileTypesTest {
                         fileId = testFileId,
                         fileSystemType = FileSystemType.Standard,
                         fileState = HomebaseFileState.Active,
-                        fileMetadata = ClientFileMetadata(),
+                        fileMetadata = FileMetadata(),
                         sharedSecretEncryptedKeyHeader = EncryptedKeyHeader.empty()
                 )
 
@@ -292,12 +291,12 @@ class FileTypesTest {
     @Test
     fun `PayloadEmbeddedThumb creation works correctly`() {
         val thumb =
-                PayloadEmbeddedThumb(
-                        pixelWidth = 100,
-                        pixelHeight = 100,
-                        contentType = "image/webp",
-                        content = "base64encodedcontent"
-                )
+            EmbeddedThumb(
+                pixelWidth = 100,
+                pixelHeight = 100,
+                contentType = "image/webp",
+                content = "base64encodedcontent"
+            )
 
         assertEquals(100, thumb.pixelWidth)
         assertEquals(100, thumb.pixelHeight)

@@ -1,5 +1,7 @@
 package id.homebase.homebasekmppoc.lib.image
 
+import id.homebase.homebasekmppoc.prototype.lib.drives.files.ThumbnailFile
+import id.homebase.homebasekmppoc.prototype.lib.drives.upload.EmbeddedThumb
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.io.encoding.Base64
@@ -81,7 +83,7 @@ suspend fun createThumbnails(
             pixelWidth = naturalSize.pixelWidth,
             pixelHeight = naturalSize.pixelHeight,
             contentType = "image/svg+xml",
-            contentBase64 = toBase64(vectorThumb.payload)
+            content = toBase64(vectorThumb.payload)
         )
 
         return@withContext Triple(naturalSize, embedded, listOf(vectorThumb))
@@ -97,7 +99,7 @@ suspend fun createThumbnails(
             pixelWidth = naturalSize.pixelWidth,
             pixelHeight = naturalSize.pixelHeight,
             contentType = "image/webp",
-            contentBase64 = toBase64(tinyThumbFile.payload)
+            content = toBase64(tinyThumbFile.payload)
         )
         return@withContext Triple(naturalSize, embeddedTiny, emptyList())
     }
@@ -118,7 +120,7 @@ suspend fun createThumbnails(
         pixelWidth = tinyThumbFile.pixelWidth,
         pixelHeight = tinyThumbFile.pixelHeight,
         contentType = "image/webp",
-        contentBase64 = toBase64(tinyThumbFile.payload)
+        content = toBase64(tinyThumbFile.payload)
     )
 
     return@withContext Triple(naturalSize, embeddedTiny, additional)

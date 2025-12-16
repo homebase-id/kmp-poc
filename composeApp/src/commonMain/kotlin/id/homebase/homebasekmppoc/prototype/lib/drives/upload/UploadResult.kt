@@ -1,6 +1,6 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives.upload
 
-import id.homebase.homebasekmppoc.prototype.lib.drives.GlobalTransitIdFileIdentifier
+import id.homebase.homebasekmppoc.prototype.lib.drives.files.GlobalTransitIdFileIdentifier
 import kotlinx.serialization.Serializable
 
 /** Result of an upload operation. */

@@ -1,5 +1,6 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives
 
+import id.homebase.homebasekmppoc.prototype.lib.drives.files.GlobalTransitIdFileIdentifier
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -85,10 +86,10 @@ class GetPayloadRequestTest {
         val request =
                 GetPayloadByGlobalTransitIdRequest(
                         file =
-                                GlobalTransitIdFileIdentifier(
-                                        targetDrive = targetDrive,
-                                        globalTransitId = globalTransitId
-                                )
+                            GlobalTransitIdFileIdentifier(
+                                targetDrive = targetDrive,
+                                globalTransitId = globalTransitId
+                            )
                 )
 
         // Act

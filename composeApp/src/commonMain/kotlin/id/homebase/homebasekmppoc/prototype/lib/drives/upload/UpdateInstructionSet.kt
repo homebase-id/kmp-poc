@@ -1,7 +1,7 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives.upload
 
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileSystemType
-import id.homebase.homebasekmppoc.prototype.lib.drives.GlobalTransitIdFileIdentifier
+import id.homebase.homebasekmppoc.prototype.lib.drives.files.GlobalTransitIdFileIdentifier
 import id.homebase.homebasekmppoc.prototype.lib.serialization.Base64ByteArraySerializer
 import kotlinx.serialization.Serializable
 

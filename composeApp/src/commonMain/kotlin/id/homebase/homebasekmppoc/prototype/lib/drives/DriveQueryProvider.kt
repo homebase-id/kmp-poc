@@ -12,6 +12,7 @@ import io.ktor.http.*
  * Drive query provider for querying files from a drive Ported from C#
  * YouAuthClientReferenceImplementation.DriveQueryProvider
  */
+@Deprecated("Use the new DriveQueryProvider in the drives/query module instead")
 class DriveQueryProvider(private val httpClient: HttpClient) {
 
     /**

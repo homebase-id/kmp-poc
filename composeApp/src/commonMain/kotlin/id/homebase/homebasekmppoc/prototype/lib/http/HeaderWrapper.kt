@@ -3,7 +3,7 @@ package id.homebase.homebasekmppoc.prototype.lib.http
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthState
 import id.homebase.homebasekmppoc.prototype.lib.core.SecureByteArray
 import id.homebase.homebasekmppoc.prototype.lib.crypto.KeyHeader
-import id.homebase.homebasekmppoc.prototype.lib.drives.PayloadDescriptor
+import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadDescriptor
 import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
 import kotlin.io.encoding.Base64
 

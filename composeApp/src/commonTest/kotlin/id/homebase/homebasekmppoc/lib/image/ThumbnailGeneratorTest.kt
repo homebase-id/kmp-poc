@@ -1,5 +1,6 @@
 package id.homebase.homebasekmppoc.lib.image
 
+import id.homebase.homebasekmppoc.prototype.lib.drives.files.ThumbnailFile
 import kotlinx.coroutines.test.runTest
 import kotlin.test.*
 

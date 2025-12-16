@@ -2,8 +2,8 @@ package id.homebase.homebasekmppoc.prototype.lib.drives.upload
 
 import id.homebase.homebasekmppoc.prototype.lib.crypto.EncryptedKeyHeader
 import id.homebase.homebasekmppoc.prototype.lib.drives.AccessControlList
-import id.homebase.homebasekmppoc.prototype.lib.drives.ArchivalStatus
-import id.homebase.homebasekmppoc.prototype.lib.drives.GlobalTransitIdFileIdentifier
+import id.homebase.homebasekmppoc.prototype.lib.drives.files.ArchivalStatus
+import id.homebase.homebasekmppoc.prototype.lib.drives.files.GlobalTransitIdFileIdentifier
 import id.homebase.homebasekmppoc.prototype.lib.serialization.Base64ByteArraySerializer
 import kotlinx.serialization.Serializable
 
@@ -12,7 +12,7 @@ import kotlinx.serialization.Serializable
  * from the lib/image EmbeddedThumb which uses contentBase64 field name.
  */
 @Serializable
-data class UploadEmbeddedThumb(
+data class EmbeddedThumb(
         val pixelWidth: Int,
         val pixelHeight: Int,
         val contentType: String,
@@ -30,7 +30,7 @@ data class UploadAppFileMetaData(
         val groupId: String? = null,
         val archivalStatus: ArchivalStatus? = null,
         val content: String? = null,
-        val previewThumbnail: UploadEmbeddedThumb? = null
+        val previewThumbnail: EmbeddedThumb? = null
 )
 
 /** File metadata for uploads. */

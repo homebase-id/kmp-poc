@@ -1,6 +1,6 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives.upload
 
-import id.homebase.homebasekmppoc.prototype.lib.drives.ThumbnailDescriptor
+import id.homebase.homebasekmppoc.prototype.lib.drives.files.ThumbnailDescriptor
 import kotlinx.serialization.Serializable
 
 /** Payload descriptor for uploads. */

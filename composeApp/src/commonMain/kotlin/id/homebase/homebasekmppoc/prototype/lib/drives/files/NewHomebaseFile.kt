@@ -1,7 +1,6 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives.files
 
-import id.homebase.homebasekmppoc.prototype.lib.drives.ArchivalStatus
-import id.homebase.homebasekmppoc.prototype.lib.drives.ThumbnailDescriptor
+import id.homebase.homebasekmppoc.prototype.lib.drives.upload.EmbeddedThumb
 import id.homebase.homebasekmppoc.prototype.lib.serialization.UuidSerializer
 import kotlin.uuid.Uuid
 import kotlinx.serialization.Serializable
@@ -34,7 +33,7 @@ data class NewAppFileMetaData(
         val userDate: Long? = null,
         val tags: List<String>? = null,
         val uniqueId: String? = null,
-        val previewThumbnail: PayloadEmbeddedThumb? = null,
+        val previewThumbnail: EmbeddedThumb? = null,
         val archivalStatus: ArchivalStatus? = null
 )
 

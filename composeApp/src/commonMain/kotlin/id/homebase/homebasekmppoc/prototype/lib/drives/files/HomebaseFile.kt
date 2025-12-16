@@ -1,7 +1,6 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives.files
 
 import id.homebase.homebasekmppoc.prototype.lib.crypto.EncryptedKeyHeader
-import id.homebase.homebasekmppoc.prototype.lib.drives.ClientFileMetadata
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileSystemType
 import id.homebase.homebasekmppoc.prototype.lib.drives.ServerMetadata
 import id.homebase.homebasekmppoc.prototype.lib.serialization.UuidSerializer
@@ -33,12 +32,12 @@ enum class HomebaseFileState(val value: String) {
  */
 @Serializable
 data class HomebaseFile(
-        @Serializable(with = UuidSerializer::class) val fileId: Uuid,
-        val fileSystemType: FileSystemType,
-        val fileState: HomebaseFileState = HomebaseFileState.Active,
-        val fileMetadata: ClientFileMetadata,
-        val sharedSecretEncryptedKeyHeader: EncryptedKeyHeader,
-        val serverMetadata: ServerMetadata? = null
+    @Serializable(with = UuidSerializer::class) val fileId: Uuid,
+    val fileSystemType: FileSystemType,
+    val fileState: HomebaseFileState = HomebaseFileState.Active,
+    val fileMetadata: FileMetadata,
+    val sharedSecretEncryptedKeyHeader: EncryptedKeyHeader,
+    val serverMetadata: ServerMetadata? = null
 ) {
     val isActive: Boolean
         get() = fileState == HomebaseFileState.Active
