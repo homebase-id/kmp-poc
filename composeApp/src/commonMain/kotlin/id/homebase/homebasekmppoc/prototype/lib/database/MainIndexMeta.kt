@@ -161,8 +161,8 @@ class FileHeaderProcessor(
 
             if (cursor != null)
             {
-                val cursorSync = CursorSync(database)
-                cursorSync.saveCursor(cursor)
+                val cursorStorage = CursorStorage(database, driveId)
+                cursorStorage.saveCursor(cursor)
             }
         }
     }
