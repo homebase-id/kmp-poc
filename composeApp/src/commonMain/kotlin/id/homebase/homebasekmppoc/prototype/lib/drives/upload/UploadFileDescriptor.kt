@@ -1,10 +1,14 @@
+@file:OptIn(kotlin.io.encoding.ExperimentalEncodingApi::class)
+
 package id.homebase.homebasekmppoc.prototype.lib.drives.upload
 
 import id.homebase.homebasekmppoc.prototype.lib.crypto.EncryptedKeyHeader
+import id.homebase.homebasekmppoc.prototype.lib.crypto.KeyHeader
 import id.homebase.homebasekmppoc.prototype.lib.drives.AccessControlList
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.ArchivalStatus
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.GlobalTransitIdFileIdentifier
 import id.homebase.homebasekmppoc.prototype.lib.serialization.Base64ByteArraySerializer
+import kotlin.io.encoding.Base64
 import kotlinx.serialization.Serializable
 
 /**
@@ -42,7 +46,25 @@ data class UploadFileMetadata(
         val appData: UploadAppFileMetaData,
         val referencedFile: GlobalTransitIdFileIdentifier? = null,
         val versionTag: String? = null
-)
+) {
+    /**
+     * Encrypts the appData.content using the provided KeyHeader. If keyHeader is null or content is
+     * empty, returns this unchanged.
+     *
+     * @param keyHeader The KeyHeader to use for encryption
+     * @return A new UploadFileMetadata with encrypted content, or this if no encryption needed
+     */
+    suspend fun encryptContent(keyHeader: KeyHeader?): UploadFileMetadata {
+        if (keyHeader == null || appData.content.isNullOrEmpty()) {
+            return this
+        }
+
+        val encryptedBytes = keyHeader.encryptDataAes(appData.content.encodeToByteArray())
+        val encryptedContent = Base64.Default.encode(encryptedBytes)
+
+        return copy(appData = appData.copy(content = encryptedContent))
+    }
+}
 
 /** File descriptor for uploads. */
 @Serializable

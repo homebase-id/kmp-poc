@@ -96,6 +96,7 @@ class DriveQueryProvider(private val httpClient: HttpClient) {
 
     companion object {
         /** Create a default DriveQueryProvider with a configured HTTP client */
+        @Suppress("DEPRECATION")
         fun create(): DriveQueryProvider {
             val client = createHttpClient()
             return DriveQueryProvider(client)

@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package id.homebase.homebasekmppoc.prototype.ui.app
 
 import androidx.compose.foundation.Image
@@ -37,7 +39,6 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResponse
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
-
 /**
  * A card component that displays authenticated user information with data from backend.
  *
@@ -46,8 +47,8 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  */
 @Composable
 fun AuthenticatedAppCard(
-    authenticatedState: AuthState.Authenticated?,
-    modifier: Modifier = Modifier
+        authenticatedState: AuthState.Authenticated?,
+        modifier: Modifier = Modifier
 ) {
     var queryBatchResponse by remember { mutableStateOf<QueryBatchResponse?>(null) }
 
@@ -59,12 +60,14 @@ fun AuthenticatedAppCard(
         if (authenticatedState != null) {
             try {
                 val dqr = DriveQueryProvider.create()
-                queryBatchResponse = dqr.queryBatch(
-                    authenticatedState.identity,
-                    authenticatedState.clientAuthToken,
-                    authenticatedState.sharedSecret,
-                    exampleDriveAlias,
-                    exampleDriveType)
+                queryBatchResponse =
+                        dqr.queryBatch(
+                                authenticatedState.identity,
+                                authenticatedState.clientAuthToken,
+                                authenticatedState.sharedSecret,
+                                exampleDriveAlias,
+                                exampleDriveType
+                        )
                 isLoading = false
             } catch (e: Exception) {
                 Logger.e("Error fetching QueryBatch data", e)
@@ -75,39 +78,31 @@ fun AuthenticatedAppCard(
     }
 
     Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 4.dp
-        )
+            modifier = modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                modifier = Modifier.fillMaxWidth().padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
         ) {
             // User avatar/image
             Image(
-                painter = painterResource(Res.drawable.compose_multiplatform),
-                contentDescription = "User avatar",
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
+                    painter = painterResource(Res.drawable.compose_multiplatform),
+                    contentDescription = "User avatar",
+                    modifier = Modifier.size(80.dp).clip(CircleShape),
+                    contentScale = ContentScale.Crop
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // User identity
             Text(
-                text = authenticatedState?.identity ?: "Not authenticated",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center
+                    text = authenticatedState?.identity ?: "Not authenticated",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -118,45 +113,48 @@ fun AuthenticatedAppCard(
                     CircularProgressIndicator(modifier = Modifier.size(24.dp))
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Loading data...",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
+                            text = "Loading data...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
                     )
                 }
                 errorMessage != null -> {
                     Text(
-                        text = "Error: $errorMessage",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error,
-                        textAlign = TextAlign.Center
+                            text = "Error: $errorMessage",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = TextAlign.Center
                     )
                 }
                 else -> {
                     // QueryBatch Response Section
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .border(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.outline,
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                            .padding(12.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                            modifier =
+                                    Modifier.fillMaxWidth()
+                                            .border(
+                                                    width = 1.dp,
+                                                    color = MaterialTheme.colorScheme.outline,
+                                                    shape = RoundedCornerShape(8.dp)
+                                            )
+                                            .padding(12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "QueryBatch Response",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            textAlign = TextAlign.Center
+                                text = "QueryBatch Response",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                textAlign = TextAlign.Center
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = if (queryBatchResponse == null) "null" else "If you see this, QueryBatch to app drive ran successfully",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
+                                text =
+                                        if (queryBatchResponse == null) "null"
+                                        else
+                                                "If you see this, QueryBatch to app drive ran successfully",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
                         )
                     }
                 }
@@ -170,12 +168,13 @@ fun AuthenticatedAppCard(
 fun AuthenticatedUserCardPreview() {
     MaterialTheme {
         AuthenticatedAppCard(
-            authenticatedState = AuthState.Authenticated(
-                identity = "frodo.dotyou.cloud",
-                clientAuthToken = "mock-token",
-                sharedSecret = "mock-secret"
-            ),
-            modifier = Modifier.padding(16.dp)
+                authenticatedState =
+                        AuthState.Authenticated(
+                                identity = "frodo.dotyou.cloud",
+                                clientAuthToken = "mock-token",
+                                sharedSecret = "mock-secret"
+                        ),
+                modifier = Modifier.padding(16.dp)
         )
     }
 }

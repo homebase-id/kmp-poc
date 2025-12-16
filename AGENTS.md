@@ -301,16 +301,24 @@ Located in `prototype/lib/drives/upload/`:
 | `TransitOptions.kt` | `TransitOptions` with factory methods |
 | `UploadInstructionSet.kt` | `UploadInstructionSet` |
 | `UpdateInstructionSet.kt` | `FileIdFileIdentifier`, `UpdateLocale`, `UpdatePeerInstructionSet`, `UpdateLocalInstructionSet`, `UpdateInstructionSet` |
-| `UploadFileDescriptor.kt` | `UploadEmbeddedThumb`, `UploadAppFileMetaData`, `UploadFileMetadata`, `UploadFileDescriptor`, `UploadKeyHeader` |
-| `UploadManifest.kt` | `UploadPayloadDescriptor`, `UploadThumbnailDescriptor`, `UploadManifest`, `UpdatePayloadInstruction`, `PayloadOperationType`, `UpdateManifest` |
+| `UploadFileDescriptor.kt` | `EmbeddedThumb`, `UploadAppFileMetaData`, `UploadFileMetadata`, `UploadFileDescriptor`, `UploadKeyHeader` |
+| `UploadManifest.kt` | `UploadPayloadDescriptor`, `UploadThumbnailDescriptor`, `UploadManifest`, `UpdatePayloadInstruction`, `PayloadOperationType`, `UpdateManifest`, `PayloadDeleteKey` |
 | `UploadResult.kt` | `UploadResult`, `UpdateResult` |
+
+**Helper Methods (ported from TypeScript):**
+
+| Class | Method | Description |
+|-------|--------|-------------|
+| `UploadFileMetadata` | `encryptContent(keyHeader)` | Encrypts `appData.content` with KeyHeader's AES key, returns new metadata |
+| `UploadManifest` | `build(payloads, thumbnails, generateIv)` | Builds manifest from PayloadFiles, associates thumbnails by key, optionally generates IVs |
+| `UpdateManifest` | `build(payloads, toDelete, thumbnails, generateIv)` | Builds update manifest with append/delete instructions for payloads |
 
 **Reuses existing types:**
 - `EncryptedKeyHeader` from `prototype/lib/crypto/`
 - `AccessControlList` from `prototype/lib/drives/ServerMetadata.kt`
 - `ArchivalStatus`, `GlobalTransitIdFileIdentifier`, `TargetDrive`, `FileSystemType` from drives package
 
-**Note:** `UploadKeyHeader` and `UploadEmbeddedThumb` are serializable DTOs for API responses. For cryptographic operations, use `crypto.KeyHeader` and `crypto.EncryptedKeyHeader` which use `SecureByteArray` for security.
+**Note:** `UploadKeyHeader` and `EmbeddedThumb` are serializable DTOs for API responses. For cryptographic operations, use `crypto.KeyHeader` and `crypto.EncryptedKeyHeader` which use `SecureByteArray` for security.
 
 ### Drive File Types
 
@@ -337,6 +345,113 @@ Located in `prototype/lib/drives/files/`:
 - `ImageSize`, `ThumbnailFile`, `EmbeddedThumb` from `lib/image/models.kt`
 
 **Note:** `HomebaseFile` is similar to `SharedSecretEncryptedFileHeader` but uses string-based `HomebaseFileState`. `FileAccessControlList` uses typed `SecurityGroupType` enum while `AccessControlList` uses `String?`.
+
+### OdinException Hierarchy
+
+Located in `prototype/lib/core/OdinException.kt`:
+
+**Exception classes for Odin API error handling, ported from C#:**
+
+| Class | Description |
+|-------|-------------|
+| `OdinException` | Base exception class for all Odin-related errors |
+| `OdinClientException` | Client error with `OdinClientErrorCode` (e.g., VersionTagMismatch, FileNotFound) |
+| `OdinRemoteIdentityException` | Remote identity error with `OdinClientErrorCode` |
+| `OdinErrorResponse` | Serializable response from server with automatic `OdinClientErrorCode` parsing |
+
+**OdinClientErrorCode (`enum class`, 80+ error codes):**
+- Auth Errors (10xx): `InvalidAuthToken`, `SharedSecretEncryptionIsInvalid`
+- Circle Errors (30xx): `IdentityAlreadyMemberOfCircle`, `NotAConnectedIdentity`
+- Drive Errors (41xx): `FileNotFound`, `VersionTagMismatch`, `InvalidFile`, `InvalidUpload`
+- Connection Errors (50xx): `BlockedConnection`, `IdentityMustBeConnected`
+- Transit Errors (7xxx): `RemoteServerReturnedForbidden`, `RemoteServerOfflineOrUnavailable`
+- System Errors (90xx): `NotInitialized`, `InvalidOrExpiredRsaKey`
+
+**Custom Serializer (`OdinClientErrorCodeSerializer`):**
+- Automatically deserializes error codes from JSON as either integer (e.g., `4160`) or string (e.g., `"versionTagMismatch"`)
+- Used by `OdinErrorResponse.errorCode` field
+
+**Usage:**
+```kotlin
+try {
+    uploadProvider.pureUpload(data)
+} catch (e: OdinClientException) {
+    when (e.errorCode) {
+        OdinClientErrorCode.VersionTagMismatch -> handleConflict()
+        OdinClientErrorCode.FileNotFound -> handleNotFound()
+        else -> throw e
+    }
+}
+```
+
+### DriveUploadProvider
+
+Located in `prototype/lib/drives/upload/DriveUploadProvider.kt`:
+
+**Provider for drive upload and update operations, ported from JS/TS odin-js:**
+
+| Method | Description |
+|--------|-------------|
+| `pureUpload(data, fileSystemType?, onVersionConflict?)` | Upload file to `/drive/files/upload` (POST) |
+| `pureUpdate(data, fileSystemType?, onVersionConflict?)` | Update file at `/drive/files/update` (PATCH) |
+
+**Features:**
+- Accepts `MultiPartFormDataContent` for multipart uploads
+- Optional `FileSystemType` parameter (defaults to `Standard`)
+- Version conflict callback for handling `VersionTagMismatch` errors
+- Automatic error deserialization using `OdinErrorResponse`
+- Throws `OdinClientException` on errors
+
+**Usage:**
+```kotlin
+val uploadProvider = DriveUploadProvider(odinClient)
+
+// Upload with version conflict handling
+val result = uploadProvider.pureUpload(
+    data = multipartData,
+    fileSystemType = FileSystemType.Standard,
+    onVersionConflict = { 
+        // Handle conflict, optionally retry with new version tag
+        null 
+    }
+)
+```
+
+### DriveFileProvider
+
+Located in `prototype/lib/drives/files/DriveFileProvider.kt`:
+
+**Provider for drive file delete operations, ported from JS/TS odin-js:**
+
+| Method | Description |
+|--------|-------------|
+| `deleteFile(targetDrive, fileId, recipients?, fileSystemType?, hardDelete?)` | Delete single file |
+| `deleteFiles(targetDrive, fileIds, recipients?, fileSystemType?)` | Batch delete by file IDs |
+| `deleteFilesByGroupId(targetDrive, groupIds, recipients?, fileSystemType?)` | Batch delete by group IDs |
+
+**Endpoints:**
+- `/drive/files/delete` - Soft delete single file
+- `/drive/files/harddelete` - Hard delete single file
+- `/drive/files/deletefileidbatch` - Batch delete by file IDs
+- `/drive/files/deletegroupidbatch` - Batch delete by group IDs
+
+**Usage:**
+```kotlin
+val fileProvider = DriveFileProvider(odinClient)
+
+// Delete single file
+fileProvider.deleteFile(
+    targetDrive = TargetDrive(alias = "photos", type = "media"),
+    fileId = "abc-123",
+    hardDelete = false
+)
+
+// Batch delete
+fileProvider.deleteFiles(
+    targetDrive = targetDrive,
+    fileIds = listOf("file1", "file2", "file3")
+)
+```
 
 ## Build Commands
 

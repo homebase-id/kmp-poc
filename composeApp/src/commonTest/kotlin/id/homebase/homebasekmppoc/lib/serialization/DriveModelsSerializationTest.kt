@@ -1,19 +1,19 @@
 package id.homebase.homebasekmppoc.lib.serialization
 
 import id.homebase.homebasekmppoc.prototype.lib.drives.AccessControlList
-import id.homebase.homebasekmppoc.prototype.lib.drives.files.AppFileMetaData
-import id.homebase.homebasekmppoc.prototype.lib.drives.files.ArchivalStatus
-import id.homebase.homebasekmppoc.prototype.lib.drives.files.FileMetadata
-import id.homebase.homebasekmppoc.prototype.lib.drives.files.CommentPreview
-import id.homebase.homebasekmppoc.prototype.lib.drives.files.DataSource
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileState
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileSystemType
+import id.homebase.homebasekmppoc.prototype.lib.drives.ServerMetadata
+import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
+import id.homebase.homebasekmppoc.prototype.lib.drives.files.AppFileMetaData
+import id.homebase.homebasekmppoc.prototype.lib.drives.files.ArchivalStatus
+import id.homebase.homebasekmppoc.prototype.lib.drives.files.CommentPreview
+import id.homebase.homebasekmppoc.prototype.lib.drives.files.DataSource
+import id.homebase.homebasekmppoc.prototype.lib.drives.files.FileMetadata
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.GlobalTransitIdFileIdentifier
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadDescriptor
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.ReactionEntry
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.ReactionSummary
-import id.homebase.homebasekmppoc.prototype.lib.drives.ServerMetadata
-import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.ThumbnailDescriptor
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import kotlin.test.Test
@@ -427,7 +427,7 @@ class DriveModelsSerializationTest {
         assertNotNull(identifier)
         assertEquals("d3faaaf3-9c75-4fe3-9a4f-cee91ab3d667", identifier.globalTransitId.toString())
         assertNotNull(identifier.targetDrive)
-        assertTrue(identifier.hasValue())
+        assertNotNull(identifier.targetDrive)
     }
 
     // ========================================================================

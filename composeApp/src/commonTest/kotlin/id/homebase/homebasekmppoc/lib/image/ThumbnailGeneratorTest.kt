@@ -1,14 +1,15 @@
 package id.homebase.homebasekmppoc.lib.image
 
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.ThumbnailFile
-import kotlinx.coroutines.test.runTest
+import id.homebase.homebasekmppoc.prototype.lib.drives.upload.EmbeddedThumb
 import kotlin.test.*
+import kotlinx.coroutines.test.runTest
 
 /**
  * Common tests for ThumbnailGenerator that run on all platforms (Android, iOS, Desktop)
  *
- * The class is abstract and platform-specific subclasses provide the test runners,
- * otherwise Robolectric would try to run this directly and fail.
+ * The class is abstract and platform-specific subclasses provide the test runners, otherwise
+ * Robolectric would try to run this directly and fail.
  */
 abstract class ThumbnailGeneratorTest {
 
@@ -24,10 +25,26 @@ abstract class ThumbnailGeneratorTest {
 
         // Assert
         assertEquals(4, result.size, "Should keep all 4 thumbnails")
-        assertTrue(result.any { it.maxPixelDimension == 320 && it.maxBytes == 26 * 1024 && it.quality == 84 })
-        assertTrue(result.any { it.maxPixelDimension == 640 && it.maxBytes == 102 * 1024 && it.quality == 84 })
-        assertTrue(result.any { it.maxPixelDimension == 1080 && it.maxBytes == 291 * 1024 && it.quality == 76 })
-        assertTrue(result.any { it.maxPixelDimension == 1600 && it.maxBytes == 640 * 1024 && it.quality == 76 })
+        assertTrue(
+                result.any {
+                    it.maxPixelDimension == 320 && it.maxBytes == 26 * 1024 && it.quality == 84
+                }
+        )
+        assertTrue(
+                result.any {
+                    it.maxPixelDimension == 640 && it.maxBytes == 102 * 1024 && it.quality == 84
+                }
+        )
+        assertTrue(
+                result.any {
+                    it.maxPixelDimension == 1080 && it.maxBytes == 291 * 1024 && it.quality == 76
+                }
+        )
+        assertTrue(
+                result.any {
+                    it.maxPixelDimension == 1600 && it.maxBytes == 640 * 1024 && it.quality == 76
+                }
+        )
     }
 
     @Test
@@ -127,17 +144,20 @@ abstract class ThumbnailGeneratorTest {
 
         // Verify tiny thumb properties
         assertTrue(tinyThumb.contentType.startsWith("image/"))
-        assertTrue(tinyThumb.contentBase64.isNotEmpty())
+        assertTrue(tinyThumb.content.isNotEmpty())
 
         // Verify additional thumbnails
         assertTrue(additionalThumbnails.all { it.key == payloadKey })
         assertTrue(additionalThumbnails.all { it.payload.isNotEmpty() })
-        // Quality should be reasonable (between 1 and 100) and all thumbnails should fit within maxBytes
+        // Quality should be reasonable (between 1 and 100) and all thumbnails should fit within
+        // maxBytes
         assertTrue(additionalThumbnails.all { it.quality in 1..100 })
         additionalThumbnails.forEachIndexed { index, thumb ->
             if (index < baseThumbSizes.size) {
-                assertTrue(thumb.payload.size <= baseThumbSizes[index].maxBytes,
-                    "Thumbnail $index size ${thumb.payload.size} exceeds max ${baseThumbSizes[index].maxBytes}")
+                assertTrue(
+                        thumb.payload.size <= baseThumbSizes[index].maxBytes,
+                        "Thumbnail $index size ${thumb.payload.size} exceeds max ${baseThumbSizes[index].maxBytes}"
+                )
             }
         }
     }
@@ -159,11 +179,14 @@ abstract class ThumbnailGeneratorTest {
 
         for (i in 0..2) {
             assertTrue(
-                additionalThumbnails[i].payload.size <= baseThumbSizes[i].maxBytes,
-                "Thumbnail $i size ${additionalThumbnails[i].payload.size} exceeds max ${baseThumbSizes[i].maxBytes}"
+                    additionalThumbnails[i].payload.size <= baseThumbSizes[i].maxBytes,
+                    "Thumbnail $i size ${additionalThumbnails[i].payload.size} exceeds max ${baseThumbSizes[i].maxBytes}"
             )
             // Quality should be reasonable
-            assertTrue(additionalThumbnails[i].quality in 1..100, "Quality for thumbnail $i is ${additionalThumbnails[i].quality}")
+            assertTrue(
+                    additionalThumbnails[i].quality in 1..100,
+                    "Quality for thumbnail $i is ${additionalThumbnails[i].quality}"
+            )
         }
     }
 
@@ -173,12 +196,18 @@ abstract class ThumbnailGeneratorTest {
         val imageData = loadTestImageOrSkip("sample.png")
         val payloadKey = "test"
 
-        val customSizes = listOf(
-            ThumbnailInstruction(quality = 100, maxPixelDimension = 1024, maxBytes = 70 * 1024)
-        )
+        val customSizes =
+                listOf(
+                        ThumbnailInstruction(
+                                quality = 100,
+                                maxPixelDimension = 1024,
+                                maxBytes = 70 * 1024
+                        )
+                )
 
         // Act
-        val (naturalSize, tinyThumb, additionalThumbnails) = createThumbnails(imageData, payloadKey, customSizes)
+        val (naturalSize, tinyThumb, additionalThumbnails) =
+                createThumbnails(imageData, payloadKey, customSizes)
 
         // Assert
         assertNotNull(naturalSize)
@@ -186,15 +215,12 @@ abstract class ThumbnailGeneratorTest {
         assertNotNull(additionalThumbnails)
         assertEquals(1, additionalThumbnails.size, "Should be 1")
 
-        assertTrue(
-            additionalThumbnails[0].payload.size <= customSizes[0].maxBytes,
-            "Too large"
-        )
+        assertTrue(additionalThumbnails[0].payload.size <= customSizes[0].maxBytes, "Too large")
         // Quality must change!
         assertNotEquals(
-            baseThumbSizes[0].quality,
-            additionalThumbnails[0].quality,
-            "Quality unchanged"
+                baseThumbSizes[0].quality,
+                additionalThumbnails[0].quality,
+                "Quality unchanged"
         )
         assertTrue(additionalThumbnails[0].quality >= 1, "Quality too small")
     }
@@ -234,13 +260,13 @@ abstract class ThumbnailGeneratorTest {
 
         for (i in 0..2) {
             assertTrue(
-                additionalThumbnails[i].payload.size <= baseThumbSizes[i].maxBytes,
-                "Too large"
+                    additionalThumbnails[i].payload.size <= baseThumbSizes[i].maxBytes,
+                    "Too large"
             )
             assertEquals(
-                baseThumbSizes[i].quality,
-                additionalThumbnails[i].quality,
-                "Quality changed"
+                    baseThumbSizes[i].quality,
+                    additionalThumbnails[i].quality,
+                    "Quality changed"
             )
         }
     }
@@ -252,10 +278,19 @@ abstract class ThumbnailGeneratorTest {
         val payloadKey = "test-webp-key"
 
         // Act
-        val customSizes = listOf(
-            ThumbnailInstruction(quality = 76, maxPixelDimension = 400, maxBytes = Int.MAX_VALUE),
-            ThumbnailInstruction(quality = 76, maxPixelDimension = 600, maxBytes = Int.MAX_VALUE)
-        )
+        val customSizes =
+                listOf(
+                        ThumbnailInstruction(
+                                quality = 76,
+                                maxPixelDimension = 400,
+                                maxBytes = Int.MAX_VALUE
+                        ),
+                        ThumbnailInstruction(
+                                quality = 76,
+                                maxPixelDimension = 600,
+                                maxBytes = Int.MAX_VALUE
+                        )
+                )
         val (_, _, additionalThumbnails) = createThumbnails(imageData, payloadKey, customSizes)
 
         // Assert
@@ -277,10 +312,19 @@ abstract class ThumbnailGeneratorTest {
         val payloadKey = "test-webp-key"
 
         // Act
-        val customSizes = listOf(
-            ThumbnailInstruction(quality = 76, maxPixelDimension = 400, maxBytes = Int.MAX_VALUE),
-            ThumbnailInstruction(quality = 76, maxPixelDimension = 600, maxBytes = Int.MAX_VALUE)
-        )
+        val customSizes =
+                listOf(
+                        ThumbnailInstruction(
+                                quality = 76,
+                                maxPixelDimension = 400,
+                                maxBytes = Int.MAX_VALUE
+                        ),
+                        ThumbnailInstruction(
+                                quality = 76,
+                                maxPixelDimension = 600,
+                                maxBytes = Int.MAX_VALUE
+                        )
+                )
         val (_, _, additionalThumbnails) = createThumbnails(imageData, payloadKey, customSizes)
 
         // Assert
@@ -302,9 +346,14 @@ abstract class ThumbnailGeneratorTest {
         val payloadKey = "test"
 
         // Act
-        val customSizes = listOf(
-            ThumbnailInstruction(quality = 76, maxPixelDimension = 640, maxBytes = 150 * 1024)
-        )
+        val customSizes =
+                listOf(
+                        ThumbnailInstruction(
+                                quality = 76,
+                                maxPixelDimension = 640,
+                                maxBytes = 150 * 1024
+                        )
+                )
         val (_, _, additionalThumbnails) = createThumbnails(imageData, payloadKey, customSizes)
 
         // Assert
@@ -322,10 +371,19 @@ abstract class ThumbnailGeneratorTest {
         val payloadKey = "test-webp-key"
 
         // Act
-        val customSizes = listOf(
-            ThumbnailInstruction(quality = 76, maxPixelDimension = 200, maxBytes = Int.MAX_VALUE),
-            ThumbnailInstruction(quality = 76, maxPixelDimension = 100, maxBytes = Int.MAX_VALUE)
-        )
+        val customSizes =
+                listOf(
+                        ThumbnailInstruction(
+                                quality = 76,
+                                maxPixelDimension = 200,
+                                maxBytes = Int.MAX_VALUE
+                        ),
+                        ThumbnailInstruction(
+                                quality = 76,
+                                maxPixelDimension = 100,
+                                maxBytes = Int.MAX_VALUE
+                        )
+                )
         val (_, _, additionalThumbnails) = createThumbnails(imageData, payloadKey, customSizes)
 
         // Assert
@@ -360,7 +418,7 @@ abstract class ThumbnailGeneratorTest {
 
         // Verify tiny thumb properties
         assertTrue(tinyThumb.contentType.startsWith("image/"))
-        assertTrue(tinyThumb.contentBase64.isNotEmpty())
+        assertTrue(tinyThumb.content.isNotEmpty())
 
         // Verify additional thumbnails
         assertTrue(additionalThumbnails.all { it.key == payloadKey })
@@ -448,13 +506,23 @@ abstract class ThumbnailGeneratorTest {
         // Arrange
         val imageData = loadTestImageOrSkip("sample.webp")
         val payloadKey = "test-custom-key"
-        val customSizes = listOf(
-            ThumbnailInstruction(quality = 80, maxPixelDimension = 200, maxBytes = Int.MAX_VALUE),
-            ThumbnailInstruction(quality = 90, maxPixelDimension = 800, maxBytes = Int.MAX_VALUE)
-        )
+        val customSizes =
+                listOf(
+                        ThumbnailInstruction(
+                                quality = 80,
+                                maxPixelDimension = 200,
+                                maxBytes = Int.MAX_VALUE
+                        ),
+                        ThumbnailInstruction(
+                                quality = 90,
+                                maxPixelDimension = 800,
+                                maxBytes = Int.MAX_VALUE
+                        )
+                )
 
         // Act
-        val (naturalSize, tinyThumb, additionalThumbnails) = createThumbnails(imageData, payloadKey, customSizes)
+        val (naturalSize, tinyThumb, additionalThumbnails) =
+                createThumbnails(imageData, payloadKey, customSizes)
 
         // Assert
         assertNotNull(naturalSize)
@@ -469,13 +537,14 @@ abstract class ThumbnailGeneratorTest {
     @Test
     fun createThumbnails_withDifferentImageFormats_returnsConsistentResults() = runTest {
         // Arrange
-        val testCases = listOf(
-            "sample.gif" to "gif",
-            "sample.bmp" to "bmp",
-            "sample.jpg" to "jpeg",
-            "sample.png" to "png",
-            "sample.webp" to "webp"
-        )
+        val testCases =
+                listOf(
+                        "sample.gif" to "gif",
+                        "sample.bmp" to "bmp",
+                        "sample.jpg" to "jpeg",
+                        "sample.png" to "png",
+                        "sample.webp" to "webp"
+                )
 
         testCases.forEach { (filename, format) ->
             if (TestImageLoader.testImageExists(filename)) {
@@ -483,33 +552,37 @@ abstract class ThumbnailGeneratorTest {
                 val payloadKey = "test-$format-key"
 
                 // Act
-                val (naturalSize, tinyThumb, additionalThumbnails) = createThumbnails(imageData, payloadKey)
+                val (naturalSize, tinyThumb, additionalThumbnails) =
+                        createThumbnails(imageData, payloadKey)
 
                 // Assert
                 assertNotNull(naturalSize, "NaturalSize should not be null for $format")
                 assertNotNull(tinyThumb, "TinyThumb should not be null for $format")
-                assertNotNull(additionalThumbnails, "AdditionalThumbnails should not be null for $format")
+                assertNotNull(
+                        additionalThumbnails,
+                        "AdditionalThumbnails should not be null for $format"
+                )
 
                 if (format == "gif") {
                     assertEquals(
-                        0,
-                        additionalThumbnails.size,
-                        "Should have NO thumbnails for $format"
+                            0,
+                            additionalThumbnails.size,
+                            "Should have NO thumbnails for $format"
                     )
                 } else {
                     assertEquals(
-                        3,
-                        additionalThumbnails.size,
-                        "Should have 3 thumbnails for $format"
+                            3,
+                            additionalThumbnails.size,
+                            "Should have 3 thumbnails for $format"
                     )
                     for (i in 0..2) {
                         assertTrue(
-                            additionalThumbnails[i].payload.size <= baseThumbSizes[i].maxBytes,
-                            "Thumbnail $i for $format exceeds size limit: ${additionalThumbnails[i].payload.size} > ${baseThumbSizes[i].maxBytes}"
+                                additionalThumbnails[i].payload.size <= baseThumbSizes[i].maxBytes,
+                                "Thumbnail $i for $format exceeds size limit: ${additionalThumbnails[i].payload.size} > ${baseThumbSizes[i].maxBytes}"
                         )
                         assertTrue(
-                            additionalThumbnails[i].quality in 1..100,
-                            "Quality for $format thumbnail $i out of range: ${additionalThumbnails[i].quality}"
+                                additionalThumbnails[i].quality in 1..100,
+                                "Quality for $format thumbnail $i out of range: ${additionalThumbnails[i].quality}"
                         )
                     }
                 }
@@ -522,7 +595,8 @@ abstract class ThumbnailGeneratorTest {
     @Test
     fun thumbnailInstruction_withDefaultType_hasCorrectProperties() {
         // Arrange & Act
-        val instruction = ThumbnailInstruction(quality = 75, maxPixelDimension = 100, maxBytes = 10000)
+        val instruction =
+                ThumbnailInstruction(quality = 75, maxPixelDimension = 100, maxBytes = 10000)
 
         // Assert
         assertEquals(ImageFormat.WEBP, instruction.type)
@@ -533,12 +607,13 @@ abstract class ThumbnailGeneratorTest {
     @Test
     fun thumbnailInstruction_withSpecificType_preservesType() {
         // Arrange & Act
-        val instruction = ThumbnailInstruction(
-            quality = 85,
-            maxPixelDimension = 200,
-            type = ImageFormat.PNG,
-            maxBytes = 10000
-        )
+        val instruction =
+                ThumbnailInstruction(
+                        quality = 85,
+                        maxPixelDimension = 200,
+                        type = ImageFormat.PNG,
+                        maxBytes = 10000
+                )
 
         // Assert
         assertEquals(ImageFormat.PNG, instruction.type)
@@ -550,14 +625,15 @@ abstract class ThumbnailGeneratorTest {
     fun thumbnailFile_properties_areCorrectlySet() {
         // Arrange
         val payload = byteArrayOf(1, 2, 3, 4, 5)
-        val thumbnail = ThumbnailFile(
-            pixelWidth = 100,
-            pixelHeight = 200,
-            payload = payload,
-            contentType = "image/jpeg",
-            key = "test-key",
-            quality = 100
-        )
+        val thumbnail =
+                ThumbnailFile(
+                        pixelWidth = 100,
+                        pixelHeight = 200,
+                        payload = payload,
+                        contentType = "image/jpeg",
+                        key = "test-key",
+                        quality = 100
+                )
 
         // Assert
         assertEquals(100, thumbnail.imageSize.pixelWidth)
@@ -570,18 +646,18 @@ abstract class ThumbnailGeneratorTest {
     @Test
     fun embeddedThumb_properties_areCorrectlySet() {
         // Arrange
-        val embeddedThumb = EmbeddedThumb(
-            pixelWidth = 200,
-            pixelHeight = 100,
-            contentType = "image/jpeg",
-            contentBase64 = "base64content"
-        )
+        val embeddedThumb =
+                EmbeddedThumb(
+                        pixelWidth = 200,
+                        pixelHeight = 100,
+                        contentType = "image/jpeg",
+                        content = "base64content"
+                )
 
         // Assert
         assertEquals(200, embeddedThumb.pixelWidth)
         assertEquals(100, embeddedThumb.pixelHeight)
         assertEquals("image/jpeg", embeddedThumb.contentType)
-        assertEquals("base64content", embeddedThumb.contentBase64)
+        assertEquals("base64content", embeddedThumb.content)
     }
 }
-
