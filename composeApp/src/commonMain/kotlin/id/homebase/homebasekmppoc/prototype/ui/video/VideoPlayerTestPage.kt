@@ -28,8 +28,8 @@ import kotlinx.coroutines.launch
 fun VideoPlayerTestPage(youAuthManager: YouAuthManager) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    // var odinIdentity by remember { mutableStateOf("frodo.dotyou.cloud") }
-    var odinIdentity by remember { mutableStateOf("frodo.baggins.demo.rocks") }
+    var odinIdentity by remember { mutableStateOf("frodo.dotyou.cloud") }
+    // var odinIdentity by remember { mutableStateOf("frodo.baggins.demo.rocks") }
 
     var password by remember { mutableStateOf("a") }
 

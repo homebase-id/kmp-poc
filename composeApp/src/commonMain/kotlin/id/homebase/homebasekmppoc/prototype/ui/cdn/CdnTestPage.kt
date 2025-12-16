@@ -8,7 +8,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthState
+import id.homebase.homebasekmppoc.prototype.lib.drives.FileState
+import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
+import id.homebase.homebasekmppoc.prototype.lib.http.AppOrOwner
+import id.homebase.homebasekmppoc.prototype.lib.http.HeaderWrapper
+import id.homebase.homebasekmppoc.prototype.lib.http.PayloadPlayground
+import id.homebase.homebasekmppoc.prototype.lib.http.PayloadWrapper
+import id.homebase.homebasekmppoc.prototype.lib.http.PublicPostsChannelDrive
 import id.homebase.homebasekmppoc.prototype.lib.youauth.YouAuthManager
 import id.homebase.homebasekmppoc.prototype.ui.app.getFeedAppParams
 import kotlinx.coroutines.launch
@@ -32,6 +40,9 @@ fun CdnTestPage(youAuthManager: YouAuthManager) {
     val authState by youAuthManager.youAuthState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
+    var isLoading by remember { mutableStateOf(false) }
+    var headers by remember { mutableStateOf<List<SharedSecretEncryptedFileHeader>?>(null) }
+    var message by remember { mutableStateOf<String?>(null) }
 
     //
     // Handle authentication state changes
@@ -55,10 +66,29 @@ fun CdnTestPage(youAuthManager: YouAuthManager) {
     }
 
     //
-    // XXX
+    // Load headers
     //
     LaunchedEffect(authState) {
         if (authState is AuthState.Authenticated) {
+            isLoading = true
+            try {
+                val payloadPlayground = PayloadPlayground(authState as AuthState.Authenticated)
+                headers = payloadPlayground.getHeadersOnDrive(
+                    AppOrOwner.Apps,
+                    PublicPostsChannelDrive.alias,
+                    PublicPostsChannelDrive.type,
+                    fileState = FileState.Active
+                )
+                isLoading = false
+                Logger.i("CdnTestPage") { "Loaded ${headers?.size ?: 0} videos" }
+            } catch (e: Exception) {
+                errorMessage = e.message ?: "Unknown error"
+                Logger.e("CdnTestPage", e) { "Failed to fetch videos: $errorMessage" }
+                isLoading = false
+            }
+        } else {
+            // Clear videos when logged out
+            headers = null
         }
     }
 
@@ -95,6 +125,27 @@ fun CdnTestPage(youAuthManager: YouAuthManager) {
             }
         )
     }
+
+    //
+    // Message
+    //
+    if (message != null) {
+        AlertDialog(
+            onDismissRequest = { message = null },
+            title = {
+                Text("Message")
+            },
+            text = {
+                Text(message ?: "boo!")
+            },
+            confirmButton = {
+                TextButton(onClick = { message = null }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
 
     Column(
         modifier = Modifier

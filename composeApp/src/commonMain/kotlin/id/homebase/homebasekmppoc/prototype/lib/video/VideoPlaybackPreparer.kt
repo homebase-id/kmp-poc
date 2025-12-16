@@ -62,6 +62,8 @@ suspend fun prepareVideoContentForPlayback(
                 }
             }
 
+            Logger.i("VideoPreparer") { "HLS playlist: $proxiedPlayList" }
+
             videoServer.registerContent(
                 id = contentId,
                 data = proxiedPlayList.encodeToByteArray(),
