@@ -129,6 +129,7 @@ kotlin {
                 implementation(libs.ktor.server.cio)
                 implementation(libs.ktor.server.html.builder)
                 implementation(libs.sqldelight.sqlite.driver)
+                implementation(libs.kotlinx.coroutinesSwing)
             }
         }
         commonTest.dependencies {
