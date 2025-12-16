@@ -42,9 +42,13 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.prototype.ui.app.feedTargetDrive
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import kotlin.time.measureTimedValue
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
 @Composable
+
+
+
 fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () -> Unit) {
     val authState by youAuthFlowManager.authState.collectAsState()
     var queryBatchResponse by remember { mutableStateOf<QueryBatchResponse?>(null) }
@@ -56,7 +60,9 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
     // Inject DriveQueryProvider from Koin
     val driveQueryProvider: DriveQueryProvider? = koinInject()
 
-    fun refresh() {
+    fun refresh(
+        onProgressUX: (fetchedCount: Int) -> Unit = { _ -> }
+    ) {
         val provider = driveQueryProvider
         if (provider == null) {
             errorMessage = "Not authenticated - no credentials stored"
@@ -65,22 +71,69 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
 
         isLoading = true
         errorMessage = null
+
+        var totalCount = 0
+        var batchSize = 100
+        var cursor: String? = null
+
         coroutineScope.launch {
             try {
-                val request =
-                        QueryBatchRequest(
-                                queryParams =
-                                        FileQueryParams(
-                                                targetDrive = feedTargetDrive,
-                                                fileState = listOf(FileState.Active)
-                                        ),
-                                resultOptionsRequest =
-                                        QueryBatchResultOptionsRequest(
-                                                maxRecords = 1000,
-                                                includeMetadataHeader = true,
-                                        )
+                var keepGoing = true
+
+                while (keepGoing) {
+                    val request = QueryBatchRequest(
+                        queryParams = FileQueryParams(
+                            targetDrive = feedTargetDrive,
+                            fileState = listOf(FileState.Active)
+                        ),
+                        resultOptionsRequest = QueryBatchResultOptionsRequest(
+                            maxRecords = batchSize,
+                            includeMetadataHeader = true,
+                            cursorState = cursor
                         )
-                queryBatchResponse = provider.queryBatch(request)
+                    )
+
+                    val durationMs = measureTimedValue {
+                        queryBatchResponse = provider.queryBatch(request)
+
+                        if (queryBatchResponse?.cursorState != null)
+                            cursor = queryBatchResponse?.cursorState
+
+                        if (queryBatchResponse?.searchResults?.isNotEmpty() == true)
+                        {
+                            totalCount += queryBatchResponse!!.searchResults.size
+
+                            // UX callback
+                            onProgressUX(totalCount)
+
+                            // Create FileMetadataProcessor instance to test BaseUpsertEntryZapZap
+                            // Call BaseUpsertEntryZapZap function mainIndexMeta.kt line 127
+
+//                            processor.BaseUpsertEntryZapZap(
+//                                identityId = identityId,
+//                                driveId = driveId,
+//                                fileHeader = queryBatchResponse.searchResults,
+//                                cursor = cursor
+//                            )
+//
+                        }
+
+                        keepGoing = queryBatchResponse?.searchResults?.let { it.size >= batchSize } ?: false
+                    }
+
+                    // Adaptive package size
+                    if ((durationMs.duration.inWholeMilliseconds < 300) && (batchSize < 1000)) {
+                        batchSize = (batchSize * 1.5).toInt().coerceAtMost(1000)
+                    } else if ((durationMs.duration.inWholeMilliseconds > 800) && (batchSize > 50)) {
+                        batchSize = (batchSize * 0.7).toInt().coerceAtLeast(50)
+                    }
+
+                    // Optional: log for debugging
+                    Logger.d("Batch size: $batchSize, took ${durationMs.duration.inWholeMilliseconds}ms")
+                }
+
+                // Final result is already stored in queryBatchResponse from last successful call
+
             } catch (e: Exception) {
                 Logger.e("Error fetching Drive Fetch data", e)
                 errorMessage = e.message ?: "Unknown error"
@@ -90,6 +143,7 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
             }
         }
     }
+
 
     val pullRefreshState =
             rememberPullRefreshState(
