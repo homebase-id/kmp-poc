@@ -71,7 +71,7 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
             try {
                 // TODO: Where does the identityId live? Need to get it instead of random.
                 val backend = DriveSync(identityId, feedTargetDrive, driveQueryProvider,database)
-                queryBatchResponse = backend.fetchFiles(if (withProgress) { count -> fetchedCount = count } else { _ -> })
+                queryBatchResponse = backend.sync(if (withProgress) { count -> fetchedCount = count } else { _ -> })
             } catch (e: Exception) {
                 Logger.e("Error fetching Drive Fetch data", e)
                 errorMessage = e.message ?: "Unknown error"

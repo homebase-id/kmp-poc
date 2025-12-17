@@ -13,35 +13,31 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.QueryBatchCursor
 import kotlin.time.measureTimedValue
-import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.*
 import kotlin.uuid.Uuid
 
 
-// TODO: TargetDrive should really just be a uuid driveId, but we need to update the QueryBatchRequest
 class DriveSync(private val identityId : Uuid,
-                private val targetDrive: TargetDrive,
+                private val targetDrive: TargetDrive, // TODO: <- change to driveId
                 private val driveQueryProvider: DriveQueryProvider, // TODO: <- can we get rid of this?
                 private val database: OdinDatabase)
 {
-    private var cursor: String? = null
+    private var cursor: QueryBatchCursor?
     private val mutex = Mutex()
     private var batchSize = 50 // We begin with the smallest batch
     private var fileHeaderProcessor = FileHeaderProcessor(database)
 
 
     init {
-        // Add your constructor logic here
-        // For example:
-        Logger.d("DriveFetchBackend initialized with targetDrive: $targetDrive")
+        database.driveMainIndexQueries.deleteAll() // TODO: <-- don't delete all! :-)
+        database.keyValueQueries.deleteByKey(targetDrive.alias) // TODO: <-- don't delete the cursor
 
         // Load cursor from database
         val cursorStorage = CursorStorage(database, targetDrive.alias)
-        val loadedCursor: QueryBatchCursor? = cursorStorage.loadCursor()
-        cursor = loadedCursor?.toJson()
+        cursor = cursorStorage.loadCursor()
     }
 
-    suspend fun fetchFiles(
+    suspend fun sync(
         onProgressUX: (fetchedCount: Int) -> Unit = { _ -> }): QueryBatchResponse?
     {
         if (mutex.tryLock() == false)
@@ -52,8 +48,7 @@ class DriveSync(private val identityId : Uuid,
         }
         else
         {
-            // Mutex locked
-
+            // TODO: Consider spawning this set of work as a thread ... but might be fragile with the Mutex
             try
             {
                 var totalCount = 0
@@ -72,7 +67,7 @@ class DriveSync(private val identityId : Uuid,
                                 QueryBatchResultOptionsRequest(
                                     maxRecords = batchSize,
                                     includeMetadataHeader = true,
-                                    cursorState = cursor
+                                    cursorState = cursor?.toJson()
                                 )
                         )
 
@@ -80,7 +75,7 @@ class DriveSync(private val identityId : Uuid,
                         queryBatchResponse = driveQueryProvider.queryBatch(request)
 
                         if (queryBatchResponse?.cursorState != null)
-                            cursor = queryBatchResponse?.cursorState
+                            cursor = QueryBatchCursor.fromJson(queryBatchResponse.cursorState)
 
                         if (queryBatchResponse?.searchResults?.isNotEmpty() == true) {
                             totalCount += queryBatchResponse!!.searchResults.size
@@ -88,7 +83,13 @@ class DriveSync(private val identityId : Uuid,
                             // UX callback
                             onProgressUX(totalCount)
 
-                            // fileHeaderProcessor.BaseUpsertEntryZapZap(Uuid.random(), targetDrive.alias, queryBatchResponse.searchResults, cursor)
+                            // Call BaseUpsertEntryZapZap with proper parameters
+                            fileHeaderProcessor.BaseUpsertEntryZapZap(
+                                identityId = identityId,
+                                driveId = targetDrive.alias,
+                                fileHeaders = queryBatchResponse.searchResults,
+                                cursor = cursor
+                            )
                         }
 
                         keepGoing =

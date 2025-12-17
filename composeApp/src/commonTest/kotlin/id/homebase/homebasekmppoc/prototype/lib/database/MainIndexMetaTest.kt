@@ -212,14 +212,14 @@ assertEquals(driveId, retrievedRecord.driveId)
         val tagId2 = Uuid.random()
         listOf(
             DriveTagIndex(
-                rowId = 1L,
+                row = 1L,
                 identityId = identityId,
                 driveId = driveId,
                 fileId = fileId,
                 tagId = tagId1
             ),
             DriveTagIndex(
-                rowId = 2L,
+                row = 2L,
                 identityId = identityId,
                 driveId = driveId,
                 fileId = fileId,
@@ -231,7 +231,7 @@ assertEquals(driveId, retrievedRecord.driveId)
         val localTagId1 = Uuid.random()
         listOf(
             DriveLocalTagIndex(
-                rowId = 1L,
+                row = 1L,
                 identityId = identityId,
                 driveId = driveId,
                 fileId = fileId,
@@ -243,17 +243,17 @@ assertEquals(driveId, retrievedRecord.driveId)
         val processor = FileHeaderProcessor(db)
 
         val originalCursor = QueryBatchCursor(
-            pagingCursor = TimeRowCursor(
+            paging = TimeRowCursor(
                 time = UnixTimeUtc(1704067200000L), // 2024-01-01 00:00:00 UTC
-                rowId = 12345L
+                row = 12345L
             ),
-            stopAtBoundary = TimeRowCursor(
+            stop = TimeRowCursor(
                 time = UnixTimeUtc(1704153600000L), // 2024-01-02 00:00:00 UTC
-                rowId = 67890L
+                row = 67890L
             ),
-            nextBoundaryCursor = TimeRowCursor(
+            next = TimeRowCursor(
                 time = UnixTimeUtc(1704240000000L), // 2024-01-03 00:00:00 UTC
-                rowId = 11111L
+                row = 11111L
             )
         )
 
@@ -281,43 +281,43 @@ assertEquals(driveId, retrievedRecord.driveId)
 
         val cursorStorage = CursorStorage(db, driveId);
         val loadedCursor = cursorStorage.loadCursor()
-        assertNotNull(loadedCursor!!.pagingCursor, "Paging cursor should not be null")
-        assertNotNull(loadedCursor.stopAtBoundary, "Stop at boundary cursor should not be null")
-        assertNotNull(loadedCursor.nextBoundaryCursor, "Next boundary cursor should not be null")
+        assertNotNull(loadedCursor!!.paging, "Paging cursor should not be null")
+        assertNotNull(loadedCursor.stop, "Stop at boundary cursor should not be null")
+        assertNotNull(loadedCursor.next, "Next boundary cursor should not be null")
 
         // Verify paging cursor fields
         assertEquals(
-            originalCursor.pagingCursor!!.time,
-            loadedCursor.pagingCursor.time,
+            originalCursor.paging!!.time,
+            loadedCursor.paging.time,
             "Paging cursor time should match"
         )
         assertEquals(
-            originalCursor.pagingCursor.rowId,
-            loadedCursor.pagingCursor.rowId,
+            originalCursor.paging.row,
+            loadedCursor.paging.row,
             "Paging cursor row ID should match"
         )
 
         // Verify stop at boundary cursor fields
         assertEquals(
-            originalCursor.stopAtBoundary!!.time,
-            loadedCursor.stopAtBoundary.time,
+            originalCursor.stop!!.time,
+            loadedCursor.stop.time,
             "Stop at boundary cursor time should match"
         )
         assertEquals(
-            originalCursor.stopAtBoundary.rowId,
-            loadedCursor.stopAtBoundary.rowId,
+            originalCursor.stop.row,
+            loadedCursor.stop.row,
             "Stop at boundary cursor row ID should match"
         )
 
         // Verify next boundary cursor fields
         assertEquals(
-            originalCursor.nextBoundaryCursor!!.time,
-            loadedCursor.nextBoundaryCursor.time,
+            originalCursor.next!!.time,
+            loadedCursor.next.time,
             "Next boundary cursor time should match"
         )
         assertEquals(
-            originalCursor.nextBoundaryCursor.rowId,
-            loadedCursor.nextBoundaryCursor.rowId,
+            originalCursor.next.row,
+            loadedCursor.next.row,
             "Next boundary cursor row ID should match"
         )
 

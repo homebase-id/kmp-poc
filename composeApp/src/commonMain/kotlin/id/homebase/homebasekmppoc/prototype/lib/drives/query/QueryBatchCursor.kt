@@ -12,7 +12,7 @@ import kotlinx.serialization.json.Json
 @Serializable
 data class TimeRowCursor(
     val time: UnixTimeUtc,
-    val rowId: Long? = null
+    val row: Long? = null
 ) {
     fun toJson(): String {
         return Json.encodeToString(this)
@@ -32,9 +32,9 @@ data class TimeRowCursor(
  */
 @Serializable
 data class QueryBatchCursor(
-    val pagingCursor: TimeRowCursor? = null,
-    val stopAtBoundary: TimeRowCursor? = null,
-    val nextBoundaryCursor: TimeRowCursor? = null
+    val paging: TimeRowCursor? = null,
+    val stop: TimeRowCursor? = null,
+    val next: TimeRowCursor? = null
 ) {
     constructor(jsonString: String) : this() {
         val decoded = Json.decodeFromString<QueryBatchCursor>(jsonString)
@@ -44,9 +44,9 @@ data class QueryBatchCursor(
 
     fun clone(): QueryBatchCursor {
         return copy(
-            pagingCursor = pagingCursor?.copy(),
-            stopAtBoundary = stopAtBoundary?.copy(),
-            nextBoundaryCursor = nextBoundaryCursor?.copy()
+            paging = paging?.copy(),
+            stop = stop?.copy(),
+            next = next?.copy()
         )
     }
 
@@ -57,7 +57,7 @@ data class QueryBatchCursor(
     companion object {
         fun fromStartPoint(fromTimestamp: UnixTimeUtc): QueryBatchCursor {
             return QueryBatchCursor(
-                pagingCursor = TimeRowCursor(fromTimestamp, null)
+                paging = TimeRowCursor(fromTimestamp, null)
             )
         }
 
