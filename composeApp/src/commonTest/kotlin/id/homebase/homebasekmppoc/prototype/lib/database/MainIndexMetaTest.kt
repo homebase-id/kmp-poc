@@ -212,14 +212,14 @@ assertEquals(driveId, retrievedRecord.driveId)
         val tagId2 = Uuid.random()
         listOf(
             DriveTagIndex(
-                row = 1L,
+                rowId = 1L,
                 identityId = identityId,
                 driveId = driveId,
                 fileId = fileId,
                 tagId = tagId1
             ),
             DriveTagIndex(
-                row = 2L,
+                rowId = 2L,
                 identityId = identityId,
                 driveId = driveId,
                 fileId = fileId,
@@ -231,7 +231,7 @@ assertEquals(driveId, retrievedRecord.driveId)
         val localTagId1 = Uuid.random()
         listOf(
             DriveLocalTagIndex(
-                row = 1L,
+                rowId = 1L,
                 identityId = identityId,
                 driveId = driveId,
                 fileId = fileId,
