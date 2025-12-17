@@ -12,17 +12,16 @@ import kotlin.test.BeforeTest
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.uuid.Uuid
 
 class CursorSyncTest {
     private var driver: SqlDriver? = null
     private lateinit var db: OdinDatabase
-    private lateinit var cursorSync: CursorSync
 
 @BeforeTest
     fun setup() {
         driver = createInMemoryDatabase()
         db = TestDatabaseFactory.createTestDatabase(driver)
-        cursorSync = CursorSync(db)
     }
 
     @AfterTest
@@ -47,12 +46,13 @@ class CursorSyncTest {
                 rowId = 11111L
             )
         )
+        val cursorStorage = CursorStorage(  db, Uuid.random())
 
         // Save the cursor
-        cursorSync.saveCursor(originalCursor)
+        cursorStorage.saveCursor(originalCursor)
 
         // Load the cursor back
-        val loadedCursor = cursorSync.loadCursor()
+        val loadedCursor = cursorStorage.loadCursor()
 
         // Verify that cursor was loaded successfully
         assertNotNull(loadedCursor, "Cursor should be loaded after saving")
@@ -101,8 +101,10 @@ class CursorSyncTest {
 
     @Test
     fun testLoadCursor_whenNoCursorExists_returnsNull() = runTest {
+        val cursorStorage = CursorStorage(  db, Uuid.random())
+
         // Try to load cursor when none exists
-        val loadedCursor = cursorSync.loadCursor()
+        val loadedCursor = cursorStorage.loadCursor()
 
         // Verify that null is returned
         assertNull(loadedCursor, "Should return null when no cursor exists")
@@ -121,10 +123,11 @@ class CursorSyncTest {
         )
 
         // Save the cursor
-        cursorSync.saveCursor(originalCursor)
+        val cursorStorage = CursorStorage(  db, Uuid.random())
+        cursorStorage.saveCursor(originalCursor)
 
         // Load the cursor back
-        val loadedCursor = cursorSync.loadCursor()
+        val loadedCursor = cursorStorage.loadCursor()
 
         // Verify that cursor was loaded successfully
         assertNotNull(loadedCursor, "Cursor should be loaded after saving")
@@ -158,16 +161,17 @@ class CursorSyncTest {
             stopAtBoundary = null,
             nextBoundaryCursor = null
         )
-        cursorSync.saveCursor(originalCursor)
+        val cursorStorage = CursorStorage(  db, Uuid.random())
+        cursorStorage.saveCursor(originalCursor)
 
         // Verify cursor exists
-        assertNotNull(cursorSync.loadCursor(), "Cursor should exist after saving")
+        assertNotNull(cursorStorage.loadCursor(), "Cursor should exist after saving")
 
         // Delete the cursor
-        cursorSync.deleteCursor()
+        cursorStorage.deleteCursor()
 
         // Verify cursor is deleted
-        assertNull(cursorSync.loadCursor(), "Cursor should be null after deletion")
+        assertNull(cursorStorage.loadCursor(), "Cursor should be null after deletion")
     }
 
     @Test
@@ -181,10 +185,11 @@ class CursorSyncTest {
             stopAtBoundary = null,
             nextBoundaryCursor = null
         )
-        cursorSync.saveCursor(initialCursor)
+        val cursorStorage = CursorStorage(  db, Uuid.random())
+        cursorStorage.saveCursor(initialCursor)
 
         // Verify initial cursor
-        val loadedInitial = cursorSync.loadCursor()
+        val loadedInitial = cursorStorage.loadCursor()
         assertNotNull(loadedInitial)
         assertEquals(1704067200000L, loadedInitial!!.pagingCursor!!.time.milliseconds)
 
@@ -203,10 +208,10 @@ class CursorSyncTest {
                 rowId = 11111L
             )
         )
-        cursorSync.saveCursor(updatedCursor)
+        cursorStorage.saveCursor(updatedCursor)
 
         // Verify cursor was updated
-        val loadedUpdated = cursorSync.loadCursor()
+        val loadedUpdated = cursorStorage.loadCursor()
         assertNotNull(loadedUpdated)
         assertEquals(1704153600000L, loadedUpdated!!.pagingCursor!!.time.milliseconds, "Paging cursor should be updated")
         assertEquals(54321L, loadedUpdated.pagingCursor!!.rowId, "Paging cursor row ID should be updated")

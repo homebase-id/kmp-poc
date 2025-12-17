@@ -15,12 +15,12 @@ import kotlin.uuid.Uuid
  */
 @Serializable
 data class FileQueryParams(
-    val targetDrive: TargetDrive,
-    val fileType: List<Int>? = null,
+    val targetDrive: TargetDrive, // Todo: this should probably just be a driveId
+    val fileType: List<Int>? = null, // Todo: move fileType and dataType next to each other
     val fileState: List<FileState>? = null,
     val dataType: List<Int>? = null,
     val archivalStatus: List<Int>? = null,
-    val sender: List<String>? = null,
+    val sender: List<String>? = null, // Todo: senderId
     val groupId: List<@Serializable(with = UuidSerializer::class) Uuid>? = null,
     val userDate: UnixTimeUtcRange? = null,
     val userDateStart: Long? = null,
