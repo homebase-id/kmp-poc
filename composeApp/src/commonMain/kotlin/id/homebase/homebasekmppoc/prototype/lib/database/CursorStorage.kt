@@ -5,23 +5,24 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.query.QueryBatchCursor
 import kotlin.uuid.Uuid
 
 /**
- * Handles cursor synchronization operations using KeyValue database API.
- * Provides functionality to load and save QueryBatchCursor for efficient data synchronization.
+ * Handles cursor storage operations using KeyValue database API.
+ * Provides functionality to load and save QueryBatchCursor for efficient data synchronization
+ * between app open / close.
  */
-class CursorSync(
-    private val database: OdinDatabase
+class CursorStorage(
+    private val database: OdinDatabase,
+    private val driveId: Uuid
 ) {
-    companion object {
-        // Private predefined Guid for cursor operations
-        private val CURSOR_GUID = Uuid.parse("f28bd9a7-fe1f-4242-a0e7-7d93e5919250")
-    }
-    
+    // TODO: We should XOR the driveId with some constant GUID to create a KV key that
+    // won't conflict - in case someone else uses the DriveId to store data. The KV key
+    // should be calculated on init() here
+
     /**
      * Load QueryBatchCursor for the predefined cursor Guid
      * Returns null if no cursor is found in the database
      */
     fun loadCursor(): QueryBatchCursor? {
-        return database.keyValueQueries.selectByKey(CURSOR_GUID)
+        return database.keyValueQueries.selectByKey(driveId)
             .executeAsOneOrNull()
             ?.let { QueryBatchCursor.fromJson(it.data_.decodeToString()) }
     }
@@ -31,7 +32,7 @@ class CursorSync(
      */
     fun saveCursor(cursor: QueryBatchCursor) {
         database.keyValueQueries.upsertValue(
-            key = CURSOR_GUID,
+            key = driveId,
             data_ = cursor.toJson().encodeToByteArray()
         )
     }
@@ -40,6 +41,6 @@ class CursorSync(
      * Delete cursor position for the predefined cursor Guid
      */
     fun deleteCursor() {
-        database.keyValueQueries.deleteByKey(CURSOR_GUID)
+        database.keyValueQueries.deleteByKey(driveId)
     }
 }
