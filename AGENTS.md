@@ -127,6 +127,26 @@ val scheme = RedirectConfig.scheme  // "youauth" (mobile) or "http" (desktop)
 - Desktop uses `http://localhost:{PORT}` with dynamic port allocation
 - Android requires `ActivityProvider.initialize(activity)` before launching
 
+**Desktop Fallback Mechanism (NEW):**
+
+The desktop implementation includes a robust fallback chain for when Java AWT Desktop is not supported:
+
+1. **Primary**: Java AWT Desktop.browse() (preferred when available)
+2. **Fallback**: OS-specific command execution:
+   - Windows: `rundll32 url.dll,FileProtocolHandler {url}`
+   - macOS: `open {url}`
+   - Linux: `xdg-open {url}`
+
+**Linux Desktop Requirements:**
+- `xdg-utils` package must be installed: `sudo apt install xdg-utils`
+- GUI desktop environment (GNOME, KDE, XFCE, etc.)
+- If running Android Studio via Snap/Flatpak, run the built app directly from terminal
+
+**Error Handling:**
+- Detailed logging for troubleshooting browser launch failures
+- Platform detection and command execution with try-catch blocks
+- Logs OS detection, command attempts, and success/failure status
+
 ### Activity Provider (Android-only)
 
 Provides access to Android Activity without static singletons:
