@@ -12,11 +12,11 @@ import id.homebase.homebasekmppoc.prototype.lib.crypto.EccKeySize
 import id.homebase.homebasekmppoc.prototype.lib.crypto.generateEccKeyPair
 import id.homebase.homebasekmppoc.prototype.lib.crypto.publicKeyToJwkBase64Url
 import id.homebase.homebasekmppoc.prototype.lib.http.UriBuilder
+import kotlin.io.encoding.Base64
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlin.io.encoding.Base64
 
 /** Authentication state for the YouAuth flow. */
 sealed class YouAuthState {
@@ -55,7 +55,6 @@ class YouAuthFlowManager {
     val authState: StateFlow<YouAuthState> = _authState.asStateFlow()
 
     private var authCodeFlowState: AuthCodeFlowState? = null
-    private val registeredStates = mutableMapOf<String, YouAuthFlowManager>()
 
     companion object {
         private const val TAG = "YouAuthFlowManager"
