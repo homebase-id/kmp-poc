@@ -27,9 +27,12 @@ class DriveSync(private val identityId : Uuid,
     private var batchSize = 50 // We begin with the smallest batch
     private var fileHeaderProcessor = FileHeaderProcessor(database)
 
+    //TODO: Consider having a (readable) "last modified" which holds the largest timestamp of last-modified
 
     init {
         database.driveMainIndexQueries.deleteAll() // TODO: <-- don't delete all! :-)
+        database.driveTagIndexQueries.deleteAll() // TODO: <-- don't delete all! :-)
+        database.driveLocalTagIndexQueries.deleteAll() // TODO: <-- don't delete all! :-)
         database.keyValueQueries.deleteByKey(targetDrive.alias) // TODO: <-- don't delete the cursor
 
         // Load cursor from database
@@ -48,6 +51,10 @@ class DriveSync(private val identityId : Uuid,
         }
         else
         {
+            //
+            // NEXT: Make local QueryBatch algo and have the FE use it
+            //
+
             // TODO: Consider spawning this set of work as a thread ... but might be fragile with the Mutex
             try
             {
@@ -82,8 +89,8 @@ class DriveSync(private val identityId : Uuid,
 
                             // UX callback
                             onProgressUX(totalCount)
-
-                            // Call BaseUpsertEntryZapZap with proper parameters
+                            
+                            // TODO: Consider commiting every NNNN rows or SS seconds - but also consider maybe it's good for the FE to get data faster?
                             fileHeaderProcessor.BaseUpsertEntryZapZap(
                                 identityId = identityId,
                                 driveId = targetDrive.alias,
@@ -111,6 +118,10 @@ class DriveSync(private val identityId : Uuid,
                     )
                 }
 
+                // TODO: We need a way to communitcate "done", for now it is 9,999,999
+                onProgressUX(9999999)
+
+                // TODO: Remove return type, add function for FE to queryBatch from local SQLite
                 return queryBatchResponse
             }
             finally
