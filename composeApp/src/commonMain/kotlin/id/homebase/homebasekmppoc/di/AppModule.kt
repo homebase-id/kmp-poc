@@ -4,10 +4,14 @@ import id.homebase.homebasekmppoc.lib.youAuth.OdinClientFactory
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthProvider
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
+import id.homebase.homebasekmppoc.prototype.lib.drives.upload.DriveUploadProvider
 import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
+import id.homebase.homebasekmppoc.prototype.ui.driveUpload.DriveUploadService
+import id.homebase.homebasekmppoc.prototype.ui.driveUpload.DriveUploadViewModel
 import id.homebase.homebasekmppoc.ui.screens.home.HomeViewModel
 import id.homebase.homebasekmppoc.ui.screens.login.LoginViewModel
 import org.koin.core.module.dsl.singleOf
+import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
@@ -33,12 +37,27 @@ val appModule = module {
         odinClient?.let { DriveQueryProvider(it) }
     }
 
+    // DriveUploadProvider - factory that creates instance with OdinClient (null-safe)
+    factory<DriveUploadProvider?> {
+        val odinClient: OdinClient? = get()
+        odinClient?.let { DriveUploadProvider(it) }
+    }
+
+    // DriveUploadService - factory that creates instance with DriveUploadProvider (null-safe)
+    factory<DriveUploadService?> {
+        val provider: DriveUploadProvider? = get()
+        provider?.let { DriveUploadService(it) }
+    }
+
     // YouAuthFlowManager - the main auth flow manager for UI
     singleOf(::YouAuthFlowManager)
 
     // ViewModels
     viewModelOf(::LoginViewModel)
     viewModelOf(::HomeViewModel)
+
+    // DriveUploadViewModel - factory with nullable DriveUploadService
+    viewModel { DriveUploadViewModel(getOrNull<DriveUploadService>()) }
 }
 
 /**

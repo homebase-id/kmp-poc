@@ -1,5 +1,6 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives.upload
 
+import id.homebase.homebasekmppoc.lib.image.ImageFormatDetector.detectFormat
 import id.homebase.homebasekmppoc.prototype.lib.crypto.ByteArrayUtil
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.ThumbnailFile
@@ -79,9 +80,7 @@ data class UploadManifest(
                                                 payloadKey = payload.key,
                                                 descriptorContent = payload.descriptorContent,
                                                 previewThumbnail = payload.previewThumbnail,
-                                                contentType =
-                                                        null, // Content type determined at upload
-                                                // time
+                                                contentType = detectFormat(payload.payload),
                                                 thumbnails =
                                                         thumbnails
                                                                 ?.filter { it.key == payload.key }

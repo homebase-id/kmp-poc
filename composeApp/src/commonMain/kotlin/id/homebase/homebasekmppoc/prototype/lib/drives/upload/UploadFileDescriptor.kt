@@ -60,7 +60,7 @@ data class UploadFileMetadata(
         }
 
         val encryptedBytes = keyHeader.encryptDataAes(appData.content.encodeToByteArray())
-        val encryptedContent = Base64.Default.encode(encryptedBytes)
+        val encryptedContent = Base64.encode(encryptedBytes)
 
         return copy(appData = appData.copy(content = encryptedContent))
     }

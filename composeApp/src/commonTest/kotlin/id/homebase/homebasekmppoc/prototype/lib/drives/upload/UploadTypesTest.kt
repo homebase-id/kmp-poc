@@ -1,6 +1,7 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives.upload
 
 import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
+import id.homebase.homebasekmppoc.prototype.lib.drives.files.ThumbnailFile
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.uuid.Uuid
@@ -342,13 +343,13 @@ class UploadTypesTest {
 
                 val thumbnails =
                         listOf(
-                                id.homebase.homebasekmppoc.prototype.lib.drives.files.ThumbnailFile(
-                                        key = "image1",
-                                        pixelWidth = 100,
-                                        pixelHeight = 100,
-                                        payload = byteArrayOf(7, 8, 9),
-                                        contentType = "image/webp"
-                                )
+                            ThumbnailFile(
+                                    key = "image1",
+                                    pixelWidth = 100,
+                                    pixelHeight = 100,
+                                    payload = byteArrayOf(7, 8, 9),
+                                    contentType = "image/webp"
+                            )
                         )
 
                 val manifest = UploadManifest.build(payloads, thumbnails)

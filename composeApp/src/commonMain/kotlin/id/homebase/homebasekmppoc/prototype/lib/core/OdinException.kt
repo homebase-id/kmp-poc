@@ -204,12 +204,37 @@ class OdinRemoteIdentityException(
 ) : Exception(message, cause)
 
 /**
- * Error response from the server. The errorCode is automatically deserialized using
- * OdinClientErrorCodeSerializer, which handles both integer values (e.g., 4160) and string names
- * (e.g., "versionTagMismatch").
+ * Error response from the server following RFC 7231 problem details format. The errorCode is
+ * automatically deserialized using OdinClientErrorCodeSerializer, which handles both integer values
+ * (e.g., 4160) and string names (e.g., "versionTagMismatch").
+ *
+ * Sample payload:
+ * ```json
+ * {
+ *   "type": "https://tools.ietf.org/html/rfc7231",
+ *   "title": "Invalid or missing instruction set or transfer initialization vector",
+ *   "status": 400,
+ *   "correlationId": "9c0b1703-d648-4027-b993-7ab0a54eca99",
+ *   "errorCode": "invalidInstructionSet"
+ * }
+ * ```
  */
 @Serializable
 data class OdinErrorResponse(
+        /** RFC 7231 type URI */
+        val type: String? = null,
+        /** Human-readable error title/description */
+        val title: String? = null,
+        /** HTTP status code */
+        val status: Int? = null,
+        /** Correlation ID for tracing/debugging */
+        val correlationId: String? = null,
+        /** Odin-specific error code */
         val errorCode: OdinClientErrorCode? = null,
+        /** Optional additional message (legacy field) */
         val message: String? = null
-)
+) {
+    /** Returns the best available error message: title, message, or a default. */
+    val displayMessage: String
+        get() = title ?: message ?: "Unknown error"
+}

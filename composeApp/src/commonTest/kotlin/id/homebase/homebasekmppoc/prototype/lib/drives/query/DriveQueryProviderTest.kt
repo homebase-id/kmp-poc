@@ -1,7 +1,7 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives.query
 
 import id.homebase.homebasekmppoc.prototype.lib.crypto.EncryptedKeyHeader
-import id.homebase.homebasekmppoc.prototype.lib.drives.FileQueryParams
+import id.homebase.homebasekmppoc.prototype.lib.drives.query.FileQueryParams
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileSystemType
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchRequest
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResponse

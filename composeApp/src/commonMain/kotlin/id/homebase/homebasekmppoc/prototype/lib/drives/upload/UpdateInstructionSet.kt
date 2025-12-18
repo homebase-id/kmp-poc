@@ -1,6 +1,8 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives.upload
 
+import id.homebase.homebasekmppoc.prototype.lib.crypto.ByteArrayUtil
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileSystemType
+import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.GlobalTransitIdFileIdentifier
 import id.homebase.homebasekmppoc.prototype.lib.serialization.Base64ByteArraySerializer
 import kotlinx.serialization.Serializable
@@ -9,7 +11,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class FileIdFileIdentifier(
         val fileId: String,
-        val targetDrive: id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
+        val targetDrive: TargetDrive
 )
 
 /** Represents the locale of an update operation. */
@@ -86,6 +88,20 @@ data class UpdateLocalInstructionSet(
 ) : BaseUpdateInstructionSet {
     val locale: UpdateLocale = UpdateLocale.Local
 
+    /**
+     * Creates a serializable instruction set with manifest for sending to the server. Note:
+     * systemFileType is intentionally excluded as it's stripped before sending.
+     */
+    fun toSerializable(manifest: UpdateManifest): SerializableUpdateLocalInstructionSet {
+        return SerializableUpdateLocalInstructionSet(
+                file = file,
+                versionTag = versionTag,
+                recipients = recipients,
+                transferIv = transferIv ?: ByteArrayUtil.getRndByteArray(16),
+                manifest = manifest
+        )
+    }
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other == null || this::class != other::class) return false
@@ -126,4 +142,43 @@ sealed class UpdateInstructionSet {
 
     @Serializable
     data class Local(val instructionSet: UpdateLocalInstructionSet) : UpdateInstructionSet()
+}
+
+/**
+ * Internal serializable instruction set with manifest for API update requests. Note: systemFileType
+ * is intentionally excluded as it's stripped before sending.
+ */
+@Serializable
+data class SerializableUpdateLocalInstructionSet(
+        val file: FileIdFileIdentifier,
+        val versionTag: String? = null,
+        val recipients: List<String>? = null,
+        @Serializable(with = Base64ByteArraySerializer::class) val transferIv: ByteArray,
+        val manifest: UpdateManifest
+) {
+    val locale: UpdateLocale = UpdateLocale.Local
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
+
+        other as SerializableUpdateLocalInstructionSet
+
+        if (file != other.file) return false
+        if (versionTag != other.versionTag) return false
+        if (recipients != other.recipients) return false
+        if (!transferIv.contentEquals(other.transferIv)) return false
+        if (manifest != other.manifest) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = file.hashCode()
+        result = 31 * result + (versionTag?.hashCode() ?: 0)
+        result = 31 * result + (recipients?.hashCode() ?: 0)
+        result = 31 * result + transferIv.contentHashCode()
+        result = 31 * result + manifest.hashCode()
+        return result
+    }
 }

@@ -3,7 +3,7 @@ package id.homebase.homebasekmppoc.prototype.ui.driveFetch
 import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.lib.database.OdinDatabase
 import id.homebase.homebasekmppoc.prototype.lib.database.CursorStorage
-import id.homebase.homebasekmppoc.prototype.lib.drives.FileQueryParams
+import id.homebase.homebasekmppoc.prototype.lib.drives.query.FileQueryParams
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileState
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchRequest
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResponse

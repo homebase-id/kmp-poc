@@ -32,12 +32,12 @@ enum class HomebaseFileState(val value: String) {
  */
 @Serializable
 data class HomebaseFile(
-    @Serializable(with = UuidSerializer::class) val fileId: Uuid,
-    val fileSystemType: FileSystemType,
-    val fileState: HomebaseFileState = HomebaseFileState.Active,
-    val fileMetadata: FileMetadata,
-    val sharedSecretEncryptedKeyHeader: EncryptedKeyHeader,
-    val serverMetadata: ServerMetadata? = null
+        @Serializable(with = UuidSerializer::class) val fileId: Uuid,
+        val fileSystemType: FileSystemType,
+        val fileState: HomebaseFileState = HomebaseFileState.Active,
+        val fileMetadata: FileMetadata,
+        val sharedSecretEncryptedKeyHeader: EncryptedKeyHeader,
+        val serverMetadata: ServerMetadata? = null
 ) {
     val isActive: Boolean
         get() = fileState == HomebaseFileState.Active

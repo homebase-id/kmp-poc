@@ -1,5 +1,6 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives.files
 
+import id.homebase.homebasekmppoc.lib.image.ImageSize
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.EmbeddedThumb
 import kotlinx.serialization.Serializable
 
@@ -76,5 +77,74 @@ data class PayloadFile(
         result = 31 * result + skipEncryption.hashCode()
         result = 31 * result + (iv?.contentHashCode() ?: 0)
         return result
+    }
+}
+
+data class ThumbnailFile(
+        val pixelWidth: Int,
+        val pixelHeight: Int,
+        val payload: ByteArray, // raw bytes -> equivalent to Blob
+        val key: String,
+        val contentType: String = "image/webp",
+        val quality: Int = 76,
+        val skipEncryption: Boolean = false
+) {
+    // Convenience property to match test expectations
+    val imageSize: ImageSize
+        get() = ImageSize(pixelWidth, pixelHeight)
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
+
+        other as ThumbnailFile
+
+        if (pixelWidth != other.pixelWidth) return false
+        if (pixelHeight != other.pixelHeight) return false
+        if (!payload.contentEquals(other.payload)) return false
+        if (key != other.key) return false
+        if (contentType != other.contentType) return false
+        if (quality != other.quality) return false
+        if (skipEncryption != other.skipEncryption) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = pixelWidth
+        result = 31 * result + pixelHeight
+        result = 31 * result + payload.contentHashCode()
+        result = 31 * result + key.hashCode()
+        result = 31 * result + contentType.hashCode()
+        result = 31 * result + quality
+        result = 31 * result + skipEncryption.hashCode()
+        return result
+    }
+}
+
+@Serializable
+data class ThumbnailDescriptor(
+        val pixelWidth: Int? = null,
+        val pixelHeight: Int? = null,
+        val contentType: String? = null,
+        val content: String? = null,
+        val bytesWritten: Long? = null
+)
+
+@Serializable
+data class PayloadDescriptor(
+        val key: String,
+        val contentType: String? = null,
+        val thumbnails: List<ThumbnailDescriptor>? = null,
+        val iv: String? = null,
+        val bytesWritten: Long? = null,
+        val lastModified: Long? = null,
+        val descriptorContent: String? = null,
+        val previewThumbnail: ThumbnailDescriptor? = null,
+        val uid: Long? = null
+// Add fields as needed
+) {
+    fun keyEquals(otherKey: String): Boolean {
+        return key.equals(otherKey, ignoreCase = true)
     }
 }
