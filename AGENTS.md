@@ -73,9 +73,8 @@ composeApp/src/commonMain/kotlin/id/homebase/homebasekmppoc/
     │   ├── http/             # HTTP client creation, OdinClient
     │   ├── serialization/    # JSON serialization (OdinSystemSerializer)
     │   ├── video/            # Video handling
-    │   ├── websockets/       # WebSocket client
-    │   └── youauth/          # Legacy YouAuthManager, CallbackRouter
-    └── ui/                   # Legacy UI pages
+    │   └── websockets/       # WebSocket client
+    └── ui/                   # Prototype UI pages (use shared YouAuthFlowManager)
 ```
 
 
@@ -261,9 +260,7 @@ if (OdinClientFactory.hasStoredCredentials()) { ... }
 youAuthFlowManager.logout()
 ```
 
-**Legacy Components (prototype/lib/youauth/):**
-- `YouAuthManager` - Original implementation (being replaced)
-- `YouAuthCallbackRouter` - Routes deeplink callbacks
+**NOTE:** Legacy components (`YouAuthManager`, `YouAuthCallbackRouter`) have been removed. All screens now use the centralized `YouAuthFlowManager` from `lib/youAuth/`.
 
 
 ### Drive Fetch Feature (Recently Implemented)
@@ -288,8 +285,7 @@ Located in `prototype/ui/driveFetch/`:
 
 ### Known Issues & Recent Work
 
-- **YouAuth callback routing** - Fixed "lateinit property instance has not been initialized" by implementing `YouAuthCallbackRouter` to properly route callbacks to the correct `YouAuthManager` instance
-- **State persistence** - `YouAuthManager` instances are hoisted to `App.kt` level to survive tab navigation
+- **YouAuthManager migration completed** - All screens now use centralized `YouAuthFlowManager` from `lib/youAuth/`. Legacy `YouAuthManager` and `YouAuthCallbackRouter` have been removed.
 - **Token exchange** - Sometimes returns 404, related to `exchangeSecretDigest` encoding compatibility across platforms (marked as TODO in code)
 
 ## Build Commands
