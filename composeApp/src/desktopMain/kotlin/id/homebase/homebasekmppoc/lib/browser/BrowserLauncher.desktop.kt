@@ -39,7 +39,24 @@ actual object BrowserLauncher {
             ) {
                 Desktop.getDesktop().browse(URI(url))
             } else {
-                Logger.e(TAG) { "Desktop browsing is not supported on this system" }
+                Logger.i(TAG) { "Java AWT Desktop not supported, trying fallback browser launch" }
+                try {
+                    val os = System.getProperty("os.name").lowercase()
+                    val cmd = when {
+                        os.contains("win") -> arrayOf("rundll32", "url.dll,FileProtocolHandler", url)
+                        os.contains("mac") -> arrayOf("open", url)
+                        os.contains("nix") || os.contains("nux") -> arrayOf("xdg-open", url)
+                        else -> throw UnsupportedOperationException("Unsupported OS for browser fallback: $os")
+                    }
+                    
+                    Logger.d(TAG) { "Attempting fallback browser launch with: ${cmd.joinToString(" ")}" }
+                    Runtime.getRuntime().exec(cmd)
+                    Logger.i(TAG) { "Fallback browser launch initiated successfully" }
+                    
+                } catch (e: Exception) {
+                    Logger.e(TAG, e) { "Fallback browser launch failed: ${e.message}" }
+                    throw e
+                }
             }
         } catch (e: Exception) {
             Logger.e(TAG, e) { "Failed to launch browser: ${e.message}" }
