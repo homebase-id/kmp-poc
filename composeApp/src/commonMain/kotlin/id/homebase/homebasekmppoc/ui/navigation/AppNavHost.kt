@@ -11,7 +11,6 @@ import androidx.navigation.compose.rememberNavController
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthState
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthenticationManager
-import id.homebase.homebasekmppoc.prototype.lib.youauth.YouAuthManager
 import id.homebase.homebasekmppoc.prototype.ui.cdn.CdnTestPage
 import id.homebase.homebasekmppoc.prototype.ui.db.DbPage
 import id.homebase.homebasekmppoc.prototype.ui.driveFetch.DriveFetchPage
@@ -120,18 +119,11 @@ fun AppNavHost(
             WebsocketPage(wsAuthManager)
         }
 
-        // Video route (uses prototype, no auth required for testing)
-        composable<Route.Video> {
-            val videoYouAuthManager = remember { YouAuthManager() }
-            VideoPlayerTestPage(videoYouAuthManager)
-        }
+        // Video route - uses shared auth from YouAuthFlowManager
+        composable<Route.Video> { VideoPlayerTestPage(youAuthFlowManager) }
 
-        // CdnTest route (uses prototype, no auth required for testing)
-        composable<Route.CdnTest> {
-            val cdnYouAuthManager = remember { YouAuthManager() }
-            CdnTestPage(cdnYouAuthManager)
-        }
-
+        // CdnTest route - uses shared auth from YouAuthFlowManager
+        composable<Route.CdnTest> { CdnTestPage(youAuthFlowManager) }
     }
 }
 

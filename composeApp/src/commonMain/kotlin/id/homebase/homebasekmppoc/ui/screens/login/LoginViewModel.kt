@@ -7,6 +7,7 @@ import id.homebase.homebasekmppoc.lib.youAuth.TargetDriveAccessRequest
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthState
 import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
+import kotlin.uuid.Uuid
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,33 +15,32 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlin.uuid.Uuid
-
 
 private object AppConfig {
     const val APP_ID = "0cecc6fe033e48b19ee6a4f60318be02"
     const val APP_NAME = "Homebase - KMP POC"
 }
 
-
-val feedTargetDrive: TargetDrive = TargetDrive(
-    alias = Uuid.parse("4db49422ebad02e99ab96e9c477d1e08"),
-    type = Uuid.parse ("a3227ffba87608beeb24fee9b70d92a6")
-)
-
-var targetDriveAccessRequest : List<TargetDriveAccessRequest> = listOf(
-    TargetDriveAccessRequest(
-        alias = feedTargetDrive.alias.toString(),
-        type = feedTargetDrive.type.toString(),
-        name = "Feed Drive",
-        description = " ",
-        permissions = listOf(
-            DrivePermissionType.Read,
-            DrivePermissionType.Write,
+val feedTargetDrive: TargetDrive =
+        TargetDrive(
+                alias = Uuid.parse("4db49422ebad02e99ab96e9c477d1e08"),
+                type = Uuid.parse("a3227ffba87608beeb24fee9b70d92a6")
         )
 
-    )
-)
+var targetDriveAccessRequest: List<TargetDriveAccessRequest> =
+        listOf(
+                TargetDriveAccessRequest(
+                        alias = feedTargetDrive.alias.toString(),
+                        type = feedTargetDrive.type.toString(),
+                        name = "Feed Drive",
+                        description = " ",
+                        permissions =
+                                listOf(
+                                        DrivePermissionType.Read,
+                                        DrivePermissionType.Write,
+                                )
+                )
+        )
 
 /**
  * ViewModel for Login screen following strict MVI pattern.
@@ -73,7 +73,14 @@ class LoginViewModel(private val youAuthFlowManager: YouAuthFlowManager) : ViewM
             is LoginUiAction.RetryClicked -> {
                 performLogin()
             }
+            is LoginUiAction.AppResumed -> {
+                handleAppResumed()
+            }
         }
+    }
+
+    private fun handleAppResumed() {
+        viewModelScope.launch { youAuthFlowManager.onAppResumed() }
     }
 
     private fun checkExistingSession() {

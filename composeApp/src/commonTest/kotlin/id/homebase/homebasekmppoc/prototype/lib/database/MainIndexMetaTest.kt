@@ -26,13 +26,10 @@ class MainIndexMetaTest {
     private var driver: SqlDriver? = null
     private lateinit var db: OdinDatabase
 
-    private lateinit var cursorSync: CursorSync
-
     @BeforeTest
     fun setup() {
         driver = createInMemoryDatabase()
         db = TestDatabaseFactory.createTestDatabase(driver)
-        cursorSync = CursorSync(db)
     }
 
     @AfterTest
@@ -282,7 +279,8 @@ assertEquals(driveId, retrievedRecord.driveId)
         assertEquals(identityId, retrievedRecord.identityId)
         assertEquals("test-sender", retrievedRecord.senderId)
 
-        val loadedCursor = cursorSync.loadCursor()
+        val cursorStorage = CursorStorage(db, driveId);
+        val loadedCursor = cursorStorage.loadCursor()
         assertNotNull(loadedCursor!!.pagingCursor, "Paging cursor should not be null")
         assertNotNull(loadedCursor.stopAtBoundary, "Stop at boundary cursor should not be null")
         assertNotNull(loadedCursor.nextBoundaryCursor, "Next boundary cursor should not be null")

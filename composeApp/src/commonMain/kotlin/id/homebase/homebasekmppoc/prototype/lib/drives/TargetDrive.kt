@@ -12,6 +12,9 @@ import kotlin.uuid.Uuid
  *
  * Ported from C# Odin.Services.Drives.TargetDrive
  */
+
+// TODO: probably remove "type" and rename alias to driveId
+
 @Serializable
 data class TargetDrive(
     @Serializable(with = UuidSerializer::class)

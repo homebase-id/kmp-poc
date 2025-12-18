@@ -27,16 +27,11 @@ composeApp/src/commonMain/kotlin/id/homebase/homebasekmppoc/
 ├── App.kt                    # Main entry point with Koin & Navigation
 ├── di/                       # Dependency Injection
 │   └── AppModule.kt          # Koin module definitions
-├── lib/                      # Shared library code (reusable components)
-│   ├── browser/              # Browser launching for OAuth (NEW)
+├── lib/                      # Shared library code (production-ready, reusable)
+│   ├── browser/              # Browser launching for OAuth
 │   │   ├── BrowserLauncher.kt        # expect - Platform browser launching
 │   │   └── RedirectConfig.kt         # expect - Redirect URI configuration
-│   ├── core/                 # Core utilities (SecureByteArray, etc.)
-│   ├── crypto/               # Cryptography (ECC, AES, HKDF, etc.)
-│   ├── drives/               # Drive API models and queries
-│   ├── http/                 # HTTP utilities (UriBuilder, etc.)
 │   ├── image/                # Image processing utilities
-│   ├── serialization/        # JSON serialization (OdinSystemSerializer)
 │   ├── storage/              # Secure storage (SecureStorage expect/actual)
 │   └── youAuth/              # YouAuth authentication
 │       ├── ClientType.kt             # domain/app enum
@@ -50,41 +45,50 @@ composeApp/src/commonMain/kotlin/id/homebase/homebasekmppoc/
 │       ├── YouAuthProvider.kt        # HTTP-level auth operations
 │       └── YouAuthFlowManager.kt     # Complete auth flow with state
 ├── ui/                       # UI layer
+│   ├── assets/               # Shared UI assets (icons, etc.)
 │   ├── navigation/           # Navigation components
 │   │   ├── Routes.kt         # Type-safe route definitions
 │   │   ├── AuthGuard.kt      # Auth protection wrapper
 │   │   └── AppNavHost.kt     # Navigation host
-│   ├── screens/              # Screen composables
-│   │   ├── LoginScreen.kt    # Login/auth screen
-│   │   └── HomeScreen.kt     # Main home screen
+│   ├── screens/              # Screen composables (MVI pattern per feature)
+│   │   ├── home/             # Home feature
+│   │   │   ├── HomeContract.kt       # UiState, UiAction, UiEvent
+│   │   │   ├── HomeViewModel.kt      # ViewModel with onAction()
+│   │   │   └── HomeScreen.kt         # Composable UI
+│   │   └── login/            # Login feature
+│   │       ├── LoginContract.kt      # UiState, UiAction, UiEvent
+│   │       ├── LoginViewModel.kt     # ViewModel with onAction()
+│   │       └── LoginScreen.kt        # Composable UI
 │   └── theme/                # Theming
 │       ├── Color.kt          # Light/dark color palettes
 │       ├── Type.kt           # Typography
 │       └── Theme.kt          # HomebaseTheme composable
-└── prototype/                # Prototype/testing code (will be refactored)
-    ├── lib/                  # Feature-specific libraries
+└── prototype/                # Prototype/testing code (will be refactored to lib/)
+    ├── lib/                  # Feature-specific libraries (in development)
     │   ├── authentication/   # AuthenticationManager, AuthState
-    │   ├── youauth/          # Legacy YouAuthManager (being replaced)
-    │   ├── drives/           # Drive API - query (DriveQueryProvider) and upload types
+    │   ├── core/             # Core utilities (SecureByteArray, etc.)
+    │   ├── crypto/           # Cryptography (ECC, AES, HKDF, etc.)
     │   ├── database/         # Database operations
-    │   ├── http/             # HTTP client creation
+    │   ├── drives/           # Drive API models, queries, providers
+    │   ├── http/             # HTTP client creation, OdinClient
+    │   ├── serialization/    # JSON serialization (OdinSystemSerializer)
     │   ├── video/            # Video handling
     │   └── websockets/       # WebSocket client
-    └── ui/                   # Legacy UI pages
+    └── ui/                   # Prototype UI pages (use shared YouAuthFlowManager)
 ```
-
 
 ### Secure Storage (SecureStorage)
 
 Cross-platform secure key-value storage using platform-native mechanisms:
 
-| Platform | Mechanism | Location |
-|----------|-----------|----------|
-| Android | Android KeyStore + AES-GCM | `androidMain/.../lib/storage/SecureStorage.android.kt` |
-| iOS | Keychain Services | `iosMain/.../lib/storage/SecureStorage.ios.kt` |
-| Desktop | Java KeyStore (PKCS12) + AES-GCM | `desktopMain/.../lib/storage/SecureStorage.desktop.kt` |
+| Platform | Mechanism                        | Location                                               |
+| -------- | -------------------------------- | ------------------------------------------------------ |
+| Android  | Android KeyStore + AES-GCM       | `androidMain/.../lib/storage/SecureStorage.android.kt` |
+| iOS      | Keychain Services                | `iosMain/.../lib/storage/SecureStorage.ios.kt`         |
+| Desktop  | Java KeyStore (PKCS12) + AES-GCM | `desktopMain/.../lib/storage/SecureStorage.desktop.kt` |
 
 **Usage:**
+
 ```kotlin
 // Android: Initialize with context first
 SecureStorage.initialize(context)
@@ -98,6 +102,7 @@ SecureStorage.clear()
 ```
 
 **Notes:**
+
 - Android requires `initialize(context)` before any other operation
 - iOS Keychain doesn't work in simulator test environment (tests skipped)
 - Desktop stores encrypted data in `~/.homebase-kmp-poc/`
@@ -106,13 +111,14 @@ SecureStorage.clear()
 
 Platform-specific browser launching for OAuth/authentication flows:
 
-| Platform | Mechanism | Location |
-|----------|-----------|----------|
-| Android | Chrome Custom Tabs | `androidMain/.../lib/browser/BrowserLauncher.android.kt` |
-| iOS | ASWebAuthenticationSession | `iosMain/.../lib/browser/BrowserLauncher.ios.kt` |
-| Desktop | System Browser + LocalCallbackServer | `desktopMain/.../lib/browser/BrowserLauncher.desktop.kt` |
+| Platform | Mechanism                            | Location                                                 |
+| -------- | ------------------------------------ | -------------------------------------------------------- |
+| Android  | Chrome Custom Tabs                   | `androidMain/.../lib/browser/BrowserLauncher.android.kt` |
+| iOS      | ASWebAuthenticationSession           | `iosMain/.../lib/browser/BrowserLauncher.ios.kt`         |
+| Desktop  | System Browser + LocalCallbackServer | `desktopMain/.../lib/browser/BrowserLauncher.desktop.kt` |
 
 **Usage:**
+
 ```kotlin
 // Launch browser for OAuth flow
 BrowserLauncher.launchAuthBrowser(authorizeUrl, coroutineScope)
@@ -123,9 +129,32 @@ val scheme = RedirectConfig.scheme  // "youauth" (mobile) or "http" (desktop)
 ```
 
 **Notes:**
+
 - Android/iOS use `youauth://` custom URL scheme
 - Desktop uses `http://localhost:{PORT}` with dynamic port allocation
 - Android requires `ActivityProvider.initialize(activity)` before launching
+
+**Desktop Fallback Mechanism (NEW):**
+
+The desktop implementation includes a robust fallback chain for when Java AWT Desktop is not supported:
+
+1. **Primary**: Java AWT Desktop.browse() (preferred when available)
+2. **Fallback**: OS-specific command execution:
+   - Windows: `rundll32 url.dll,FileProtocolHandler {url}`
+   - macOS: `open {url}`
+   - Linux: `xdg-open {url}`
+
+**Linux Desktop Requirements:**
+
+- `xdg-utils` package must be installed: `sudo apt install xdg-utils`
+- GUI desktop environment (GNOME, KDE, XFCE, etc.)
+- If running Android Studio via Snap/Flatpak, run the built app directly from terminal
+
+**Error Handling:**
+
+- Detailed logging for troubleshooting browser launch failures
+- Platform detection and command execution with try-catch blocks
+- Logs OS detection, command attempts, and success/failure status
 
 ### Activity Provider (Android-only)
 
@@ -134,6 +163,7 @@ Provides access to Android Activity without static singletons:
 **Location:** `androidMain/.../lib/core/ActivityProvider.kt`
 
 **Usage:**
+
 ```kotlin
 // Initialize in Activity.onCreate() and onResume()
 ActivityProvider.initialize(this)
@@ -149,6 +179,7 @@ ActivityProvider.clear()
 ```
 
 **Notes:**
+
 - Uses WeakReference to avoid memory leaks
 - Must be initialized before using BrowserLauncher on Android
 
@@ -157,6 +188,7 @@ ActivityProvider.clear()
 See [DEPENDENCY_INJECTION.md](./DEPENDENCY_INJECTION.md) for detailed guide.
 
 **Quick Reference:**
+
 ```kotlin
 // Inject in Composable
 val myService: MyService = koinInject()
@@ -173,6 +205,7 @@ val appModule = module {
 The UI follows a strict MVI-styled MVVM pattern to ensure unidirectional data flow and easy testing.
 
 **Core Rules:**
+
 1.  **Single State**: The UI observes a single immutable `data class [Feature]UiState`.
 2.  **Single Entry Point**: The ViewModel exposes exactly ONE public function: `fun onAction(action: [Feature]UiAction)`.
 3.  **Actions**: User interactions are defined as a sealed interface `[Feature]UiAction`.
@@ -180,6 +213,7 @@ The UI follows a strict MVI-styled MVVM pattern to ensure unidirectional data fl
 5.  **Dumb Composables**: UI components only take `state` and `(Action) -> Unit`. Logic resides in the Witness.
 
 **Example Structure:**
+
 ```kotlin
 // Contract
 data class LoginUiState(...)
@@ -190,7 +224,7 @@ sealed interface LoginUiEvent { ... }
 class LoginViewModel : ViewModel() {
     val uiState = MutableStateFlow(LoginUiState())
     val uiEvent = Channel<LoginUiEvent>()
-    
+
     fun onAction(action: LoginUiAction) { ... }
 }
 
@@ -199,13 +233,12 @@ class LoginViewModel : ViewModel() {
 fun LoginScreen(state: LoginUiState, onAction: (LoginUiAction) -> Unit) { ... }
 ```
 
-
-
 ### YouAuth Authentication System
 
 The app implements browser-based OAuth2-like authentication using the new `lib/youAuth/` module:
 
 **Architecture:**
+
 ```
 LoginViewModel → YouAuthFlowManager → YouAuthProvider → OdinClient
                        ↓
@@ -213,6 +246,7 @@ LoginViewModel → YouAuthFlowManager → YouAuthProvider → OdinClient
 ```
 
 **Key Components (lib/youAuth/):**
+
 - `YouAuthFlowManager` - Main entry point for UI, manages auth state and browser flow
 - `YouAuthProvider` - HTTP-level operations (token verification, exchange)
 - `OdinClientFactory` - Creates `OdinClient` from stored credentials
@@ -220,19 +254,21 @@ LoginViewModel → YouAuthFlowManager → YouAuthProvider → OdinClient
 - `TargetDriveAccessRequest` - Drive access request with serialization
 
 **Authentication State (`YouAuthState` sealed class):**
+
 - `Unauthenticated` - Initial state
 - `Authenticating` - Browser launched, waiting for callback
 - `Authenticated(identity, clientAuthToken, sharedSecret)` - Successfully authenticated
 - `Error(message)` - Authentication failed
 
 **Usage in LoginViewModel:**
+
 ```kotlin
 class LoginViewModel(
     private val youAuthFlowManager: YouAuthFlowManager
 ) : ViewModel() {
     // Observe auth state
     youAuthFlowManager.authState.collect { state -> ... }
-    
+
     // Start auth flow
     youAuthFlowManager.authorize(
         identity = "user.homebase.id",
@@ -245,6 +281,7 @@ class LoginViewModel(
 
 **Credential Persistence:**
 Credentials are automatically saved to `SecureStorage` after successful authentication:
+
 ```kotlin
 // Check for existing session
 if (youAuthFlowManager.restoreSession()) { /* Already authenticated */ }
@@ -256,16 +293,14 @@ if (OdinClientFactory.hasStoredCredentials()) { ... }
 youAuthFlowManager.logout()
 ```
 
-**Legacy Components (prototype/lib/youauth/):**
-- `YouAuthManager` - Original implementation (being replaced)
-- `YouAuthCallbackRouter` - Routes deeplink callbacks
-
+**NOTE:** Legacy components (`YouAuthManager`, `YouAuthCallbackRouter`) have been removed. All screens now use the centralized `YouAuthFlowManager` from `lib/youAuth/`.
 
 ### Drive Fetch Feature (Recently Implemented)
 
 Located in `prototype/ui/driveFetch/`:
 
 - **`DriveFetchPage.kt`** - Main page that:
+
   - Requires prior authentication from App tab
   - Fetches files from authenticated user's drive
   - Uses `DriveQueryProvider.create().queryBatch()` to fetch data
@@ -276,6 +311,7 @@ Located in `prototype/ui/driveFetch/`:
   - `DriveFetchItemCard` - Card displaying file ID and content
 
 **Usage Flow:**
+
 1. Authenticate in App tab (YouAuth with app permissions)
 2. Navigate to use Drive Fetch functionality
 3. Click "Fetch Files" to call `queryBatch` API
@@ -283,8 +319,7 @@ Located in `prototype/ui/driveFetch/`:
 
 ### Known Issues & Recent Work
 
-- **YouAuth callback routing** - Fixed "lateinit property instance has not been initialized" by implementing `YouAuthCallbackRouter` to properly route callbacks to the correct `YouAuthManager` instance
-- **State persistence** - `YouAuthManager` instances are hoisted to `App.kt` level to survive tab navigation
+- **YouAuthManager migration completed** - All screens now use centralized `YouAuthFlowManager` from `lib/youAuth/`. Legacy `YouAuthManager` and `YouAuthCallbackRouter` have been removed.
 - **Token exchange** - Sometimes returns 404, related to `exchangeSecretDigest` encoding compatibility across platforms (marked as TODO in code)
 
 ### Drive Upload Types
@@ -293,27 +328,28 @@ Located in `prototype/lib/drives/upload/`:
 
 **Serializable DTOs for file upload/update operations, ported from TypeScript:**
 
-| File | Types |
-|------|-------|
-| `UploadEnums.kt` | `SendContents`, `ScheduleOptions`, `PriorityOptions`, `TransferUploadStatus` |
-| `PushNotificationOptions.kt` | `PushNotificationOptions` |
-| `StorageOptions.kt` | `StorageOptions` |
-| `TransitOptions.kt` | `TransitOptions` with factory methods |
-| `UploadInstructionSet.kt` | `UploadInstructionSet` |
-| `UpdateInstructionSet.kt` | `FileIdFileIdentifier`, `UpdateLocale`, `UpdatePeerInstructionSet`, `UpdateLocalInstructionSet`, `UpdateInstructionSet` |
-| `UploadFileDescriptor.kt` | `EmbeddedThumb`, `UploadAppFileMetaData`, `UploadFileMetadata`, `UploadFileDescriptor`, `UploadKeyHeader` |
-| `UploadManifest.kt` | `UploadPayloadDescriptor`, `UploadThumbnailDescriptor`, `UploadManifest`, `UpdatePayloadInstruction`, `PayloadOperationType`, `UpdateManifest`, `PayloadDeleteKey` |
-| `UploadResult.kt` | `UploadResult`, `UpdateResult` |
+| File                         | Types                                                                                                                                                              |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `UploadEnums.kt`             | `SendContents`, `ScheduleOptions`, `PriorityOptions`, `TransferUploadStatus`                                                                                       |
+| `PushNotificationOptions.kt` | `PushNotificationOptions`                                                                                                                                          |
+| `StorageOptions.kt`          | `StorageOptions`                                                                                                                                                   |
+| `TransitOptions.kt`          | `TransitOptions` with factory methods                                                                                                                              |
+| `UploadInstructionSet.kt`    | `UploadInstructionSet`                                                                                                                                             |
+| `UpdateInstructionSet.kt`    | `FileIdFileIdentifier`, `UpdateLocale`, `UpdatePeerInstructionSet`, `UpdateLocalInstructionSet`, `UpdateInstructionSet`                                            |
+| `UploadFileDescriptor.kt`    | `EmbeddedThumb`, `UploadAppFileMetaData`, `UploadFileMetadata`, `UploadFileDescriptor`, `UploadKeyHeader`                                                          |
+| `UploadManifest.kt`          | `UploadPayloadDescriptor`, `UploadThumbnailDescriptor`, `UploadManifest`, `UpdatePayloadInstruction`, `PayloadOperationType`, `UpdateManifest`, `PayloadDeleteKey` |
+| `UploadResult.kt`            | `UploadResult`, `UpdateResult`                                                                                                                                     |
 
 **Helper Methods (ported from TypeScript):**
 
-| Class | Method | Description |
-|-------|--------|-------------|
-| `UploadFileMetadata` | `encryptContent(keyHeader)` | Encrypts `appData.content` with KeyHeader's AES key, returns new metadata |
-| `UploadManifest` | `build(payloads, thumbnails, generateIv)` | Builds manifest from PayloadFiles, associates thumbnails by key, optionally generates IVs |
-| `UpdateManifest` | `build(payloads, toDelete, thumbnails, generateIv)` | Builds update manifest with append/delete instructions for payloads |
+| Class                | Method                                              | Description                                                                               |
+| -------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `UploadFileMetadata` | `encryptContent(keyHeader)`                         | Encrypts `appData.content` with KeyHeader's AES key, returns new metadata                 |
+| `UploadManifest`     | `build(payloads, thumbnails, generateIv)`           | Builds manifest from PayloadFiles, associates thumbnails by key, optionally generates IVs |
+| `UpdateManifest`     | `build(payloads, toDelete, thumbnails, generateIv)` | Builds update manifest with append/delete instructions for payloads                       |
 
 **Reuses existing types:**
+
 - `EncryptedKeyHeader` from `prototype/lib/crypto/`
 - `AccessControlList` from `prototype/lib/drives/ServerMetadata.kt`
 - `ArchivalStatus`, `GlobalTransitIdFileIdentifier`, `TargetDrive`, `FileSystemType` from drives package
@@ -326,18 +362,19 @@ Located in `prototype/lib/drives/files/`:
 
 **Serializable DTOs for file management, ported from TypeScript:**
 
-| File | Types |
-|------|-------|
-| `SecurityGroupType.kt` | `SecurityGroupType` enum (Anonymous, Authenticated, Connected, AutoConnected, Owner) |
-| `TransferStatus.kt` | `TransferStatus` enum with `failedStatuses` list and `isFailedStatus()` helper |
-| `RichText.kt` | `RichTextNode`, `RichText` typealias, `ReactionBase`, `CommentReaction`, `EmojiReaction` |
-| `TransferHistory.kt` | `RecipientTransferSummary`, `RecipientTransferHistoryEntry`, `TransferHistory`, `TransferHistoryPage` |
-| `HomebaseFile.kt` | `HomebaseFileState`, `HomebaseFile` (similar to `SharedSecretEncryptedFileHeader`) |
-| `FileIdentifiers.kt` | `BaseFileIdentifier`, `FileIdFileIdentifier`, `GlobalTransitIdFileIdentifier`, `UniqueIdFileIdentifier`, `FileIdentifierUnion` |
-| `MediaFile.kt` | `MediaFile`, `NewMediaFile`, `PayloadFile`, `PayloadEmbeddedThumb` |
-| `NewHomebaseFile.kt` | `NewFileMetadata`, `NewAppFileMetaData`, `NewPayloadDescriptor`, `UploadProgress`, `NewHomebaseFile`, `NewServerMetaData`, `FileAccessControlList` |
+| File                   | Types                                                                                                                                              |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SecurityGroupType.kt` | `SecurityGroupType` enum (Anonymous, Authenticated, Connected, AutoConnected, Owner)                                                               |
+| `TransferStatus.kt`    | `TransferStatus` enum with `failedStatuses` list and `isFailedStatus()` helper                                                                     |
+| `RichText.kt`          | `RichTextNode`, `RichText` typealias, `ReactionBase`, `CommentReaction`, `EmojiReaction`                                                           |
+| `TransferHistory.kt`   | `RecipientTransferSummary`, `RecipientTransferHistoryEntry`, `TransferHistory`, `TransferHistoryPage`                                              |
+| `HomebaseFile.kt`      | `HomebaseFileState`, `HomebaseFile` (similar to `SharedSecretEncryptedFileHeader`)                                                                 |
+| `FileIdentifiers.kt`   | `BaseFileIdentifier`, `FileIdFileIdentifier`, `GlobalTransitIdFileIdentifier`, `UniqueIdFileIdentifier`, `FileIdentifierUnion`                     |
+| `MediaFile.kt`         | `MediaFile`, `NewMediaFile`, `PayloadFile`, `PayloadEmbeddedThumb`                                                                                 |
+| `NewHomebaseFile.kt`   | `NewFileMetadata`, `NewAppFileMetaData`, `NewPayloadDescriptor`, `UploadProgress`, `NewHomebaseFile`, `NewServerMetaData`, `FileAccessControlList` |
 
 **Existing types to reuse (don't duplicate):**
+
 - `ClientFileMetadata`, `AppFileMetaData`, `PayloadDescriptor`, `ThumbnailDescriptor` from `drives/ClientFileMetadata.kt`
 - `ServerMetadata`, `AccessControlList` from `drives/ServerMetadata.kt`
 - `ArchivalStatus`, `FileSystemType`, `FileState`, `TargetDrive` from drives package
@@ -352,14 +389,15 @@ Located in `prototype/lib/core/OdinException.kt`:
 
 **Exception classes for Odin API error handling, ported from C#:**
 
-| Class | Description |
-|-------|-------------|
-| `OdinException` | Base exception class for all Odin-related errors |
-| `OdinClientException` | Client error with `OdinClientErrorCode` (e.g., VersionTagMismatch, FileNotFound) |
-| `OdinRemoteIdentityException` | Remote identity error with `OdinClientErrorCode` |
-| `OdinErrorResponse` | Serializable response from server with automatic `OdinClientErrorCode` parsing |
+| Class                         | Description                                                                      |
+| ----------------------------- | -------------------------------------------------------------------------------- |
+| `OdinException`               | Base exception class for all Odin-related errors                                 |
+| `OdinClientException`         | Client error with `OdinClientErrorCode` (e.g., VersionTagMismatch, FileNotFound) |
+| `OdinRemoteIdentityException` | Remote identity error with `OdinClientErrorCode`                                 |
+| `OdinErrorResponse`           | Serializable response from server with automatic `OdinClientErrorCode` parsing   |
 
 **OdinClientErrorCode (`enum class`, 80+ error codes):**
+
 - Auth Errors (10xx): `InvalidAuthToken`, `SharedSecretEncryptionIsInvalid`
 - Circle Errors (30xx): `IdentityAlreadyMemberOfCircle`, `NotAConnectedIdentity`
 - Drive Errors (41xx): `FileNotFound`, `VersionTagMismatch`, `InvalidFile`, `InvalidUpload`
@@ -368,10 +406,12 @@ Located in `prototype/lib/core/OdinException.kt`:
 - System Errors (90xx): `NotInitialized`, `InvalidOrExpiredRsaKey`
 
 **Custom Serializer (`OdinClientErrorCodeSerializer`):**
+
 - Automatically deserializes error codes from JSON as either integer (e.g., `4160`) or string (e.g., `"versionTagMismatch"`)
 - Used by `OdinErrorResponse.errorCode` field
 
 **Usage:**
+
 ```kotlin
 try {
     uploadProvider.pureUpload(data)
@@ -390,12 +430,13 @@ Located in `prototype/lib/drives/upload/DriveUploadProvider.kt`:
 
 **Provider for drive upload and update operations, ported from JS/TS odin-js:**
 
-| Method | Description |
-|--------|-------------|
-| `pureUpload(data, fileSystemType?, onVersionConflict?)` | Upload file to `/drive/files/upload` (POST) |
+| Method                                                  | Description                                  |
+| ------------------------------------------------------- | -------------------------------------------- |
+| `pureUpload(data, fileSystemType?, onVersionConflict?)` | Upload file to `/drive/files/upload` (POST)  |
 | `pureUpdate(data, fileSystemType?, onVersionConflict?)` | Update file at `/drive/files/update` (PATCH) |
 
 **Features:**
+
 - Accepts `MultiPartFormDataContent` for multipart uploads
 - Optional `FileSystemType` parameter (defaults to `Standard`)
 - Version conflict callback for handling `VersionTagMismatch` errors
@@ -403,6 +444,7 @@ Located in `prototype/lib/drives/upload/DriveUploadProvider.kt`:
 - Throws `OdinClientException` on errors
 
 **Usage:**
+
 ```kotlin
 val uploadProvider = DriveUploadProvider(odinClient)
 
@@ -410,9 +452,9 @@ val uploadProvider = DriveUploadProvider(odinClient)
 val result = uploadProvider.pureUpload(
     data = multipartData,
     fileSystemType = FileSystemType.Standard,
-    onVersionConflict = { 
+    onVersionConflict = {
         // Handle conflict, optionally retry with new version tag
-        null 
+        null
     }
 )
 ```
@@ -423,19 +465,21 @@ Located in `prototype/lib/drives/files/DriveFileProvider.kt`:
 
 **Provider for drive file delete operations, ported from JS/TS odin-js:**
 
-| Method | Description |
-|--------|-------------|
-| `deleteFile(targetDrive, fileId, recipients?, fileSystemType?, hardDelete?)` | Delete single file |
-| `deleteFiles(targetDrive, fileIds, recipients?, fileSystemType?)` | Batch delete by file IDs |
-| `deleteFilesByGroupId(targetDrive, groupIds, recipients?, fileSystemType?)` | Batch delete by group IDs |
+| Method                                                                       | Description               |
+| ---------------------------------------------------------------------------- | ------------------------- |
+| `deleteFile(targetDrive, fileId, recipients?, fileSystemType?, hardDelete?)` | Delete single file        |
+| `deleteFiles(targetDrive, fileIds, recipients?, fileSystemType?)`            | Batch delete by file IDs  |
+| `deleteFilesByGroupId(targetDrive, groupIds, recipients?, fileSystemType?)`  | Batch delete by group IDs |
 
 **Endpoints:**
+
 - `/drive/files/delete` - Soft delete single file
 - `/drive/files/harddelete` - Hard delete single file
 - `/drive/files/deletefileidbatch` - Batch delete by file IDs
 - `/drive/files/deletegroupidbatch` - Batch delete by group IDs
 
 **Usage:**
+
 ```kotlin
 val fileProvider = DriveFileProvider(odinClient)
 
@@ -689,15 +733,16 @@ kotlin = "2.2.21"
 compose = "1.9.3"
 kotlinx-coroutines = "1.10.2"
 kotlinx-datetime = "0.7.1"
-kotlinx-io = "0.8.0"
+kotlinx-io = "0.8.2"
 
 # Android
 androidx-activity = "1.11.0"
 androidx-browser = "1.9.0"
 androidx-core = "1.17.0"
+androidx-lifecycle = "2.9.6"
 
 # Networking
-ktor = "3.3.2"
+ktor = "3.3.3"
 
 # Database
 sqldelight = "2.2.1"
@@ -708,8 +753,12 @@ cryptography = "0.5.0"
 # Logging
 kermit = "2.0.8"
 
+# Navigation & DI
+navigation = "2.9.1"
+koin = "4.1.1"
+
 # Testing
-robolectric = "4.13"
+robolectric = "4.16"
 junit = "4.13.2"
 ```
 
@@ -894,16 +943,20 @@ gradlew :composeApp:dependencies --configuration commonMainCompileClasspath
 
 Key dependencies (defined in `gradle/libs.versions.toml` and `build.gradle.kts`):
 
-- Kotlin 2.2.20
-- Compose Multiplatform 1.9.1
+- Kotlin 2.2.21
+- Compose Multiplatform 1.9.3
 - Android minSdk: 27, targetSdk: 36
-- AndroidX Browser (for Custom Tabs)
-- kotlinx-serialization-json 1.9.0
+- AndroidX Browser 1.9.0 (for Custom Tabs)
+- AndroidX Lifecycle 2.9.6
+- kotlinx-serialization-json
 - kotlinx-datetime 0.7.1
-- kotlinx-io-core 0.8.0
-- AndroidX Lifecycle (ViewModel, Runtime Compose)
+- kotlinx-io-core 0.8.2
+- Ktor 3.3.3
+- Navigation Compose 2.9.1
+- Koin 4.1.1
 - cryptography-kotlin 0.5.0 (core + optimal provider)
 - Kermit 2.0.8 (logging)
+- SQLDelight 2.2.1
 
 ## Code Style
 

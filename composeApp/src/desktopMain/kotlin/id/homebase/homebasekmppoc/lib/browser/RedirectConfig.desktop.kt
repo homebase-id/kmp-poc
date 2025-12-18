@@ -1,6 +1,6 @@
 package id.homebase.homebasekmppoc.lib.browser
 
-import id.homebase.homebasekmppoc.prototype.lib.youauth.LocalCallbackServer
+import id.homebase.homebasekmppoc.lib.youauth.LocalCallbackServer
 
 /**
  * Desktop implementation of RedirectConfig. Uses localhost HTTP URL with dynamic port for OAuth
