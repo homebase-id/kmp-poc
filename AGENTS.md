@@ -27,16 +27,11 @@ composeApp/src/commonMain/kotlin/id/homebase/homebasekmppoc/
 ├── App.kt                    # Main entry point with Koin & Navigation
 ├── di/                       # Dependency Injection
 │   └── AppModule.kt          # Koin module definitions
-├── lib/                      # Shared library code (reusable components)
-│   ├── browser/              # Browser launching for OAuth (NEW)
+├── lib/                      # Shared library code (production-ready, reusable)
+│   ├── browser/              # Browser launching for OAuth
 │   │   ├── BrowserLauncher.kt        # expect - Platform browser launching
 │   │   └── RedirectConfig.kt         # expect - Redirect URI configuration
-│   ├── core/                 # Core utilities (SecureByteArray, etc.)
-│   ├── crypto/               # Cryptography (ECC, AES, HKDF, etc.)
-│   ├── drives/               # Drive API models and queries
-│   ├── http/                 # HTTP utilities (UriBuilder, etc.)
 │   ├── image/                # Image processing utilities
-│   ├── serialization/        # JSON serialization (OdinSystemSerializer)
 │   ├── storage/              # Secure storage (SecureStorage expect/actual)
 │   └── youAuth/              # YouAuth authentication
 │       ├── ClientType.kt             # domain/app enum
@@ -50,26 +45,36 @@ composeApp/src/commonMain/kotlin/id/homebase/homebasekmppoc/
 │       ├── YouAuthProvider.kt        # HTTP-level auth operations
 │       └── YouAuthFlowManager.kt     # Complete auth flow with state
 ├── ui/                       # UI layer
+│   ├── assets/               # Shared UI assets (icons, etc.)
 │   ├── navigation/           # Navigation components
 │   │   ├── Routes.kt         # Type-safe route definitions
 │   │   ├── AuthGuard.kt      # Auth protection wrapper
 │   │   └── AppNavHost.kt     # Navigation host
-│   ├── screens/              # Screen composables
-│   │   ├── LoginScreen.kt    # Login/auth screen
-│   │   └── HomeScreen.kt     # Main home screen
+│   ├── screens/              # Screen composables (MVI pattern per feature)
+│   │   ├── home/             # Home feature
+│   │   │   ├── HomeContract.kt       # UiState, UiAction, UiEvent
+│   │   │   ├── HomeViewModel.kt      # ViewModel with onAction()
+│   │   │   └── HomeScreen.kt         # Composable UI
+│   │   └── login/            # Login feature
+│   │       ├── LoginContract.kt      # UiState, UiAction, UiEvent
+│   │       ├── LoginViewModel.kt     # ViewModel with onAction()
+│   │       └── LoginScreen.kt        # Composable UI
 │   └── theme/                # Theming
 │       ├── Color.kt          # Light/dark color palettes
 │       ├── Type.kt           # Typography
 │       └── Theme.kt          # HomebaseTheme composable
-└── prototype/                # Prototype/testing code (will be refactored)
-    ├── lib/                  # Feature-specific libraries
+└── prototype/                # Prototype/testing code (will be refactored to lib/)
+    ├── lib/                  # Feature-specific libraries (in development)
     │   ├── authentication/   # AuthenticationManager, AuthState
-    │   ├── youauth/          # Legacy YouAuthManager (being replaced)
-    │   ├── drives/           # DriveQueryProvider
+    │   ├── core/             # Core utilities (SecureByteArray, etc.)
+    │   ├── crypto/           # Cryptography (ECC, AES, HKDF, etc.)
     │   ├── database/         # Database operations
-    │   ├── http/             # HTTP client creation
+    │   ├── drives/           # Drive API models, queries, providers
+    │   ├── http/             # HTTP client creation, OdinClient
+    │   ├── serialization/    # JSON serialization (OdinSystemSerializer)
     │   ├── video/            # Video handling
-    │   └── websockets/       # WebSocket client
+    │   ├── websockets/       # WebSocket client
+    │   └── youauth/          # Legacy YouAuthManager, CallbackRouter
     └── ui/                   # Legacy UI pages
 ```
 
@@ -523,15 +528,16 @@ kotlin = "2.2.21"
 compose = "1.9.3"
 kotlinx-coroutines = "1.10.2"
 kotlinx-datetime = "0.7.1"
-kotlinx-io = "0.8.0"
+kotlinx-io = "0.8.2"
 
 # Android
 androidx-activity = "1.11.0"
 androidx-browser = "1.9.0"
 androidx-core = "1.17.0"
+androidx-lifecycle = "2.9.6"
 
 # Networking
-ktor = "3.3.2"
+ktor = "3.3.3"
 
 # Database
 sqldelight = "2.2.1"
@@ -542,8 +548,12 @@ cryptography = "0.5.0"
 # Logging
 kermit = "2.0.8"
 
+# Navigation & DI
+navigation = "2.9.1"
+koin = "4.1.1"
+
 # Testing
-robolectric = "4.13"
+robolectric = "4.16"
 junit = "4.13.2"
 ```
 
@@ -728,16 +738,20 @@ gradlew :composeApp:dependencies --configuration commonMainCompileClasspath
 
 Key dependencies (defined in `gradle/libs.versions.toml` and `build.gradle.kts`):
 
-- Kotlin 2.2.20
-- Compose Multiplatform 1.9.1
+- Kotlin 2.2.21
+- Compose Multiplatform 1.9.3
 - Android minSdk: 27, targetSdk: 36
-- AndroidX Browser (for Custom Tabs)
-- kotlinx-serialization-json 1.9.0
+- AndroidX Browser 1.9.0 (for Custom Tabs)
+- AndroidX Lifecycle 2.9.6
+- kotlinx-serialization-json
 - kotlinx-datetime 0.7.1
-- kotlinx-io-core 0.8.0
-- AndroidX Lifecycle (ViewModel, Runtime Compose)
+- kotlinx-io-core 0.8.2
+- Ktor 3.3.3
+- Navigation Compose 2.9.1
+- Koin 4.1.1
 - cryptography-kotlin 0.5.0 (core + optimal provider)
 - Kermit 2.0.8 (logging)
+- SQLDelight 2.2.1
 
 ## Code Style
 

@@ -1,7 +1,7 @@
 package id.homebase.homebasekmppoc.lib.browser
 
 import co.touchlab.kermit.Logger
-import id.homebase.homebasekmppoc.prototype.lib.youauth.LocalCallbackServer
+import id.homebase.homebasekmppoc.lib.youauth.LocalCallbackServer
 import java.awt.Desktop
 import java.net.URI
 import kotlinx.coroutines.CoroutineScope

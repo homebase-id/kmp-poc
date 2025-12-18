@@ -3,7 +3,7 @@ package id.homebase.homebasekmppoc.ui.screens.login
 /** Single immutable state for Login screen. */
 data class LoginUiState(
         val homebaseId: String = "frodo.baggins.demo.rocks",
-        //val homebaseId: String = "frodo.dotyou.cloud",
+        // val homebaseId: String = "frodo.dotyou.cloud",
         val isLoading: Boolean = false,
         val isAuthenticated: Boolean = false,
         val errorMessage: String? = null
@@ -14,6 +14,7 @@ sealed interface LoginUiAction {
     data class HomebaseIdChanged(val value: String) : LoginUiAction
     data object LoginClicked : LoginUiAction
     data object RetryClicked : LoginUiAction
+    data object AppResumed : LoginUiAction
 }
 
 /** One-off events for side effects (navigation, snackbars). */
