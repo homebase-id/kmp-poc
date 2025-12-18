@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc.prototype.lib.youauth
+package id.homebase.homebasekmppoc.lib.youauth
 
 import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
@@ -43,7 +43,7 @@ object LocalCallbackServer {
      */
     fun start(scope: CoroutineScope, preferredPort: Int = 0): Int {
         if (server != null) {
-            Logger.Companion.w("LocalCallbackServer") {
+            Logger.w("LocalCallbackServer") {
                 "Server already running on port $currentPort"
             }
             return currentPort
@@ -85,18 +85,12 @@ object LocalCallbackServer {
                                             // Handle the callback asynchronously
                                             scope.launch {
                                                 try {
-                                                    // Handle with both old and new callback
-                                                    // handlers
-                                                    YouAuthCallbackRouter.handleCallback(fullUrl)
-
-                                                            YouAuthFlowManager.handleCallback(
-                                                            fullUrl
-                                                    )
-                                                    Logger.Companion.i("LocalCallbackServer") {
+                                                    YouAuthFlowManager.handleCallback(fullUrl)
+                                                    Logger.i("LocalCallbackServer") {
                                                         "Callback handled successfully"
                                                     }
                                                 } catch (e: Exception) {
-                                                    Logger.Companion.e("LocalCallbackServer") {
+                                                    Logger.e("LocalCallbackServer") {
                                                         "Error handling callback: ${e.message}"
                                                     }
                                                 }
@@ -213,17 +207,17 @@ object LocalCallbackServer {
                                 .start(wait = false)
 
                 currentPort = port
-                Logger.Companion.i("LocalCallbackServer") {
+                Logger.i("LocalCallbackServer") {
                     "Callback server started successfully on http://localhost:$currentPort"
                 }
                 return currentPort
             } catch (e: Exception) {
-                Logger.Companion.d("LocalCallbackServer") { "Port $port unavailable: ${e.message}" }
+                Logger.d("LocalCallbackServer") { "Port $port unavailable: ${e.message}" }
                 server = null
             }
         }
 
-        Logger.Companion.e("LocalCallbackServer") {
+        Logger.e("LocalCallbackServer") {
             "Failed to start server - no available ports found"
         }
         return -1
@@ -232,7 +226,7 @@ object LocalCallbackServer {
     /** Stop the callback server */
     fun stop() {
         server?.let {
-            Logger.Companion.i("LocalCallbackServer") {
+            Logger.i("LocalCallbackServer") {
                 "Stopping callback server on port $currentPort"
             }
             it.stop(1000, 2000)

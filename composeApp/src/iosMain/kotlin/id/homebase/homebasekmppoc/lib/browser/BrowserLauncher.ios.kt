@@ -2,7 +2,6 @@ package id.homebase.homebasekmppoc.lib.browser
 
 import id.homebase.homebasekmppoc.AuthPresentationContextProvider
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
-import id.homebase.homebasekmppoc.prototype.lib.youauth.YouAuthCallbackRouter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -22,8 +21,7 @@ actual object BrowserLauncher {
                             if (callbackURL != null) {
                                 val urlString = callbackURL.absoluteString!!
                                 scope.launch(Dispatchers.Main) {
-                                    // Handle with both old and new callback handlers
-                                    YouAuthCallbackRouter.handleCallback(urlString)
+
                                     YouAuthFlowManager.handleCallback(urlString)
                                 }
                             } else if (error != null) {

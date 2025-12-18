@@ -14,7 +14,6 @@ import id.homebase.homebasekmppoc.lib.storage.SharedPreferences
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseDriverFactory
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
-import id.homebase.homebasekmppoc.prototype.lib.youauth.YouAuthCallbackRouter
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -49,8 +48,6 @@ class MainActivity : ComponentActivity() {
         if (data != null && data.scheme == "youauth") {
             val callbackURL = data.toString()
             lifecycleScope.launch {
-                // Handle with both old and new callback handlers
-                YouAuthCallbackRouter.handleCallback(callbackURL)
                 YouAuthFlowManager.handleCallback(callbackURL)
             }
         }

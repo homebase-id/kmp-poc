@@ -36,7 +36,7 @@ import id.homebase.homebasekmppoc.lib.youAuth.YouAuthState
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResponse
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
-import id.homebase.homebasekmppoc.prototype.ui.app.feedTargetDrive
+import id.homebase.homebasekmppoc.ui.screens.login.feedTargetDrive
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 

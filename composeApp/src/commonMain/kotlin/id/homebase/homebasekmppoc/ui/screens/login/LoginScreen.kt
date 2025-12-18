@@ -19,11 +19,15 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import id.homebase.homebasekmppoc.ui.assets.Homebase
 import id.homebase.homebasekmppoc.ui.assets.HomebaseIcons
 
@@ -35,6 +39,18 @@ import id.homebase.homebasekmppoc.ui.assets.HomebaseIcons
  */
 @Composable
 fun LoginScreen(state: LoginUiState, onAction: (LoginUiAction) -> Unit) {
+    // Detect when app resumes from background (e.g., after browser auth was cancelled)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                onAction(LoginUiAction.AppResumed)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
                 modifier =
