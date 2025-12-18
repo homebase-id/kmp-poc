@@ -34,7 +34,10 @@ import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthState
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
+import id.homebase.homebasekmppoc.prototype.lib.database.QueryBatch
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResponse
+import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortField
+import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortOrder
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.prototype.ui.app.feedTargetDrive
 import kotlinx.coroutines.launch
@@ -72,6 +75,15 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
                 // TODO: Where does the identityId live? Need to get it instead of random.
                 val backend = DriveSync(identityId, feedTargetDrive, driveQueryProvider,database)
                 queryBatchResponse = backend.sync(if (withProgress) { count -> fetchedCount = count } else { _ -> })
+                val localResult = QueryBatch(database, DatabaseManager.getDriver(), identityId).queryBatchAsync(
+                    feedTargetDrive.alias,
+                    1000,
+                    null,
+                    QueryBatchSortOrder.OldestFirst,
+                    QueryBatchSortField.AnyChangeDate,
+                    fileSystemType = 0);
+                Logger.i("localResult ")
+
             } catch (e: Exception) {
                 Logger.e("Error fetching Drive Fetch data", e)
                 errorMessage = e.message ?: "Unknown error"

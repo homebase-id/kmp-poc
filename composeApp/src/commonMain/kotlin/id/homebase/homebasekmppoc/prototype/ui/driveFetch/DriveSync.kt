@@ -87,9 +87,6 @@ class DriveSync(private val identityId : Uuid,
                         if (queryBatchResponse?.searchResults?.isNotEmpty() == true) {
                             totalCount += queryBatchResponse!!.searchResults.size
 
-                            // UX callback
-                            onProgressUX(totalCount)
-                            
                             // TODO: Consider commiting every NNNN rows or SS seconds - but also consider maybe it's good for the FE to get data faster?
                             fileHeaderProcessor.BaseUpsertEntryZapZap(
                                 identityId = identityId,
@@ -97,6 +94,9 @@ class DriveSync(private val identityId : Uuid,
                                 fileHeaders = queryBatchResponse.searchResults,
                                 cursor = cursor
                             )
+
+                            // UX callback after we submit to the DB because then the UX can choose to query
+                            onProgressUX(totalCount)
                         }
 
                         keepGoing =
