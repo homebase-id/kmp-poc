@@ -49,6 +49,8 @@ fun HomeScreen(state: HomeUiState, onAction: (HomeUiAction) -> Unit) {
 
             NavigationButton("CdnTest") { onAction(HomeUiAction.CdnTestClicked) }
 
+            NavigationButton("Drive Upload") { onAction(HomeUiAction.DriveUploadClicked) }
+
             Spacer(modifier = Modifier.weight(1f))
 
             OutlinedButton(

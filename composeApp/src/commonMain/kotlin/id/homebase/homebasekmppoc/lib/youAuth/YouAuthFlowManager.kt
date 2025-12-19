@@ -3,6 +3,7 @@ package id.homebase.homebasekmppoc.lib.youAuth
 import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.lib.browser.BrowserLauncher
 import id.homebase.homebasekmppoc.lib.browser.RedirectConfig
+import id.homebase.homebasekmppoc.lib.storage.SecureStorage
 import id.homebase.homebasekmppoc.prototype.decodeUrl
 import id.homebase.homebasekmppoc.prototype.generateUuidBytes
 import id.homebase.homebasekmppoc.prototype.generateUuidString
@@ -105,12 +106,14 @@ class YouAuthFlowManager {
             if (client != null) {
                 val identity = client.getHostIdentity()
                 // We don't have the raw tokens here, but we know we're authenticated
-                _authState.value =
+                client.getSharedSecret()?.let {
+                    _authState.value =
                         YouAuthState.Authenticated(
-                                identity = identity,
-                                clientAuthToken = "", // Not needed since OdinClient is configured
-                                sharedSecret = ""
+                            identity = identity,
+                            clientAuthToken =  SecureStorage.get(YouAuthStorageKeys.CLIENT_AUTH_TOKEN) ?:  "" , // TODO: Remove this afterwards when seb decided to ditch the old http code Not needed since OdinClient is configured
+                            sharedSecret = Base64.encode( it)
                         )
+                }
                 Logger.i(TAG) { "Session restored for $identity" }
                 return true
             }

@@ -5,7 +5,6 @@ import kotlinx.io.Buffer
 
 /**
  * Represents a cryptographic key header containing an IV and AES key
- * Port of C# KeyHeader class from Odin.Services.Peer.Encryption
  */
 class KeyHeader(
     var iv: ByteArray,
@@ -43,6 +42,14 @@ class KeyHeader(
             data = data,
             key = aesKey,
             iv = iv
+        )
+    }
+
+    suspend fun encryptDataAes(data: ByteArray,customIv: ByteArray?): ByteArray {
+        return AesCbc.encrypt(
+            data = data,
+            key = aesKey,
+            iv = customIv ?: iv
         )
     }
 

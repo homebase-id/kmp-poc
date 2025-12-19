@@ -10,7 +10,6 @@ import kotlin.uuid.Uuid
  * A drive specifier for incoming requests to perform actions on a drive.
  * (essentially, this hides the internal DriveId).
  *
- * Ported from C# Odin.Services.Drives.TargetDrive
  */
 
 // TODO: probably remove "type" and rename alias to driveId

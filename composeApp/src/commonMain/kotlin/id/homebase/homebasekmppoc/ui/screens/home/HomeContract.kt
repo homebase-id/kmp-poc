@@ -10,6 +10,7 @@ sealed interface HomeUiAction {
     data object WebSocketClicked : HomeUiAction
     data object VideoClicked : HomeUiAction
     data object CdnTestClicked : HomeUiAction
+    data object DriveUploadClicked : HomeUiAction
     data object LogoutClicked : HomeUiAction
 }
 
@@ -20,5 +21,6 @@ sealed interface HomeUiEvent {
     data object NavigateToWebSocket : HomeUiEvent
     data object NavigateToVideo : HomeUiEvent
     data object NavigateToCdnTest : HomeUiEvent
+    data object NavigateToDriveUpload : HomeUiEvent
     data object NavigateToLogin : HomeUiEvent
 }

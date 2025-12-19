@@ -42,6 +42,9 @@ class HomeViewModel(private val youAuthFlowManager: YouAuthFlowManager) : ViewMo
             is HomeUiAction.CdnTestClicked -> {
                 sendEvent(HomeUiEvent.NavigateToCdnTest)
             }
+            is HomeUiAction.DriveUploadClicked -> {
+                sendEvent(HomeUiEvent.NavigateToDriveUpload)
+            }
             is HomeUiAction.LogoutClicked -> {
                 performLogout()
             }

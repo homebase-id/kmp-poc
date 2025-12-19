@@ -23,6 +23,8 @@ sealed class Route {
     @Serializable data object Video : Route()
 
     @Serializable data object CdnTest : Route()
+
+    @Serializable data object DriveUpload : Route()
 }
 
 /** Deep link configuration */
