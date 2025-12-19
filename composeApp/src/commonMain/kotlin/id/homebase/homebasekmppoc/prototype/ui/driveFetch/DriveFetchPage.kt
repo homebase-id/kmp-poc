@@ -75,7 +75,7 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
                 // TODO: Where does the identityId live? Need to get it instead of random.
                 val backend = DriveSync(identityId, feedTargetDrive, driveQueryProvider,database)
                 queryBatchResponse = backend.sync(if (withProgress) { count -> fetchedCount = count } else { _ -> })
-                val localResult = QueryBatch(database, DatabaseManager.getDriver(), identityId).queryBatchAsync(
+                val localResult = QueryBatch(DatabaseManager, identityId).queryBatchAsync(
                     feedTargetDrive.alias,
                     1000,
                     null,

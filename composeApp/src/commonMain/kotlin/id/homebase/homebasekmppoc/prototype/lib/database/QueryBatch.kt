@@ -222,12 +222,12 @@ class QueryBatch(
             mapper = { sqlCursor ->
                 val records = mutableListOf<SharedSecretEncryptedFileHeader>()
                 var count = 0
-                var header: SharedSecretEncryptedFileHeader = null
+                lateinit var header: SharedSecretEncryptedFileHeader
                 var rowId: Long? = -1
 
                 while (sqlCursor.next().value && count < actualNoOfItems) {
                     rowId = sqlCursor.getLong(0)
-                    val jsonHeader = sqlCursor.getString(14) ?: ""
+                    val jsonHeader = sqlCursor.getString(1) ?: ""
                     header = OdinSystemSerializer.deserialize<SharedSecretEncryptedFileHeader>(jsonHeader)
                     records.add(header)
                     count++
@@ -237,11 +237,11 @@ class QueryBatch(
                 if (count > 0)
                 {
                     if (sortField === QueryBatchSortField.UserDate)
-                        workingCursor.paging = TimeRowCursor(UnixTimeUtc(header.fileMetadata.appData.userDate!!), rowId)
+                        workingCursor = workingCursor.copy(paging = TimeRowCursor(UnixTimeUtc(header.fileMetadata.appData.userDate!!), 0L))
                     else if (sortField === QueryBatchSortField.AnyChangeDate || sortField === QueryBatchSortField.OnlyModifiedDate)
-                        workingCursor.paging = TimeRowCursor(UnixTimeUtc(header.fileMetadata.updated.milliseconds), rowId)
+                        workingCursor = workingCursor.copy(paging = TimeRowCursor(header.fileMetadata.updated, 0L))
                     else if (sortField === QueryBatchSortField.FileId || sortField === QueryBatchSortField.CreatedDate)
-                        workingCursor.paging = TimeRowCursor(UnixTimeUtc(header.fileMetadata.created.milliseconds), rowId)
+                        workingCursor = workingCursor.copy(paging = TimeRowCursor(header.fileMetadata.created, 0L))
                     else
                         throw IllegalArgumentException("Invalid QueryBatchSortField type")
                 }
