@@ -34,25 +34,25 @@ class PayloadPlayground(private val authenticated: AuthState.Authenticated) {
 
     //
 
-    suspend fun getDrivesByType(type: Uuid): PagedResult<DriveDefinition> {
-
-        val params = GetDrivesByTypeRequest(
-            type.toString(),
-            1,
-            Int.MAX_VALUE
-        )
-
-        val uri = "/api/owner/v1/drive/mgmt/type?${params.toQueryString()}"
-        val client = OdinHttpClient(authenticated)
-        val drives = client.get<PagedResult<DriveDefinition>>(uri)
-
-        Logger.d("PayloadPlayground") { "Drives:" }
-        drives.results.forEach {
-            Logger.d("PayloadPlayground") { "  drive: Alias=${it.targetDriveInfo.alias} Type=${it.targetDriveInfo.type} Name=${it.name}" }
-        }
-
-        return drives
-    }
+    // suspend fun getDrivesByType(type: Uuid): PagedResult<DriveDefinition> {
+    //
+    //     val params = GetDrivesByTypeRequest(
+    //         type.toString(),
+    //         1,
+    //         Int.MAX_VALUE
+    //     )
+    //
+    //     val uri = "/api/owner/v1/drive/mgmt/type?${params.toQueryString()}"
+    //     val client = OdinHttpClient(authenticated)
+    //     val drives = client.get<PagedResult<DriveDefinition>>(uri)
+    //
+    //     Logger.d("PayloadPlayground") { "Drives:" }
+    //     drives.results.forEach {
+    //         Logger.d("PayloadPlayground") { "  drive: Alias=${it.targetDriveInfo.alias} Type=${it.targetDriveInfo.type} Name=${it.name}" }
+    //     }
+    //
+    //     return drives
+    // }
 
     //
 
@@ -105,20 +105,20 @@ class PayloadPlayground(private val authenticated: AuthState.Authenticated) {
 
     //
 
-    suspend fun getFileHeader(
-        appOrOwner: AppOrOwner,
-        fileId: String,
-        alias: String,
-        type: String,
-        fileSystemType: String): SharedSecretEncryptedFileHeader
-    {
-        val uri = "/api/$appOrOwner/v1/drive/files/header?alias=$alias&type=$type&fileId=$fileId&xfst=$fileSystemType"
-
-        val client = OdinHttpClient(authenticated)
-        val result = client.get<SharedSecretEncryptedFileHeader>(uri)
-
-        return result
-    }
+    // suspend fun getFileHeader(
+    //     appOrOwner: AppOrOwner,
+    //     fileId: String,
+    //     alias: String,
+    //     type: String,
+    //     fileSystemType: String): SharedSecretEncryptedFileHeader
+    // {
+    //     val uri = "/api/$appOrOwner/v1/drive/files/header?alias=$alias&type=$type&fileId=$fileId&xfst=$fileSystemType"
+    //
+    //     val client = OdinHttpClient(authenticated)
+    //     val result = client.get<SharedSecretEncryptedFileHeader>(uri)
+    //
+    //     return result
+    // }
 
     //
 

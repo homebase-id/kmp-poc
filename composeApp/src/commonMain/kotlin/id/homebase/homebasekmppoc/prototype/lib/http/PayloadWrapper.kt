@@ -10,8 +10,10 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFile
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import id.homebase.homebasekmppoc.prototype.lib.video.VideoMetaData
 import io.ktor.client.call.body
+import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
 import io.ktor.client.request.headers
+import io.ktor.client.statement.HttpResponse
 import io.ktor.http.contentLength
 import kotlin.io.encoding.Base64
 
@@ -55,7 +57,12 @@ class PayloadWrapper(
         val payloadKey = payloadDescriptor.key
 
         // calls backend DriveStorageControllerBase.GetPayloadStream
-        val uri = "https://${authenticated.identity}/api/$appOrOwner/v1/drive/files/payload?alias=$alias&type=$type&fileId=$fileId&key=$payloadKey&xfst=128"
+        // val uri = "https://${authenticated.identity}/api/$appOrOwner/v1/drive/files/payload?alias=$alias&type=$type&fileId=$fileId&key=$payloadKey&xfst=128"
+
+        //val uri =   "https://${authenticated.identity}/api/v2/drives/$alias/files/$fileId/payload/?key=$payloadKey"
+        //val uri = "https://${authenticated.identity}/api/v2/drives/$alias/files/$fileId/payloads/$payloadKey"
+
+        val uri = "https://${authenticated.identity}/api/$appOrOwner/v1/drive/files/payload/$alias/$type/$fileId/$payloadKey"
 
         return uri
     }
@@ -64,24 +71,35 @@ class PayloadWrapper(
 
     suspend fun getEncryptedPayloadUri(appOrOwner: AppOrOwner): String {
         val plain = getPayloadUri(appOrOwner)
+        Logger.d("PayloadPlayground") { "Plain uri: $plain" }
+
         val cipher = CryptoHelper.uriWithEncryptedQueryString(plain, authenticated.sharedSecret)
+        Logger.d("PayloadPlayground") { "Cipher uri: $cipher" }
+
         return cipher
     }
 
     //
 
     suspend fun getPayloadBytes(appOrOwner: AppOrOwner): ByteArray {
+
         val encryptedUri = getEncryptedPayloadUri(appOrOwner)
 
         Logger.d("PayloadPlayground") { "Making GET request to: $encryptedUri" }
 
         val client = createHttpClient()
         val response = client.get(encryptedUri) {
+            if (false && encryptedUri.contains("/api/v2/", ignoreCase = true)) {
+                bearerAuth(authenticated.clientAuthToken)
+            } else {
+                headers {
+                    append("Cookie", "${cookieNameFrom(appOrOwner)}=${authenticated.clientAuthToken}")
+                }
+            }
             headers {
-                append("Cookie", "${cookieNameFrom(appOrOwner)}=${authenticated.clientAuthToken}")
+                append("X-ODIN-FILE-SYSTEM-TYPE", "128")
             }
         }
-
         Logger.d("PayloadPlayground") { "Response length: ${response.contentLength()}" }
 
         val bytes = response.body<ByteArray>()

@@ -10,6 +10,7 @@ import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializ
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
 import io.ktor.client.request.headers
 import io.ktor.http.HeadersBuilder
@@ -73,13 +74,15 @@ class OdinHttpClient(
         val encryptedUri = buildUriWithEncryptedQueryString(fullUri)
         Logger.d("OdinHttpClient") { "Encrypted GET request: $encryptedUri" }
 
+
         val client = createHttpClient()
-
-        var response: io.ktor.client.statement.HttpResponse
-
-        response = client.get(encryptedUri) {
-            headers {
-                appendAuth(path, clientAuthToken)
+        val response = client.get(encryptedUri) {
+            if (false && encryptedUri.contains("/api/v2/DOESNOTWORK", ignoreCase = true)) {
+                bearerAuth(clientAuthToken)
+            } else {
+                headers {
+                    appendAuth(path, clientAuthToken)
+                }
             }
         }
 
@@ -190,7 +193,8 @@ class OdinHttpClient(
         request: GetQueryBatchRequest,
         fileSystemType: FileSystemType = FileSystemType.Standard
     ): QueryBatchResponse {
-        val uri = "/api/$appOrOwner/v1/drive/query/batch?${request.toQueryString()}&xfst=$fileSystemType"
+        // val uri = "/api/$appOrOwner/v1/drive/query/batch?${request.toQueryString()}&xfst=$fileSystemType"
+        val uri = "/api/v2/drives/${request.alias}/files/query-batch?${request.toQueryString()}&xfst=$fileSystemType"
         val response = get<QueryBatchResponse>(uri)
         return response
     }
