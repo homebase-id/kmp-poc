@@ -38,6 +38,30 @@ data class LocalAppData(
         val iv: String? = null
 )
 
+// Request classes for local metadata operations
+@Serializable
+private data class LocalMetadataFileReference(
+        val fileId: String,
+        val targetDrive: LocalMetadataTargetDrive
+)
+
+@Serializable private data class LocalMetadataTargetDrive(val alias: String, val type: String)
+
+@Serializable
+private data class UpdateLocalMetadataTagsRequest(
+        val localVersionTag: String?,
+        val file: LocalMetadataFileReference,
+        val tags: List<String>?
+)
+
+@Serializable
+private data class UpdateLocalMetadataContentRequest(
+        val iv: String? = null,
+        val localVersionTag: String?,
+        val file: LocalMetadataFileReference,
+        val content: String?
+)
+
 /** Provider for drive upload and update operations. Ported from JS/TS odin-js UploadProvider. */
 @OptIn(ExperimentalEncodingApi::class)
 class DriveUploadProvider(private val client: OdinClient) {
@@ -117,7 +141,7 @@ class DriveUploadProvider(private val client: OdinClient) {
         // Build encrypted descriptor (encrypted key header + encrypted metadata + all encrypted
         // with sharedSecret)
         val encryptedDescriptor =
-                if ( sharedSecret != null) {
+                if (sharedSecret != null) {
                     buildEncryptedDescriptor(
                             keyHeader,
                             encryptedMetadata,
@@ -342,23 +366,23 @@ class DriveUploadProvider(private val client: OdinClient) {
         val httpClient = client.createHttpClient(CreateHttpClientOptions(overrideEncryption = true))
 
         val requestBody =
-                buildMap<String, Any?> {
-                    put("localVersionTag", localAppData.versionTag)
-                    put(
-                            "file",
-                            buildMap<String, Any?> {
-                                put("fileId", file.fileId)
-                                put(
-                                        "targetDrive",
-                                        buildMap<String, Any?> {
-                                            put("alias", file.targetDrive.alias)
-                                            put("type", file.targetDrive.type)
-                                        }
-                                )
-                            }
-                    )
-                    put("tags", localAppData.tags)
-                }
+                UpdateLocalMetadataTagsRequest(
+                                localVersionTag = localAppData.versionTag,
+                                file =
+                                        LocalMetadataFileReference(
+                                                fileId = file.fileId,
+                                                targetDrive =
+                                                        LocalMetadataTargetDrive(
+                                                                alias =
+                                                                        file.targetDrive.alias
+                                                                                .toString(),
+                                                                type =
+                                                                        file.targetDrive.type
+                                                                                .toString()
+                                                        )
+                                        ),
+                                tags = localAppData.tags
+                        )
                         .let { OdinSystemSerializer.json.encodeToString(it) }
 
         try {
@@ -431,24 +455,24 @@ class DriveUploadProvider(private val client: OdinClient) {
         val httpClient = client.createHttpClient(CreateHttpClientOptions(overrideEncryption = true))
 
         val requestBody =
-                buildMap<String, Any?> {
-                    if (ivToSend != null) put("iv", ivToSend)
-                    put("localVersionTag", localAppData.versionTag)
-                    put(
-                            "file",
-                            buildMap<String, Any?> {
-                                put("fileId", fileIdentifier.fileId)
-                                put(
-                                        "targetDrive",
-                                        buildMap<String, Any?> {
-                                            put("alias", fileIdentifier.targetDrive.alias)
-                                            put("type", fileIdentifier.targetDrive.type)
-                                        }
-                                )
-                            }
-                    )
-                    put("content", encryptedContent)
-                }
+                UpdateLocalMetadataContentRequest(
+                                iv = ivToSend,
+                                localVersionTag = localAppData.versionTag,
+                                file =
+                                        LocalMetadataFileReference(
+                                                fileId = fileIdentifier.fileId,
+                                                targetDrive =
+                                                        LocalMetadataTargetDrive(
+                                                                alias =
+                                                                        fileIdentifier.targetDrive
+                                                                                .alias.toString(),
+                                                                type =
+                                                                        fileIdentifier.targetDrive
+                                                                                .type.toString()
+                                                        )
+                                        ),
+                                content = encryptedContent
+                        )
                         .let { OdinSystemSerializer.json.encodeToString(it) }
 
         try {
@@ -486,7 +510,7 @@ class DriveUploadProvider(private val client: OdinClient) {
                 )
 
         try {
-            val response: HttpResponse = httpClient.post(UPLOAD_ENDPOINT) { setBody(data)  }
+            val response: HttpResponse = httpClient.post(UPLOAD_ENDPOINT) { setBody(data) }
             return handleUploadResponse(response, onVersionConflict)
         } catch (e: OdinClientException) {
             throw e
