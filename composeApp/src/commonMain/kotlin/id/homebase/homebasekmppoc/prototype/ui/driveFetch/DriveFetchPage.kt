@@ -34,11 +34,15 @@ import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthState
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
+import id.homebase.homebasekmppoc.prototype.lib.database.QueryBatch
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResponse
+import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortField
+import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortOrder
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.ui.screens.login.feedTargetDrive
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import kotlin.uuid.Uuid
 
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
@@ -51,7 +55,8 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var fetchedCount by remember { mutableStateOf(0) }
     val coroutineScope = rememberCoroutineScope()
-    val db = DatabaseManager.getDatabase()
+    val database = DatabaseManager.getDatabase()
+    val identityId = Uuid.parse("7b1be23b-48bb-4304-bc7b-db5910c09a92") // TODO: <- get the real identityId
 
     // Inject DriveQueryProvider from Koin
     val driveQueryProvider: DriveQueryProvider? = koinInject()
@@ -67,8 +72,18 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
         if (withProgress) fetchedCount = 0
         coroutineScope.launch {
             try {
-                val backend = DriveFetchBackend(provider, feedTargetDrive, db)
-                queryBatchResponse = backend.fetchFiles(if (withProgress) { count -> fetchedCount = count } else { _ -> })
+                // TODO: Where does the identityId live? Need to get it instead of random.
+                val backend = DriveSync(identityId, feedTargetDrive, driveQueryProvider,database)
+                queryBatchResponse = backend.sync(if (withProgress) { count -> fetchedCount = count } else { _ -> })
+                val localResult = QueryBatch(DatabaseManager, identityId).queryBatchAsync(
+                    feedTargetDrive.alias,
+                    1000,
+                    null,
+                    QueryBatchSortOrder.OldestFirst,
+                    QueryBatchSortField.AnyChangeDate,
+                    fileSystemType = 0);
+                Logger.i("localResult ")
+
             } catch (e: Exception) {
                 Logger.e("Error fetching Drive Fetch data", e)
                 errorMessage = e.message ?: "Unknown error"

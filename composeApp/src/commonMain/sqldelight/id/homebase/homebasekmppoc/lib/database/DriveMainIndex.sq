@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS DriveMainIndex(
    userDate INTEGER NOT NULL,
    created INTEGER NOT NULL,
    modified INTEGER NOT NULL,
-   systemFileType INTEGER NOT NULL,
+   fileSystemType INTEGER NOT NULL,
    jsonHeader TEXT NOT NULL,
 
    UNIQUE(identityId,driveId,fileId),
@@ -24,9 +24,9 @@ CREATE TABLE IF NOT EXISTS DriveMainIndex(
    UNIQUE(identityId,driveId,globalTransitId)
 );
 
-CREATE INDEX IF NOT EXISTS Idx0DriveMainIndex ON DriveMainIndex(identityId,driveId,systemFileType,created,rowId);
-CREATE INDEX IF NOT EXISTS Idx1DriveMainIndex ON DriveMainIndex(identityId,driveId,systemFileType,modified,rowId);
-CREATE INDEX IF NOT EXISTS Idx2DriveMainIndex ON DriveMainIndex(identityId,driveId,systemFileType,userDate,rowId);
+CREATE INDEX IF NOT EXISTS Idx0DriveMainIndex ON DriveMainIndex(identityId,driveId,fileSystemType,created,rowId);
+CREATE INDEX IF NOT EXISTS Idx1DriveMainIndex ON DriveMainIndex(identityId,driveId,fileSystemType,modified,rowId);
+CREATE INDEX IF NOT EXISTS Idx2DriveMainIndex ON DriveMainIndex(identityId,driveId,fileSystemType,userDate,rowId);
 
 -- Upsert a record
 upsertDriveMainIndex:
@@ -37,7 +37,7 @@ INSERT INTO DriveMainIndex (
    senderId,
    fileType,dataType,archivalStatus,historyStatus,
    userDate,created,modified,
-   systemFileType, jsonHeader)
+   fileSystemType, jsonHeader)
 VALUES (
    ?,?,?,?,?,
    ?,?,?,?,?,?,?,
@@ -49,7 +49,7 @@ SET uniqueId = excluded.uniqueId,globalTransitId = excluded.globalTransitId,
     fileType = excluded.fileType,dataType = excluded.dataType,
     archivalStatus = excluded.archivalStatus,historyStatus = excluded.historyStatus,
     userDate = excluded.userDate,created = excluded.created,modified = excluded.modified,
-    systemFileType = excluded.systemFileType,
+    fileSystemType = excluded.fileSystemType,
     jsonHeader = excluded.jsonHeader;
 
 -- Select by identity and drive and file (get single row)

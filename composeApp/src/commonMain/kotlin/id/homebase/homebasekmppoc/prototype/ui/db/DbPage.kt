@@ -79,7 +79,7 @@ fun DbPage() {
                             userDate = currentTime,
                             created = currentTime,
                             modified = currentTime,
-                            systemFileType = 1L,
+                            fileSystemType = 1L,
                             jsonHeader = """{"versionTag":"${versionTag.contentToString()}","byteCount":1024,"appData":{},"serverData":{},"fileMetaData":{}}"""
                         )
 

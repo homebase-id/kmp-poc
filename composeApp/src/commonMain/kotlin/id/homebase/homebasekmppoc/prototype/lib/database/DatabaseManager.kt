@@ -1,5 +1,6 @@
 package id.homebase.homebasekmppoc.prototype.lib.database
 
+import app.cash.sqldelight.db.SqlDriver
 import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.lib.database.AppNotifications
 import id.homebase.homebasekmppoc.lib.database.DriveLocalTagIndex
@@ -10,12 +11,13 @@ import id.homebase.homebasekmppoc.lib.database.OdinDatabase
 
 object DatabaseManager {
     private var database: OdinDatabase? = null
+    private var driver: SqlDriver? = null
     private val logger = Logger.withTag("DatabaseManager")
 
     fun initialize(driverFactory: DatabaseDriverFactory) {
         if (database == null) {
             logger.i { "Initializing database..." }
-            val driver = driverFactory.createDriver()
+            driver = driverFactory.createDriver()
             
             // Create adapters for UUID columns
             val driveTagIndexAdapter = DriveTagIndex.Adapter(
@@ -50,7 +52,7 @@ object DatabaseManager {
                 notificationIdAdapter = UuidAdapter
             )
             
-            database = OdinDatabase(driver, appNotificationsAdapter, driveLocalTagIndexAdapter, driveMainIndexAdapter, driveTagIndexAdapter, keyValueAdapter)
+            database = OdinDatabase(driver!!, appNotificationsAdapter, driveLocalTagIndexAdapter, driveMainIndexAdapter, driveTagIndexAdapter, keyValueAdapter)
             logger.i { "Database initialized successfully" }
         } else {
             logger.w { "Database already initialized" }
@@ -59,6 +61,10 @@ object DatabaseManager {
 
     fun getDatabase(): OdinDatabase {
         return database ?: throw IllegalStateException("Database not initialized. Call initialize() first.")
+    }
+
+    fun getDriver(): SqlDriver {
+        return driver ?: throw IllegalStateException("Database not initialized. Call initialize() first.")
     }
 
     fun isInitialized(): Boolean = database != null

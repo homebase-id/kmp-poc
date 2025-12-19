@@ -24,5 +24,10 @@ deleteByFile:
 DELETE FROM DriveTagIndex
 WHERE identityId = ? AND driveId = ? AND fileId = ?;
 
+-- Delete all records (for testing)
+deleteAll:
+DELETE FROM DriveMainIndex;
+
+-- countALl
 countAll:
 SELECT count(*) FROM DriveTagIndex;
