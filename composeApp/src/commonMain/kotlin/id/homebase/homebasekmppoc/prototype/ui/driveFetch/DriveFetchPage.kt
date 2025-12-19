@@ -81,7 +81,7 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
                     syncProgress = progress
                     when (progress) {
                         is SyncProgress.InProgress -> {
-                            // Progress automatically updates through syncProgress state
+                            // You can optionally use progress.batchData directly, e.g., add to a in-memory list or update UI
                         }
                         is SyncProgress.Completed -> {
                             // Sync completed, we can fetch local results

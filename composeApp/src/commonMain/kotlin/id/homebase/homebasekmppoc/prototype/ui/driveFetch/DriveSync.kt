@@ -10,6 +10,7 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.FileState
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchRequest
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResponse
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResultOptionsRequest
+import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
 import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.QueryBatchCursor
@@ -25,7 +26,8 @@ sealed interface SyncProgress {
     data class InProgress(
         val totalCount: Int,
         val batchCount: Int,
-        val latestModified: UnixTimeUtc?  // Unix timestamp; null if no files in batch
+        val latestModified: UnixTimeUtc?,
+        val batchData: List<SharedSecretEncryptedFileHeader>
     ) : SyncProgress
 
     data class Completed(val totalCount: Int) : SyncProgress
@@ -94,6 +96,7 @@ class DriveSync(private val identityId : Uuid,
                             val batchCount = searchResults.size
                             totalCount += batchCount
 
+                            // TODO: DECOUPLE THIS SO WE'RE NOT WAITING FOR THE DB TO SAVE
                             fileHeaderProcessor.BaseUpsertEntryZapZap(
                                 identityId = identityId,
                                 driveId = targetDrive.alias,
@@ -107,7 +110,8 @@ class DriveSync(private val identityId : Uuid,
                             emit(SyncProgress.InProgress(
                                 totalCount = totalCount,
                                 batchCount = batchCount,
-                                latestModified = latestModified
+                                latestModified = latestModified,
+                                batchData = searchResults
                             ))
                         }
 
@@ -119,13 +123,21 @@ class DriveSync(private val identityId : Uuid,
                 }
 
                 // Adaptive batch size logic (unchanged)
-                if (durationMs.duration.inWholeMilliseconds < 300 && batchSize < 1000) {
-                    batchSize = (1 + batchSize * 1.5).toInt().coerceAtMost(1000)
-                } else if (durationMs.duration.inWholeMilliseconds > 800 && batchSize > 50) {
-                    batchSize = (batchSize * 0.7).toInt().coerceAtLeast(50)
+//                if (durationMs.duration.inWholeMilliseconds < 600 && batchSize < 1000) {
+//                    batchSize = (1 + batchSize * 1.5).toInt().coerceAtMost(1000)
+//                } else if (durationMs.duration.inWholeMilliseconds > 800 && batchSize > 50) {
+//                    batchSize = (batchSize * 0.7).toInt().coerceAtLeast(50)
+//                }
+
+                val batchWas = batchSize
+                val targetMs = 700L  // Target time per batch; adjust if needed (e.g., 500L for more aggressive)
+                if (durationMs.duration.inWholeMilliseconds > 0) {  // Avoid divide-by-zero, though unlikely
+                    batchSize = (batchSize.toLong() * targetMs / durationMs.duration.inWholeMilliseconds)
+                        .toInt()
+                        .coerceIn(50, 1000)
                 }
 
-                Logger.d("Batch size: $batchSize, took ${durationMs.duration.inWholeMilliseconds}ms")
+                Logger.d("Batch size: $batchWas, took ${durationMs.duration.inWholeMilliseconds}ms, now adjusted to: $batchSize")
             }
 
             emit(SyncProgress.Completed(totalCount))
