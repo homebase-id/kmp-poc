@@ -21,6 +21,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 
 sealed interface SyncProgress {
     data class InProgress(
@@ -96,13 +98,24 @@ class DriveSync(private val identityId : Uuid,
                             val batchCount = searchResults.size
                             totalCount += batchCount
 
-                            // TODO: DECOUPLE THIS SO WE'RE NOT WAITING FOR THE DB TO SAVE
-                            fileHeaderProcessor.BaseUpsertEntryZapZap(
-                                identityId = identityId,
-                                driveId = targetDrive.alias,
-                                fileHeaders = searchResults,
-                                cursor = cursor
-                            )
+                            // Run DB operation in background without waiting - fire and forget
+                            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Default).launch {
+                                try {
+                                    val dbMs = measureTimedValue {
+                                        fileHeaderProcessor.BaseUpsertEntryZapZap(
+                                            identityId = identityId,
+                                            driveId = targetDrive.alias,
+                                            fileHeaders = searchResults,
+                                            cursor = cursor
+                                        )
+                                    }
+                                    Logger.i("DB insert time ${dbMs} for ${searchResults.size} rows")
+                                } catch (e: Exception) {
+                                    // Handle DB error: log or emit a failure if you want to notify
+                                    Logger.e("DB upsert failed for batch: ${e.message}")
+                                    // Optionally: emit(SyncProgress.Failed("DB error: ${e.message}")) but since flow is per-sync, maybe add a new state
+                                }
+                            }
 
                             // Calculate latest modified (assuming FileHeader has a 'modified: Long' field)
                             val latestModified = searchResults.last().fileMetadata.updated
@@ -123,12 +136,6 @@ class DriveSync(private val identityId : Uuid,
                 }
 
                 // Adaptive batch size logic (unchanged)
-//                if (durationMs.duration.inWholeMilliseconds < 600 && batchSize < 1000) {
-//                    batchSize = (1 + batchSize * 1.5).toInt().coerceAtMost(1000)
-//                } else if (durationMs.duration.inWholeMilliseconds > 800 && batchSize > 50) {
-//                    batchSize = (batchSize * 0.7).toInt().coerceAtLeast(50)
-//                }
-
                 val batchWas = batchSize
                 val targetMs = 700L  // Target time per batch; adjust if needed (e.g., 500L for more aggressive)
                 if (durationMs.duration.inWholeMilliseconds > 0) {  // Avoid divide-by-zero, though unlikely
