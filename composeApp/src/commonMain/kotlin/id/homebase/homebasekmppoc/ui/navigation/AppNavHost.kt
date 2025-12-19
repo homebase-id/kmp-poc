@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -11,10 +12,13 @@ import androidx.navigation.compose.rememberNavController
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthState
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthenticationManager
-import id.homebase.homebasekmppoc.prototype.lib.youauth.YouAuthManager
 import id.homebase.homebasekmppoc.prototype.ui.cdn.CdnTestPage
 import id.homebase.homebasekmppoc.prototype.ui.db.DbPage
 import id.homebase.homebasekmppoc.prototype.ui.driveFetch.DriveFetchPage
+import id.homebase.homebasekmppoc.prototype.ui.driveUpload.DriveUploadScreen
+import id.homebase.homebasekmppoc.prototype.ui.driveUpload.DriveUploadUiAction
+import id.homebase.homebasekmppoc.prototype.ui.driveUpload.DriveUploadUiEvent
+import id.homebase.homebasekmppoc.prototype.ui.driveUpload.DriveUploadViewModel
 import id.homebase.homebasekmppoc.prototype.ui.video.VideoPlayerTestPage
 import id.homebase.homebasekmppoc.prototype.ui.ws.WebsocketPage
 import id.homebase.homebasekmppoc.ui.screens.home.HomeScreen
@@ -23,6 +27,12 @@ import id.homebase.homebasekmppoc.ui.screens.home.HomeViewModel
 import id.homebase.homebasekmppoc.ui.screens.login.LoginScreen
 import id.homebase.homebasekmppoc.ui.screens.login.LoginUiEvent
 import id.homebase.homebasekmppoc.ui.screens.login.LoginViewModel
+import io.github.vinceglb.filekit.FileKit
+import io.github.vinceglb.filekit.dialogs.FileKitType
+import io.github.vinceglb.filekit.dialogs.openFilePicker
+import io.github.vinceglb.filekit.name
+import io.github.vinceglb.filekit.readBytes
+import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -86,6 +96,8 @@ fun AppNavHost(
                                 navController.navigate(Route.WebSocket)
                         is HomeUiEvent.NavigateToVideo -> navController.navigate(Route.Video)
                         is HomeUiEvent.NavigateToCdnTest -> navController.navigate(Route.CdnTest)
+                        is HomeUiEvent.NavigateToDriveUpload ->
+                                navController.navigate(Route.DriveUpload)
                         is HomeUiEvent.NavigateToLogin -> {
                             navController.navigate(Route.Login) { popUpTo(0) { inclusive = true } }
                         }
@@ -120,18 +132,66 @@ fun AppNavHost(
             WebsocketPage(wsAuthManager)
         }
 
-        // Video route (uses prototype, no auth required for testing)
-        composable<Route.Video> {
-            val videoYouAuthManager = remember { YouAuthManager() }
-            VideoPlayerTestPage(videoYouAuthManager)
-        }
+        // Video route - uses shared auth from YouAuthFlowManager
+        composable<Route.Video> { VideoPlayerTestPage(youAuthFlowManager) }
 
-        // CdnTest route (uses prototype, no auth required for testing)
-        composable<Route.CdnTest> {
-            val cdnYouAuthManager = remember { YouAuthManager() }
-            CdnTestPage(cdnYouAuthManager)
-        }
+        // CdnTest route - uses shared auth from YouAuthFlowManager
+        composable<Route.CdnTest> { CdnTestPage(youAuthFlowManager) }
 
+        // DriveUpload route - uses MVI pattern with ViewModel
+        composable<Route.DriveUpload> {
+            AuthenticatedRouteWithFlowManager(
+                    authState = youAuthFlowManager.authState,
+                    onUnauthenticated = {
+                        navController.navigate(Route.Login) { popUpTo(0) { inclusive = true } }
+                    }
+            ) {
+                val viewModel = koinViewModel<DriveUploadViewModel>()
+                val state by viewModel.uiState.collectAsState()
+                val coroutineScope = rememberCoroutineScope()
+
+                // Handle events from ViewModel
+                ObserveAsEvents(viewModel.uiEvent) { event ->
+                    when (event) {
+                        is DriveUploadUiEvent.OpenImagePicker -> {
+                            coroutineScope.launch {
+                                try {
+                                    val file = FileKit.openFilePicker(type = FileKitType.Image)
+                                    if (file != null) {
+                                        viewModel.onAction(
+                                                DriveUploadUiAction.ImagePicked(
+                                                        bytes = file.readBytes(),
+                                                        name = file.name
+                                                )
+                                        )
+                                    } else {
+                                        viewModel.onAction(DriveUploadUiAction.ImagePickCancelled)
+                                    }
+                                } catch (e: Exception) {
+                                    viewModel.onAction(
+                                            DriveUploadUiAction.ImagePickFailed(
+                                                    e.message ?: "Unknown error"
+                                            )
+                                    )
+                                }
+                            }
+                        }
+                        is DriveUploadUiEvent.ShowSuccess -> {
+                            // TODO: Show snackbar
+                        }
+                        is DriveUploadUiEvent.ShowError -> {
+                            // TODO: Show snackbar
+                        }
+                    }
+                }
+
+                DriveUploadScreen(
+                        state = state,
+                        onAction = viewModel::onAction,
+                        onNavigateBack = { navController.popBackStack() }
+                )
+            }
+        }
     }
 }
 

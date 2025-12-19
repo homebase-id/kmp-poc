@@ -24,7 +24,7 @@ data class CreateHttpClientOptions(
  * HTTP client for making authenticated requests to Odin backend Handles query string encryption and
  * authentication headers
  */
-class OdinClient(private val providerOptions: ProviderOptions) {
+open class OdinClient(private val providerOptions: ProviderOptions) {
 
     fun getSharedSecret(): ByteArray? {
         return providerOptions.sharedSecret
@@ -69,7 +69,7 @@ class OdinClient(private val providerOptions: ProviderOptions) {
         return providerOptions.headers ?: emptyMap()
     }
 
-    fun createHttpClient(
+    open fun createHttpClient(
             createHttpClientOptions: CreateHttpClientOptions = CreateHttpClientOptions()
     ): HttpClient {
 

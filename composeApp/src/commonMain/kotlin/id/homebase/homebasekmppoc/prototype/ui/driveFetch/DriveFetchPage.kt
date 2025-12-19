@@ -39,7 +39,7 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResponse
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortField
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortOrder
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
-import id.homebase.homebasekmppoc.prototype.ui.app.feedTargetDrive
+import id.homebase.homebasekmppoc.ui.screens.login.feedTargetDrive
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import kotlin.uuid.Uuid

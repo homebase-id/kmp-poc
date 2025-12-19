@@ -14,7 +14,8 @@ import id.homebase.homebasekmppoc.lib.storage.SharedPreferences
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseDriverFactory
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
-import id.homebase.homebasekmppoc.prototype.lib.youauth.YouAuthCallbackRouter
+import io.github.vinceglb.filekit.FileKit
+import io.github.vinceglb.filekit.dialogs.init
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -29,7 +30,7 @@ class MainActivity : ComponentActivity() {
         // Initialize storage (must be done before App() which may access storage)
         SecureStorage.initialize(applicationContext)
         SharedPreferences.initialize(applicationContext)
-
+        FileKit.init(this)
         // Initialize database
         DatabaseManager.initialize(DatabaseDriverFactory(applicationContext))
 
@@ -49,8 +50,6 @@ class MainActivity : ComponentActivity() {
         if (data != null && data.scheme == "youauth") {
             val callbackURL = data.toString()
             lifecycleScope.launch {
-                // Handle with both old and new callback handlers
-                YouAuthCallbackRouter.handleCallback(callbackURL)
                 YouAuthFlowManager.handleCallback(callbackURL)
             }
         }

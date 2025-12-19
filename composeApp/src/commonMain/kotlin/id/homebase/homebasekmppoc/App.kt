@@ -14,7 +14,6 @@ import org.koin.compose.koinInject
 /** Main application entry point. Sets up Koin DI, theme, and navigation. */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-@Preview
 fun App() {
     KoinApplication(application = { modules(allModules) }) {
         HomebaseTheme {

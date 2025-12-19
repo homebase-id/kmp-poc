@@ -11,7 +11,7 @@ object ImageFormatDetector {
      * Detects the image format based on magic bytes
      */
     fun detectFormat(bytes: ByteArray): String {
-        if (bytes.size < 4) return "UNKNOWN (too small: ${bytes.size} bytes)"
+        if (bytes.size < 4) return "application/octet-stream"
 
         return when {
             // JPEG: FF D8 FF
@@ -25,24 +25,20 @@ object ImageFormatDetector {
                         "Unknown JPEG variant (0x$hex)"
                     }
                 }
-                "JPEG ($marker)"
+                Logger.d("ImageFormatDetector") { "Detected JPEG marker: $marker" }
+                "image/jpeg"
             }
             // PNG: 89 50 4E 47
             bytes[0] == 0x89.toByte() && bytes[1] == 0x50.toByte() &&
-            bytes[2] == 0x4E.toByte() && bytes[3] == 0x47.toByte() -> "PNG"
+            bytes[2] == 0x4E.toByte() && bytes[3] == 0x47.toByte() -> "image/png"
             // GIF: 47 49 46
-            bytes[0] == 0x47.toByte() && bytes[1] == 0x49.toByte() && bytes[2] == 0x46.toByte() -> "GIF"
+            bytes[0] == 0x47.toByte() && bytes[1] == 0x49.toByte() && bytes[2] == 0x46.toByte() -> "image/gif"
             // WebP: 52 49 46 46 (RIFF)
             bytes[0] == 0x52.toByte() && bytes[1] == 0x49.toByte() &&
-            bytes[2] == 0x46.toByte() && bytes[3] == 0x46.toByte() -> "WebP"
+            bytes[2] == 0x46.toByte() && bytes[3] == 0x46.toByte() -> "image/webp"
             // BMP: 42 4D
-            bytes[0] == 0x42.toByte() && bytes[1] == 0x4D.toByte() -> "BMP"
-            else -> {
-                val hexStart = bytes.take(8).joinToString(" ") {
-                    (it.toInt() and 0xFF).toString(16).uppercase().padStart(2, '0')
-                }
-                "UNKNOWN (starts with: $hexStart)"
-            }
+            bytes[0] == 0x42.toByte() && bytes[1] == 0x4D.toByte() -> "image/bmp"
+            else -> "application/octet-stream"
         }
     }
 
@@ -75,7 +71,7 @@ object ImageFormatDetector {
         Logger.d(tag) { "Detected format: $format" }
 
         // If it's a JPEG, validate it
-        if (format.startsWith("JPEG")) {
+        if (format == "image/jpeg") {
             val isValid = validateJpeg(bytes)
             Logger.d(tag) { "JPEG validation: ${if (isValid) "VALID" else "INVALID (missing end marker)"}" }
 

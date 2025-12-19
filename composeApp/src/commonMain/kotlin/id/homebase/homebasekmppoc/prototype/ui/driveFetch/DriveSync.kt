@@ -4,7 +4,7 @@ import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.lib.database.OdinDatabase
 import id.homebase.homebasekmppoc.prototype.lib.database.CursorStorage
 import id.homebase.homebasekmppoc.prototype.lib.database.FileHeaderProcessor
-import id.homebase.homebasekmppoc.prototype.lib.drives.FileQueryParams
+import id.homebase.homebasekmppoc.prototype.lib.drives.query.FileQueryParams
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileState
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchRequest
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResponse
@@ -16,6 +16,8 @@ import kotlin.time.measureTimedValue
 import kotlinx.coroutines.sync.*
 import kotlin.uuid.Uuid
 
+// TODO: When we update main-index-meta we should PROBABLY ignore any item with incoming.modified < db.modified
+// TODO: Make a callback with memory List<> when we got data from both HERE && Websocket
 
 class DriveSync(private val identityId : Uuid,
                 private val targetDrive: TargetDrive, // TODO: <- change to driveId

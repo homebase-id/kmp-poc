@@ -56,7 +56,7 @@ class ThumbnailGeneratorInstrumentedTest {
 
         // Verify tiny thumb properties
         assertTrue(tinyThumb.contentType.startsWith("image/"))
-        assertTrue(tinyThumb.contentBase64.isNotEmpty())
+        assertTrue(tinyThumb.content.isNotEmpty())
 
         // Verify additional thumbnails
         assertTrue(additionalThumbnails.all { it.key == payloadKey })

@@ -32,9 +32,9 @@ data class TimeRowCursor(
  */
 @Serializable
 data class QueryBatchCursor(
-    var paging: TimeRowCursor? = null,
-    var stop: TimeRowCursor? = null,
-    var next: TimeRowCursor? = null
+    val paging: TimeRowCursor? = null,
+    val stop: TimeRowCursor? = null,
+    val next: TimeRowCursor? = null
 ) {
     constructor(jsonString: String) : this() {
         val decoded = Json.decodeFromString<QueryBatchCursor>(jsonString)

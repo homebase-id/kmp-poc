@@ -77,7 +77,7 @@ val randomId = Random.nextLong()
             userDate = userDate,
             created = created,
             modified = modified,
-            systemFileType = fileSystemType.toLong(),
+            fileSystemType = fileSystemType.toLong(),
             jsonHeader = """{"versionTag":"$hdrVersionTag","byteCount":$byteCount,"encryptedKeyHeader":"$hdrEncryptedKeyHeader","appData":"$hdrAppData","localVersionTag":"$hdrLocalVersionTag","localAppData":"$hdrLocalAppData","reactionSummary":"$hdrReactionSummary","serverData":"$hdrServerData","transferHistory":"$hdrTransferHistory","fileMetaData":"$hdrFileMetaData"}"""
         )
 
@@ -135,7 +135,7 @@ val identityId = Uuid.random()
             userDate = currentTime,
             created = currentTime,
             modified = currentTime,
-            systemFileType = 3L,
+            fileSystemType = 3L,
             jsonHeader = """{"versionTag":"${hdrVersionTag.contentToString()}","byteCount":1024,"encryptedKeyHeader":"original-key-header","appData":"original-app-data","localVersionTag":null,"localAppData":null,"reactionSummary":null,"serverData":"original-server-data","transferHistory":null,"fileMetaData":"original-metadata"}"""
         )
 
@@ -159,7 +159,7 @@ db.driveMainIndexQueries.upsertDriveMainIndex(
             userDate = updatedTime,
             created = currentTime,
             modified = updatedTime,
-            systemFileType = 33L,
+            fileSystemType = 33L,
             jsonHeader = """{"versionTag":"${"hdr-version-updated".encodeToByteArray().contentToString()}","byteCount":2048,"encryptedKeyHeader":"updated-key-header","appData":"updated-app-data","localVersionTag":"${"hdr-local-version-updated".encodeToByteArray().contentToString()}","localAppData":"updated-local-app-data","reactionSummary":"updated-reaction-summary","serverData":"updated-server-data","transferHistory":"updated-transfer-history","fileMetaData":"updated-metadata"}"""
         )
 
@@ -224,7 +224,7 @@ for (i in 1..3) {
                 userDate = currentTime,
                 created = currentTime + i,
                 modified = currentTime + i + 1000,
-                systemFileType = 1L,
+                fileSystemType = 1L,
                 jsonHeader = """{"versionTag":"${"version-$i".encodeToByteArray().contentToString()}","byteCount":${i * 100L},"encryptedKeyHeader":"key-$i","appData":"app-data-$i","localVersionTag":null,"localAppData":null,"reactionSummary":null,"serverData":"server-data-$i","transferHistory":null,"fileMetaData":"metadata-$i"}"""
             )
         }
@@ -261,7 +261,7 @@ for (i in 1..3) {
             userDate = currentTime,
             created = currentTime,
             modified = currentTime,
-            systemFileType = 1L,
+            fileSystemType = 1L,
             jsonHeader = """{"versionTag":"${"version-delete".encodeToByteArray().contentToString()}","byteCount":100,"encryptedKeyHeader":"key-delete","appData":"app-data-delete","localVersionTag":null,"localAppData":null,"reactionSummary":null,"serverData":"server-data-delete","transferHistory":null,"fileMetaData":"metadata-delete"}"""
         )
 
