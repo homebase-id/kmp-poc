@@ -7,6 +7,7 @@ import id.homebase.homebasekmppoc.lib.youAuth.TargetDriveAccessRequest
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthState
 import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
+import id.homebase.homebasekmppoc.ui.extensions.cleanDomain
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -65,7 +66,9 @@ class LoginViewModel(private val youAuthFlowManager: YouAuthFlowManager) : ViewM
     fun onAction(action: LoginUiAction) {
         when (action) {
             is LoginUiAction.HomebaseIdChanged -> {
-                _uiState.update { it.copy(homebaseId = action.value, errorMessage = null) }
+                _uiState.update {
+                    it.copy(homebaseId = action.value.cleanDomain(), errorMessage = null)
+                }
             }
             is LoginUiAction.LoginClicked -> {
                 performLogin()
