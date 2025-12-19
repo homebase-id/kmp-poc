@@ -183,7 +183,6 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
                         metadata = metadata,
                         payloads = payloads,
                         thumbnails ,
-
                         encrypt = encrypt
                 )
 
