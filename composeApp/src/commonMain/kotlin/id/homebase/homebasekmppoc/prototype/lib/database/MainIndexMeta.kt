@@ -34,7 +34,7 @@ object MainIndexMetaHelpers {
             userDate = driveMainIndexRecord.userDate,
             created = driveMainIndexRecord.created,
             modified = driveMainIndexRecord.modified,
-            systemFileType = driveMainIndexRecord.systemFileType,
+            fileSystemType = driveMainIndexRecord.fileSystemType,
             jsonHeader = driveMainIndexRecord.jsonHeader,
         )
     }
@@ -94,7 +94,7 @@ class FileHeaderProcessor(
             userDate = header.fileMetadata.appData.userDate ?: 0L,
             created = header.fileMetadata.created.milliseconds,
             modified = header.fileMetadata.updated.milliseconds,
-            systemFileType = 0L, // Default value
+            fileSystemType = 0L, // Default value
             jsonHeader = jsonHeader
         )
 

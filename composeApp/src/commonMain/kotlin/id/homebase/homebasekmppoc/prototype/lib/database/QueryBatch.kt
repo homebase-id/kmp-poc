@@ -451,7 +451,8 @@ class QueryBatch(
 
     // Extension functions for database-specific formatting
     private fun Uuid.toSqlString(): String {
-        return "x'$this'" // Hex format for SQL
+        // Remove hyphens from UUID string for SQLite hex literal format
+        return "x'${this.toString().replace("-", "")}'" // Hex format for SQL
     }
 }
 
