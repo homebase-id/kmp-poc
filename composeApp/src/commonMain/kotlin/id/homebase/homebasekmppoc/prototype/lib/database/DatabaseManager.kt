@@ -14,7 +14,7 @@ import kotlinx.coroutines.sync.Mutex
     private var database: OdinDatabase? = null
     private var driver: SqlDriver? = null
     private val logger = Logger.withTag("DatabaseManager")
-//    private val writeMutex = Mutex()
+    private val writeMutex = Mutex()
     
     // Nested transaction tracking
     private var nestedTransactionCount = 0
@@ -66,7 +66,7 @@ import kotlinx.coroutines.sync.Mutex
     }
 
     suspend fun withWriteTransaction(block: suspend (OdinDatabase) -> Unit) {
-//        writeMutex.lock()
+        writeMutex.lock()
         try {
             val db = getDatabase()
             val driver = getDriver()
@@ -117,7 +117,7 @@ import kotlinx.coroutines.sync.Mutex
                 }
             }
         } finally {
-//            writeMutex.unlock()
+            writeMutex.unlock()
         }
     }
 

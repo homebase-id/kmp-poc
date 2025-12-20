@@ -64,7 +64,7 @@ open class DriveSyncThreadSafetyTest {
     @Test
     fun testConcurrentDatabaseWrites_threadSafety() = runTest {
         // Test parameters
-        val threadCount = 50
+        val threadCount = 100
         val rowsPerThread = 10
         val totalExpectedRows = threadCount * rowsPerThread
         
@@ -81,7 +81,6 @@ open class DriveSyncThreadSafetyTest {
         // Track completion
         val completionMutex = Mutex()
         var completedThreads = 0
-        // TODO: BEGHIN W THREADCOUNT 1
         // Spawn multiple competing threads to process data concurrently
         // Each thread will use DatabaseManager.withWriteTransaction independently
         val jobs = List(threadCount) { threadIndex ->

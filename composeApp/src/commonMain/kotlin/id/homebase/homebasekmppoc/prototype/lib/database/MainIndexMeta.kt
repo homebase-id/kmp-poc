@@ -142,12 +142,12 @@ object MainIndexMetaHelpers {
             fileHeaders: List<SharedSecretEncryptedFileHeader>,
             cursor: QueryBatchCursor?
         ) {
-            fileHeaders.forEach { fileHeader ->
-                // Convert SharedSecretEncryptedFileHeader to extract DriveMainIndex fields and tag records
-                val driveMainIndexRecord =
-                    convertFileHeaderToDriveMainIndexRecord(identityId, driveId, fileHeader)
+            database.withWriteTransaction { db ->
 
-                database.withWriteTransaction { db ->
+                fileHeaders.forEach { fileHeader ->
+                // Convert SharedSecretEncryptedFileHeader to extract DriveMainIndex fields and tag records
+                val driveMainIndexRecord = convertFileHeaderToDriveMainIndexRecord(identityId, driveId, fileHeader)
+
                     MainIndexMetaHelpers.upsertDriveMainIndex(database, driveMainIndexRecord)
                     db.driveTagIndexQueries.deleteByFile(
                         identityId = identityId,
@@ -195,7 +195,7 @@ object MainIndexMetaHelpers {
          * @param fileHeader SharedSecretEncryptedFileHeader containing file metadata
          * @param cursor Optional current cursor to be saved
          */
-        suspend fun BaseUpsertEntryZapZap(
+        suspend fun baseUpsertEntryZapZap(
             identityId: Uuid,
             driveId: Uuid,
             fileHeader: SharedSecretEncryptedFileHeader,

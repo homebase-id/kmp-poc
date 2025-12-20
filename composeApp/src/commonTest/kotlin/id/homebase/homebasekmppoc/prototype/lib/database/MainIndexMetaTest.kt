@@ -266,7 +266,7 @@ assertEquals(driveId, retrievedRecord.driveId)
         val header = OdinSystemSerializer.deserialize<SharedSecretEncryptedFileHeader>(jsonHeader)
 
         // Call BaseUpsertEntryZapZap function
-        processor.BaseUpsertEntryZapZap(
+        processor.baseUpsertEntryZapZap(
             identityId = identityId,
             driveId = driveId,
             fileHeader = header,
@@ -411,7 +411,7 @@ assertEquals(driveId, retrievedRecord.driveId)
         val header = OdinSystemSerializer.deserialize<SharedSecretEncryptedFileHeader>(jsonHeader)
 
         // Call BaseUpsertEntryZapZap function with null cursor
-        processor.BaseUpsertEntryZapZap(
+        processor.baseUpsertEntryZapZap(
             identityId = identityId,
             driveId = driveId,
             fileHeader = header,
@@ -526,7 +526,7 @@ assertEquals(driveId, retrievedRecord.driveId)
         // Deserialize JSON header to SharedSecretEncryptedFileHeader
         val fileHeader = OdinSystemSerializer.deserialize<SharedSecretEncryptedFileHeader>(jsonHeader)
         
-        processor.BaseUpsertEntryZapZap(
+        processor.baseUpsertEntryZapZap(
             identityId = identityId,
             driveId = driveId,
             fileHeader = fileHeader,
