@@ -1,7 +1,6 @@
 package id.homebase.homebasekmppoc.prototype.ui.driveFetch
 
 import co.touchlab.kermit.Logger
-import id.homebase.homebasekmppoc.lib.database.OdinDatabase
 import id.homebase.homebasekmppoc.prototype.lib.core.time.UnixTimeUtc
 import id.homebase.homebasekmppoc.prototype.lib.database.CursorStorage
 import id.homebase.homebasekmppoc.prototype.lib.database.MainIndexMetaHelpers
@@ -22,7 +21,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
 sealed interface SyncProgress {
@@ -107,7 +105,7 @@ class DriveSync(private val identityId : Uuid,
                             kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Default).launch {
                                 try {
                                     val dbMs = measureTimedValue {
-                                        fileHeaderProcessor.BaseUpsertEntryZapZap(
+                                        fileHeaderProcessor.baseUpsertEntryZapZap(
                                             identityId = identityId,
                                             driveId = targetDrive.alias,
                                             fileHeaders = searchResults,

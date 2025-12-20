@@ -115,7 +115,6 @@ object MainIndexMetaHelpers {
         /**
          * Upserts multiple file entries into the database using the provided SharedSecretEncryptedFileHeaders
          * All operations are performed within a single thread-safe database transaction for atomicity.
-         * Uses DatabaseManager.withWriteTransaction for thread safety when initialized,
          * otherwise uses direct database transaction (for tests).
          *
          * @param identityId Identity ID (required, not in header)
@@ -123,15 +122,13 @@ object MainIndexMetaHelpers {
          * @param fileHeaders List of SharedSecretEncryptedFileHeader containing file metadata
          * @param cursor Optional current cursor to be saved
          */
-        suspend fun BaseUpsertEntryZapZap(
+        suspend fun baseUpsertEntryZapZap(
             identityId: Uuid,
             driveId: Uuid,
             fileHeaders: List<SharedSecretEncryptedFileHeader>,
             cursor: QueryBatchCursor?
         ) {
-            DatabaseManager.withWriteTransaction { db ->
                 performBaseUpsert(identityId, driveId, fileHeaders, cursor)
-            }
         }
 
         /**
@@ -204,7 +201,7 @@ object MainIndexMetaHelpers {
             fileHeader: SharedSecretEncryptedFileHeader,
             cursor: QueryBatchCursor?
         ) {
-            BaseUpsertEntryZapZap(identityId, driveId, listOf(fileHeader), cursor)
+            baseUpsertEntryZapZap(identityId, driveId, listOf(fileHeader), cursor)
         }
     }
 }
