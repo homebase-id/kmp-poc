@@ -4,7 +4,8 @@ import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.lib.database.OdinDatabase
 import id.homebase.homebasekmppoc.prototype.lib.core.time.UnixTimeUtc
 import id.homebase.homebasekmppoc.prototype.lib.database.CursorStorage
-import id.homebase.homebasekmppoc.prototype.lib.database.FileHeaderProcessor
+import id.homebase.homebasekmppoc.prototype.lib.database.MainIndexMetaHelpers
+import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.FileQueryParams
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileState
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchRequest
@@ -41,17 +42,21 @@ sealed interface SyncProgress {
 
 class DriveSync(private val identityId : Uuid,
                 private val targetDrive: TargetDrive, // TODO: <- change to driveId
-                private val driveQueryProvider: DriveQueryProvider, // TODO: <- can we get rid of this?
-                private val database: OdinDatabase)
+                private val driveQueryProvider: DriveQueryProvider, // TODO: <- can we get rid of this?)
+)
 {
     private var cursor: QueryBatchCursor?
     private val mutex = Mutex()
     private var batchSize = 50 // We begin with the smallest batch
-    private var fileHeaderProcessor = FileHeaderProcessor(database)
+    private lateinit var fileHeaderProcessor: MainIndexMetaHelpers.HomebaseFileProcessor
 
     //TODO: Consider having a (readable) "last modified" which holds the largest timestamp of last-modified
 
     init {
+        fileHeaderProcessor = MainIndexMetaHelpers.HomebaseFileProcessor(DatabaseManager)
+
+        // Temp hack, remove soon.
+        val database = DatabaseManager.getDatabase()
         database.driveMainIndexQueries.deleteAll() // TODO: <-- don't delete all! :-)
         database.driveTagIndexQueries.deleteAll() // TODO: <-- don't delete all! :-)
         database.driveLocalTagIndexQueries.deleteAll() // TODO: <-- don't delete all! :-)
@@ -90,11 +95,11 @@ class DriveSync(private val identityId : Uuid,
                     try {
                         queryBatchResponse = driveQueryProvider.queryBatch(request)
 
-                        if (queryBatchResponse?.cursorState != null)
+                        if (queryBatchResponse.cursorState != null)
                             cursor = QueryBatchCursor.fromJson(queryBatchResponse.cursorState)
 
-                        val searchResults = queryBatchResponse?.searchResults
-                        if (searchResults?.isNotEmpty() == true) {
+                        val searchResults = queryBatchResponse.searchResults
+                        if (searchResults.isNotEmpty()) {
                             val batchCount = searchResults.size
                             totalCount += batchCount
 

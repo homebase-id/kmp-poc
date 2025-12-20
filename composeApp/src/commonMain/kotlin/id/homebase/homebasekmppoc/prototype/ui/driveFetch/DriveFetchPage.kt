@@ -74,7 +74,7 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
         coroutineScope.launch {
             try {
                 // TODO: Where does the identityId live? Need to get it instead of random.
-                val backend = DriveSync(identityId, feedTargetDrive, driveQueryProvider,database)
+                val backend = DriveSync(identityId, feedTargetDrive, driveQueryProvider)
                 
                 // Collect Flow updates and update UI state
                 backend.sync().collect { progress ->

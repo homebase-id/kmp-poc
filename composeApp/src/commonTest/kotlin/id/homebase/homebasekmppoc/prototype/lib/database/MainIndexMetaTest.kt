@@ -1,6 +1,5 @@
 package id.homebase.homebasekmppoc.prototype.lib.database
 
-import app.cash.sqldelight.db.SqlDriver
 import id.homebase.homebasekmppoc.prototype.lib.core.time.UnixTimeUtc
 import id.homebase.homebasekmppoc.lib.database.DriveLocalTagIndex
 import id.homebase.homebasekmppoc.lib.database.DriveTagIndex
@@ -23,18 +22,24 @@ import kotlin.time.Clock
 import kotlin.uuid.Uuid
 
 class MainIndexMetaTest {
-    private var driver: SqlDriver? = null
     private lateinit var db: OdinDatabase
 
     @BeforeTest
     fun setup() {
-        driver = createInMemoryDatabase()
-        db = TestDatabaseFactory.createTestDatabase(driver)
+        // Ensure DatabaseManager is clean before test
+        if (DatabaseManager.isInitialized()) {
+            DatabaseManager.close()
+        }
+        
+        // Initialize DatabaseManager with in-memory database for test isolation
+        DatabaseManager.initialize { createInMemoryDatabase() }
+        db = DatabaseManager.getDatabase()
     }
 
     @AfterTest
     fun tearDown() {
-        driver?.close()
+        // Clean up DatabaseManager to ensure test isolation
+        DatabaseManager.close()
     }
 
 @Test
@@ -108,11 +113,11 @@ fun testUpsertDriveMainIndexHelper() = runTest {
         val header = OdinSystemSerializer.deserialize<SharedSecretEncryptedFileHeader>(jsonHeader)
 
         // Create FileMetadataProcessor instance to convert header to DriveMainIndex record
-        val processor = FileHeaderProcessor(db)
+        val processor = MainIndexMetaHelpers.HomebaseFileProcessor(DatabaseManager)
         val driveMainIndexRecord = processor.convertFileHeaderToDriveMainIndexRecord(identityId, driveId, header)
 
         // Test the helper function
-        MainIndexMetaHelpers.upsertDriveMainIndex(db, driveMainIndexRecord)
+        MainIndexMetaHelpers.upsertDriveMainIndex(DatabaseManager, driveMainIndexRecord)
 
         // Verify the record was inserted
         val retrievedRecord = db.driveMainIndexQueries.selectByIdentityAndDriveAndFile(
@@ -240,7 +245,7 @@ assertEquals(driveId, retrievedRecord.driveId)
         )
 
         // Create FileMetadataProcessor instance to test BaseUpsertEntryZapZap
-        val processor = FileHeaderProcessor(db)
+        val processor = MainIndexMetaHelpers.HomebaseFileProcessor(DatabaseManager)
 
         val originalCursor = QueryBatchCursor(
             paging = TimeRowCursor(
@@ -321,7 +326,9 @@ assertEquals(driveId, retrievedRecord.driveId)
             "Next boundary cursor row ID should match"
         )
 
-        processor.deleteEntryDriveMainIndex(db, identityId, driveId, fileId)
+        processor.deleteEntryDriveMainIndex(identityId, driveId, fileId)
+        
+        val db = DatabaseManager.getDatabase()
         assertEquals(db.driveMainIndexQueries.countAll().executeAsOne(), 0L)
         assertEquals(db.driveTagIndexQueries.countAll().executeAsOne(), 0L)
         assertEquals(db.driveLocalTagIndexQueries.countAll().executeAsOne(), 0L)
@@ -398,7 +405,7 @@ assertEquals(driveId, retrievedRecord.driveId)
         listOf<DriveLocalTagIndex>()
 
         // Create FileMetadataProcessor instance to test BaseUpsertEntryZapZap
-        val processor = FileHeaderProcessor(db)
+        val processor = MainIndexMetaHelpers.HomebaseFileProcessor(DatabaseManager)
 
         // Deserialize JSON header to SharedSecretEncryptedFileHeader
         val header = OdinSystemSerializer.deserialize<SharedSecretEncryptedFileHeader>(jsonHeader)
@@ -435,19 +442,21 @@ assertEquals(driveId, retrievedRecord.driveId)
         val existingTagId1 = Uuid.random()
         val existingTagId2 = Uuid.random()
         
-        db.driveTagIndexQueries.insertTag(
-            identityId = identityId,
-            driveId = driveId,
-            fileId = fileId,
-            tagId = existingTagId1
-        )
-        
-        db.driveTagIndexQueries.insertTag(
-            identityId = identityId,
-            driveId = driveId,
-            fileId = fileId,
-            tagId = existingTagId2
-        )
+        DatabaseManager.withWriteTransaction { db ->
+            db.driveTagIndexQueries.insertTag(
+                identityId = identityId,
+                driveId = driveId,
+                fileId = fileId,
+                tagId = existingTagId1
+            )
+            
+            db.driveTagIndexQueries.insertTag(
+                identityId = identityId,
+                driveId = driveId,
+                fileId = fileId,
+                tagId = existingTagId2
+            )
+        }
 
         // Create new tag records (different from existing)
         val newTagId1 = Uuid.random()
@@ -512,7 +521,7 @@ assertEquals(driveId, retrievedRecord.driveId)
             }"""
 
         // Create FileMetadataProcessor instance to test BaseUpsertEntryZapZap
-        val processor = FileHeaderProcessor(db)
+        val processor = MainIndexMetaHelpers.HomebaseFileProcessor(DatabaseManager)
         
         // Deserialize JSON header to SharedSecretEncryptedFileHeader
         val fileHeader = OdinSystemSerializer.deserialize<SharedSecretEncryptedFileHeader>(jsonHeader)
@@ -536,6 +545,7 @@ assertEquals(driveId, retrievedRecord.driveId)
         assertEquals("test-sender", retrievedRecord.senderId)
 
         // Verify that old tags were deleted and new tags were inserted
+        val db = DatabaseManager.getDatabase()
         val finalTags = db.driveTagIndexQueries.selectByFile(
             identityId = identityId,
             driveId = driveId,
@@ -618,7 +628,7 @@ assertEquals(driveId, retrievedRecord.driveId)
             }"""
 
         // Create FileHeaderProcessor instance
-        val processor = FileHeaderProcessor(db)
+        val processor = MainIndexMetaHelpers.HomebaseFileProcessor(DatabaseManager)
 
         // Deserialize JSON header to SharedSecretEncryptedFileHeader
         val originalHeader = OdinSystemSerializer.deserialize<SharedSecretEncryptedFileHeader>(jsonHeader)
