@@ -14,7 +14,7 @@ object MainIndexMetaHelpers {
      * Helper upsert function that takes a DriveMainIndex record and calls
      * database.upsertDriveMainIndex() with all the members.
      */
-    suspend fun upsertDriveMainIndex(
+    fun upsertDriveMainIndex(
         database: DatabaseManager,
         driveMainIndexRecord: DriveMainIndex
     ) {
@@ -51,7 +51,8 @@ object MainIndexMetaHelpers {
             driveId: Uuid,
             fileId: Uuid
         ) {
-            database.withWriteTransaction { db ->
+            val db = database.getDatabase();
+            db.transaction {
                 db.driveMainIndexQueries.deleteBy(identityId, driveId, fileId)
                 db.driveTagIndexQueries.deleteByFile(identityId, driveId, fileId)
                 db.driveLocalTagIndexQueries.deleteByFile(identityId, driveId, fileId)
@@ -143,7 +144,6 @@ object MainIndexMetaHelpers {
             cursor: QueryBatchCursor?
         ) {
             database.withWriteTransaction { db ->
-
                 fileHeaders.forEach { fileHeader ->
                 // Convert SharedSecretEncryptedFileHeader to extract DriveMainIndex fields and tag records
                 val driveMainIndexRecord = convertFileHeaderToDriveMainIndexRecord(identityId, driveId, fileHeader)

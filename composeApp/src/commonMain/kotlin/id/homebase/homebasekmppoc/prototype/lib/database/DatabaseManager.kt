@@ -8,14 +8,19 @@ import id.homebase.homebasekmppoc.lib.database.DriveMainIndex
 import id.homebase.homebasekmppoc.lib.database.DriveTagIndex
 import id.homebase.homebasekmppoc.lib.database.KeyValue
 import id.homebase.homebasekmppoc.lib.database.OdinDatabase
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.withContext
 
- object DatabaseManager {
+object DatabaseManager {
     private var database: OdinDatabase? = null
     private var driver: SqlDriver? = null
     private val logger = Logger.withTag("DatabaseManager")
     private val writeMutex = Mutex()
-    
+
+    val dbDispatcher = Dispatchers.IO.limitedParallelism(1)
+
     // Nested transaction tracking
     private var nestedTransactionCount = 0
     private var transactionRollbackRequested = false
@@ -65,59 +70,19 @@ import kotlinx.coroutines.sync.Mutex
         }
     }
 
-    suspend fun withWriteTransaction(block: suspend (OdinDatabase) -> Unit) {
-        writeMutex.lock()
-        try {
+    suspend fun withWriteTransaction(block: (OdinDatabase) -> Unit) {
+        withContext(dbDispatcher) {
             val db = getDatabase()
-            val driver = getDriver()
-            
-            val isOuterTransaction = (nestedTransactionCount == 0)
-            val wasRollbackRequested = transactionRollbackRequested
-            
-            if (isOuterTransaction) {
-                // Reset rollback flag for new outer transaction
-                transactionRollbackRequested = false
-                driver.execute(null, "BEGIN TRANSACTION", 0)
-            }
-            
-            nestedTransactionCount++
-            
-            try {
+            db.transaction {
                 block(db)
-                
-                nestedTransactionCount--
-                
-                // Only commit if we're at outermost transaction and no rollback was requested
-                if (isOuterTransaction && !transactionRollbackRequested) {
-                    driver.execute(null, "COMMIT", 0)
-                }
-                
-                // Reset rollback flag when we exit the outer transaction
-                if (nestedTransactionCount == 0) {
-                    transactionRollbackRequested = false
-                }
-            } catch (e: Throwable) {
-                nestedTransactionCount--
-                
-                // Mark rollback for entire transaction chain
-                transactionRollbackRequested = true
-                
-                // Only rollback at outermost level
-                if (isOuterTransaction) {
-                    driver.execute(null, "ROLLBACK", 0)
-                    transactionRollbackRequested = false
-                } else {
-                    // Re-throw exception so outer transaction catches it
-                    throw e
-                }
-                
-                // Reset counter if we're back to zero
-                if (nestedTransactionCount == 0) {
-                    transactionRollbackRequested = false
-                }
             }
-        } finally {
-            writeMutex.unlock()
+        }
+    }
+
+    suspend fun withWrite(block: (OdinDatabase) -> Unit) {
+        withContext(dbDispatcher) {
+            val db = getDatabase()
+            block(db)
         }
     }
 

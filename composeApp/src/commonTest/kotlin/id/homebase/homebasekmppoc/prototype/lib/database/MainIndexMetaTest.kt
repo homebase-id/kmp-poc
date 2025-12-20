@@ -441,8 +441,8 @@ assertEquals(driveId, retrievedRecord.driveId)
         // First, insert some existing tags to test deletion
         val existingTagId1 = Uuid.random()
         val existingTagId2 = Uuid.random()
-        
-        DatabaseManager.withWriteTransaction { db ->
+
+        db.transaction {
             db.driveTagIndexQueries.insertTag(
                 identityId = identityId,
                 driveId = driveId,
