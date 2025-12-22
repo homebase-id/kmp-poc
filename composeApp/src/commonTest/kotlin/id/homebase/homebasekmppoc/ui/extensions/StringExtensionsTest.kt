@@ -22,8 +22,15 @@ class StringExtensionsTest {
     }
 
     @Test
-    fun `trims leading and trailing whitespace`() {
-        assertEquals("example.com", "  example.com  ".cleanDomain())
+    fun `trims leading and trailing whitespace for validation`() {
+        // When used for final validation, trailing whitespace should be stripped
+        assertEquals("example.com", "  example.com  ".cleanDomain(preserveTrailingDot = false))
+    }
+
+    @Test
+    fun `trailing whitespace becomes dot for interactive typing`() {
+        // When used for interactive typing (default), trailing whitespace becomes trailing dot
+        assertEquals("example.com.", "  example.com  ".cleanDomain())
     }
 
     // Protocol handling tests
@@ -216,8 +223,18 @@ class StringExtensionsTest {
     }
 
     @Test
-    fun `handles badly formatted input with many issues`() {
-        assertEquals("my.domain.com", "  HTTPS:///..--my, domain ,com--..  ".cleanDomain())
+    fun `handles badly formatted input with many issues for validation`() {
+        // Use preserveTrailingDot = false for final validation
+        assertEquals(
+                "my.domain.com",
+                "  HTTPS:///..--my, domain ,com--..  ".cleanDomain(preserveTrailingDot = false)
+        )
+    }
+
+    @Test
+    fun `handles badly formatted input with many issues for interactive typing`() {
+        // Default behavior preserves trailing dot from trailing whitespace
+        assertEquals("my.domain.com.", "  HTTPS:///..--my, domain ,com--..  ".cleanDomain())
     }
 
     @Test
