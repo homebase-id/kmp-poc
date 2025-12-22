@@ -60,10 +60,13 @@ class PayloadPlayground(private val authenticated: AuthState.Authenticated) {
             includeMetadataHeader = true
         )
 
-        val client = OdinHttpClient(authenticated)
-        val response = client.queryBatch(appOrOwner, qb, fileSystemType)
-        val result = response.searchResults
-        return result
+        throw NotImplementedError("getHeadersOnDrive removed by todd; if we need this " +
+                "in the playground, then we can use the DriveQueryProvider")
+
+//        val client = OdinHttpClient(authenticated)
+//        val response = client.queryBatch(appOrOwner, qb, fileSystemType)
+//        val result = response.searchResults
+//        return result
     }
 
     //

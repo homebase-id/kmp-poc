@@ -15,9 +15,9 @@ import io.ktor.serialization.kotlinx.*
 import io.ktor.serialization.kotlinx.json.*
 
 data class CreateHttpClientOptions(
-        val overrideEncryption: Boolean = false,
-        val headers: Map<String, String> = emptyMap(),
-        val fileSystemType: FileSystemType = FileSystemType.Standard
+    val overrideEncryption: Boolean = false,
+    val headers: Map<String, String> = emptyMap(),
+    val fileSystemType: FileSystemType = FileSystemType.Standard
 )
 
 /**
@@ -28,10 +28,6 @@ open class OdinClient(private val providerOptions: ProviderOptions) {
 
     fun getSharedSecret(): ByteArray? {
         return providerOptions.sharedSecret
-    }
-
-    fun getType(): ApiType {
-        return providerOptions.api
     }
 
     fun getHostIdentity(): String {
@@ -51,18 +47,7 @@ open class OdinClient(private val providerOptions: ProviderOptions) {
     }
 
     fun getEndpointUrl(): String {
-        if (providerOptions.v2Experimental) {
-            return this.getRoot() + "/api/v2/"
-        }
-        // TODO(biswa): RIP IT OUT NOWW!!
-        val endpoint =
-                when (this.getType()) {
-                    ApiType.Guest -> "/api/guest/v1/"
-                    ApiType.App -> "/api/apps/v1/"
-                    ApiType.Owner -> "/api/owner/v1/"
-                }
-
-        return this.getRoot() + endpoint
+        return this.getRoot() + "/api/v2/"
     }
 
     fun getHeaders(): Map<String, String> {
@@ -70,11 +55,11 @@ open class OdinClient(private val providerOptions: ProviderOptions) {
     }
 
     open fun createHttpClient(
-            createHttpClientOptions: CreateHttpClientOptions = CreateHttpClientOptions()
+        createHttpClientOptions: CreateHttpClientOptions = CreateHttpClientOptions()
     ): HttpClient {
 
         return HttpClient {
-            expectSuccess = false
+            expectSuccess = true
             defaultRequest {
                 url(getEndpointUrl())
                 header("X-ODIN-FILE-SYSTEM-TYPE", createHttpClientOptions.fileSystemType.name)
@@ -82,14 +67,17 @@ open class OdinClient(private val providerOptions: ProviderOptions) {
                 createHttpClientOptions.headers.forEach { (key, value) -> header(key, value) }
             }
 
+            //Order matters - install before we do the encryption/decryption
+            install(OdinEncryptedErrorPlugin)
+
             // OdinEncryptionPlugin must be installed BEFORE ContentNegotiation
             // so that response decryption happens before JSON deserialization
             install(OdinEncryptionPlugin)
 
             install(ContentNegotiation) {
                 register(
-                        ContentType.Application.OctetStream,
-                        KotlinxSerializationConverter(OdinSystemSerializer.json)
+                    ContentType.Application.OctetStream,
+                    KotlinxSerializationConverter(OdinSystemSerializer.json)
                 )
                 json(OdinSystemSerializer.json)
             }
@@ -99,12 +87,12 @@ open class OdinClient(private val providerOptions: ProviderOptions) {
                 level = LogLevel.HEADERS
             }
         }
-                .apply {
-                    attributes.put(OdinEncryptionKeys.Secret, getSharedSecret() ?: ByteArray(0))
-                    if (createHttpClientOptions.overrideEncryption) {
-                        attributes.put(OdinEncryptionKeys.Override, true)
-                    }
+            .apply {
+                attributes.put(OdinEncryptionKeys.Secret, getSharedSecret() ?: ByteArray(0))
+                if (createHttpClientOptions.overrideEncryption) {
+                    attributes.put(OdinEncryptionKeys.Override, true)
                 }
+            }
     }
 
     /**
@@ -113,8 +101,8 @@ open class OdinClient(private val providerOptions: ProviderOptions) {
      * @return URI with query string encrypted and replaced with ss parameter
      */
     private suspend fun buildUriWithEncryptedQueryString(
-            uri: String,
-            sharedSecret: ByteArray
+        uri: String,
+        sharedSecret: ByteArray
     ): String {
         return CryptoHelper.uriWithEncryptedQueryString(uri, sharedSecret)
     }

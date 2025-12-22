@@ -40,6 +40,7 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortField
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortOrder
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.ui.screens.login.feedTargetDrive
+import id.homebase.homebasekmppoc.ui.screens.login.publicPostsDriveId
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import kotlin.uuid.Uuid
@@ -62,8 +63,7 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
     val driveQueryProvider: DriveQueryProvider? = koinInject()
 
     fun triggerFetch(withProgress: Boolean) {
-        val provider = driveQueryProvider
-        if (provider == null) {
+        if (driveQueryProvider == null) {
             errorMessage = "Not authenticated - no credentials stored"
             return
         }
@@ -73,7 +73,8 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
         coroutineScope.launch {
             try {
                 // TODO: Where does the identityId live? Need to get it instead of random.
-                val backend = DriveSync(identityId, feedTargetDrive, driveQueryProvider,database)
+                val driveId = publicPostsDriveId //feedTargetDrive.alias;
+                val backend = DriveSync(identityId, driveId, driveQueryProvider,database)
                 queryBatchResponse = backend.sync(if (withProgress) { count -> fetchedCount = count } else { _ -> })
                 val localResult = QueryBatch(DatabaseManager, identityId).queryBatchAsync(
                     feedTargetDrive.alias,

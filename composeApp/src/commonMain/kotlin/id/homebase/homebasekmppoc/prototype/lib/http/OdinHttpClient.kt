@@ -13,6 +13,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.client.request.headers
 import io.ktor.http.HeadersBuilder
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import kotlin.io.encoding.Base64
@@ -75,11 +76,9 @@ class OdinHttpClient(
 
         val client = createHttpClient()
 
-        var response: io.ktor.client.statement.HttpResponse
-
-        response = client.get(encryptedUri) {
+        val response = client.get(encryptedUri) {
             headers {
-                appendAuth(path, clientAuthToken)
+                appendAuth(clientAuthToken)
             }
         }
 
@@ -132,7 +131,7 @@ class OdinHttpClient(
         val client = createHttpClient()
         val response = client.get(encryptedUri) {
             headers {
-                appendAuth(uri, clientAuthToken)
+                appendAuth(clientAuthToken)
             }
         }
 
@@ -150,7 +149,7 @@ class OdinHttpClient(
         val client = createHttpClient()
         val response = client.get(encryptedUri) {
             headers {
-                appendAuth(uri, clientAuthToken)
+                appendAuth(clientAuthToken)
             }
         }
 
@@ -172,7 +171,7 @@ class OdinHttpClient(
         val client = createHttpClient()
         val response = client.get(encryptedUri) {
             headers {
-                appendAuth(uri, clientAuthToken)
+                appendAuth(clientAuthToken)
             }
         }
 
@@ -184,20 +183,6 @@ class OdinHttpClient(
     }
 
     //
-
-    suspend fun queryBatch(
-        appOrOwner: AppOrOwner,
-        request: GetQueryBatchRequest,
-        fileSystemType: FileSystemType = FileSystemType.Standard
-    ): QueryBatchResponse {
-        val uri = "/api/$appOrOwner/v1/drive/query/batch?${request.toQueryString()}&xfst=$fileSystemType"
-        val response = get<QueryBatchResponse>(uri)
-        return response
-    }
-
-    //
-
-
 }
 
 /**
@@ -221,15 +206,7 @@ fun cookieNameFrom(appOrOwner: AppOrOwner): String {
 
 //
 
-fun HeadersBuilder.appendAuth(path: String, authToken: String) {
-    if (path.startsWith("/api/owner")) {
-        append("Cookie", "$ownerCookieName=$authToken")
-        append(ownerCookieName, authToken)
-    } else if (path.startsWith("/api/apps")) {
-        append("Cookie", "$appCookieName=$authToken")
-        append(ownerCookieName, authToken)
-    } else {
-        append("Cookie", "$youAuthCookieName=$authToken")
-        append(youAuthCookieName, authToken)
-    }
+fun HeadersBuilder.appendAuth(authToken: String) {
+    append(HttpHeaders.Authorization, "Bearer $authToken")
 }
+

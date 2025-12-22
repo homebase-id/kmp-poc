@@ -19,11 +19,12 @@ import kotlin.uuid.Uuid
 // TODO: When we update main-index-meta we should PROBABLY ignore any item with incoming.modified < db.modified
 // TODO: Make a callback with memory List<> when we got data from both HERE && Websocket
 
-class DriveSync(private val identityId : Uuid,
-                private val targetDrive: TargetDrive, // TODO: <- change to driveId
-                private val driveQueryProvider: DriveQueryProvider, // TODO: <- can we get rid of this?
-                private val database: OdinDatabase)
-{
+class DriveSync(
+    private val identityId: Uuid,
+    private val driveId: Uuid,
+    private val driveQueryProvider: DriveQueryProvider, // TODO: <- can we get rid of this?
+    private val database: OdinDatabase
+) {
     private var cursor: QueryBatchCursor?
     private val mutex = Mutex()
     private var batchSize = 50 // We begin with the smallest batch
@@ -35,31 +36,27 @@ class DriveSync(private val identityId : Uuid,
         database.driveMainIndexQueries.deleteAll() // TODO: <-- don't delete all! :-)
         database.driveTagIndexQueries.deleteAll() // TODO: <-- don't delete all! :-)
         database.driveLocalTagIndexQueries.deleteAll() // TODO: <-- don't delete all! :-)
-        database.keyValueQueries.deleteByKey(targetDrive.alias) // TODO: <-- don't delete the cursor
+        database.keyValueQueries.deleteByKey(driveId) // TODO: <-- don't delete the cursor
 
         // Load cursor from database
-        val cursorStorage = CursorStorage(database, targetDrive.alias)
+        val cursorStorage = CursorStorage(database, driveId)
         cursor = cursorStorage.loadCursor()
     }
 
     suspend fun sync(
-        onProgressUX: (fetchedCount: Int) -> Unit = { _ -> }): QueryBatchResponse?
-    {
-        if (mutex.tryLock() == false)
-        {
+        onProgressUX: (fetchedCount: Int) -> Unit = { _ -> }
+    ): QueryBatchResponse? {
+        if (mutex.tryLock() == false) {
             // -1 means another thread is already syncing
             onProgressUX(-1)
             return null
-        }
-        else
-        {
+        } else {
             //
             // NEXT: Make local QueryBatch algo and have the FE use it
             //
 
             // TODO: Consider spawning this set of work as a thread ... but might be fragile with the Mutex
-            try
-            {
+            try {
                 var totalCount = 0
                 var queryBatchResponse: QueryBatchResponse? = null
                 var keepGoing = true
@@ -67,11 +64,7 @@ class DriveSync(private val identityId : Uuid,
                 while (keepGoing) {
                     val request =
                         QueryBatchRequest(
-                            queryParams =
-                                FileQueryParams(
-                                    targetDrive = targetDrive,
-                                    fileState = listOf(FileState.Active)
-                                ),
+                            queryParams = FileQueryParams(fileState = listOf(FileState.Active)),
                             resultOptionsRequest =
                                 QueryBatchResultOptionsRequest(
                                     maxRecords = batchSize,
@@ -81,7 +74,7 @@ class DriveSync(private val identityId : Uuid,
                         )
 
                     val durationMs = measureTimedValue {
-                        queryBatchResponse = driveQueryProvider.queryBatch(request)
+                        queryBatchResponse = driveQueryProvider.queryBatch(driveId, request)
 
                         if (queryBatchResponse?.cursorState != null)
                             cursor = QueryBatchCursor.fromJson(queryBatchResponse.cursorState)
@@ -92,7 +85,7 @@ class DriveSync(private val identityId : Uuid,
                             // TODO: Consider commiting every NNNN rows or SS seconds - but also consider maybe it's good for the FE to get data faster?
                             fileHeaderProcessor.BaseUpsertEntryZapZap(
                                 identityId = identityId,
-                                driveId = targetDrive.alias,
+                                driveId = driveId,
                                 fileHeaders = queryBatchResponse.searchResults,
                                 cursor = cursor
                             )
@@ -108,7 +101,7 @@ class DriveSync(private val identityId : Uuid,
 
                     // Adaptive package size
                     if ((durationMs.duration.inWholeMilliseconds < 300) && (batchSize < 1000)) {
-                        batchSize =  (1 + batchSize * 1.5).toInt().coerceAtMost(1000)
+                        batchSize = (1 + batchSize * 1.5).toInt().coerceAtMost(1000)
                     } else if ((durationMs.duration.inWholeMilliseconds > 800) && (batchSize > 50)
                     ) {
                         batchSize = (batchSize * 0.7).toInt().coerceAtLeast(50)
@@ -125,9 +118,7 @@ class DriveSync(private val identityId : Uuid,
 
                 // TODO: Remove return type, add function for FE to queryBatch from local SQLite
                 return queryBatchResponse
-            }
-            finally
-            {
+            } finally {
                 mutex.unlock()  // Always unlock if we acquired it
             }
         }

@@ -23,25 +23,28 @@ private object AppConfig {
 }
 
 val feedTargetDrive: TargetDrive =
-        TargetDrive(
-                alias = Uuid.parse("4db49422ebad02e99ab96e9c477d1e08"),
-                type = Uuid.parse("a3227ffba87608beeb24fee9b70d92a6")
-        )
+    TargetDrive(
+        alias = Uuid.parse("4db49422ebad02e99ab96e9c477d1e08"),
+        type = Uuid.parse("a3227ffba87608beeb24fee9b70d92a6")
+    )
+
+
+val publicPostsDriveId = Uuid.parse("e8475dc46cb4b6651c2d0dbd0f3aad5f")
 
 var targetDriveAccessRequest: List<TargetDriveAccessRequest> =
-        listOf(
-                TargetDriveAccessRequest(
-                        alias = feedTargetDrive.alias.toString(),
-                        type = feedTargetDrive.type.toString(),
-                        name = "Feed Drive",
-                        description = " ",
-                        permissions =
-                                listOf(
-                                        DrivePermissionType.Read,
-                                        DrivePermissionType.Write,
-                                )
+    listOf(
+        TargetDriveAccessRequest(
+            alias = feedTargetDrive.alias.toString(),
+            type = feedTargetDrive.type.toString(),
+            name = "Feed Drive",
+            description = " ",
+            permissions =
+                listOf(
+                    DrivePermissionType.Read,
+                    DrivePermissionType.Write,
                 )
         )
+    )
 
 /**
  * ViewModel for Login screen following strict MVI pattern.
@@ -70,12 +73,15 @@ class LoginViewModel(private val youAuthFlowManager: YouAuthFlowManager) : ViewM
                     it.copy(homebaseId = action.value.cleanDomain(), errorMessage = null)
                 }
             }
+
             is LoginUiAction.LoginClicked -> {
                 performLogin()
             }
+
             is LoginUiAction.RetryClicked -> {
                 performLogin()
             }
+
             is LoginUiAction.AppResumed -> {
                 handleAppResumed()
             }
@@ -104,11 +110,11 @@ class LoginViewModel(private val youAuthFlowManager: YouAuthFlowManager) : ViewM
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
                 youAuthFlowManager.authorize(
-                        identity = homebaseId,
-                        scope = viewModelScope,
-                        appId = AppConfig.APP_ID,
-                        appName = AppConfig.APP_NAME,
-                        drives = targetDriveAccessRequest
+                    identity = homebaseId,
+                    scope = viewModelScope,
+                    appId = AppConfig.APP_ID,
+                    appName = AppConfig.APP_NAME,
+                    drives = targetDriveAccessRequest
                 )
             } catch (e: Exception) {
                 _uiState.update {
@@ -125,13 +131,16 @@ class LoginViewModel(private val youAuthFlowManager: YouAuthFlowManager) : ViewM
                     is YouAuthState.Unauthenticated -> {
                         _uiState.update { it.copy(isLoading = false, isAuthenticated = false) }
                     }
+
                     is YouAuthState.Authenticating -> {
                         _uiState.update { it.copy(isLoading = true) }
                     }
+
                     is YouAuthState.Authenticated -> {
                         _uiState.update { it.copy(isLoading = false, isAuthenticated = true) }
                         _uiEvent.send(LoginUiEvent.NavigateToHome)
                     }
+
                     is YouAuthState.Error -> {
                         _uiState.update {
                             it.copy(isLoading = false, errorMessage = authState.message)
