@@ -151,7 +151,7 @@ class StringExtensionsTest {
     }
 
     @Test
-    fun `preserves trailing period when preserveTrailingDot is true (default)`() {
+    fun `preserves trailing period when preserveTrailingDot is true - the default`() {
         assertEquals("example.com.", "example.com.".cleanDomain())
     }
 
