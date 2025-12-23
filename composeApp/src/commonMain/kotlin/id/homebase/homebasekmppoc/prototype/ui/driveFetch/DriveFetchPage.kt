@@ -38,6 +38,7 @@ import id.homebase.homebasekmppoc.prototype.lib.database.QueryBatch
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResponse
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortField
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortOrder
+import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.ui.screens.login.feedTargetDrive
 import kotlinx.coroutines.launch
@@ -49,11 +50,11 @@ import kotlin.uuid.Uuid
 @Composable
 fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () -> Unit) {
     val authState by youAuthFlowManager.authState.collectAsState()
-    var queryBatchResponse by remember { mutableStateOf<QueryBatchResponse?>(null) }
+    var localQueryResults by remember { mutableStateOf<List<SharedSecretEncryptedFileHeader>?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var isRefreshing by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var fetchedCount by remember { mutableStateOf(0) }
+    var syncProgress by remember { mutableStateOf<SyncProgress?>(null) }
     val coroutineScope = rememberCoroutineScope()
     val database = DatabaseManager.getDatabase()
     val identityId = Uuid.parse("7b1be23b-48bb-4304-bc7b-db5910c09a92") // TODO: <- get the real identityId
@@ -69,25 +70,44 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
         }
         isLoading = true
         errorMessage = null
-        if (withProgress) fetchedCount = 0
+        if (withProgress) syncProgress = null
         coroutineScope.launch {
             try {
                 // TODO: Where does the identityId live? Need to get it instead of random.
-                val backend = DriveSync(identityId, feedTargetDrive, driveQueryProvider,database)
-                queryBatchResponse = backend.sync(if (withProgress) { count -> fetchedCount = count } else { _ -> })
-                val localResult = QueryBatch(DatabaseManager, identityId).queryBatchAsync(
-                    feedTargetDrive.alias,
-                    1000,
-                    null,
-                    QueryBatchSortOrder.OldestFirst,
-                    QueryBatchSortField.AnyChangeDate,
-                    fileSystemType = 0);
-                Logger.i("localResult ")
-
+                val backend = DriveSync(identityId, feedTargetDrive, driveQueryProvider)
+                
+                // Collect Flow updates and update UI state
+                backend.sync().collect { progress ->
+                    syncProgress = progress
+                    when (progress) {
+                        is SyncProgress.InProgress -> {
+                            // You can optionally use progress.batchData directly, e.g., add to a in-memory list or update UI
+                        }
+                        is SyncProgress.Completed -> {
+                            // Sync completed, we can fetch local results
+                            // We don't really need to - this is just a demo and should return up to 1000 rows from the local DB
+                            // which probably matches what was just synced.
+                            val localResult = QueryBatch(DatabaseManager, identityId).queryBatchAsync(
+                                feedTargetDrive.alias,
+                                1000,
+                                null,
+                                QueryBatchSortOrder.OldestFirst,
+                                QueryBatchSortField.AnyChangeDate,
+                                fileSystemType = 0);
+                            localQueryResults = localResult.records
+                            isLoading = false
+                            isRefreshing = false
+                        }
+                        is SyncProgress.Failed -> {
+                            errorMessage = progress.errorMessage
+                            isLoading = false
+                            isRefreshing = false
+                        }
+                    }
+                }
             } catch (e: Exception) {
                 Logger.e("Error fetching Drive Fetch data", e)
                 errorMessage = e.message ?: "Unknown error"
-            } finally {
                 isLoading = false
                 isRefreshing = false
             }
@@ -108,8 +128,9 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
 
     // Reset state when auth changes
     LaunchedEffect(authState) {
-        queryBatchResponse = null
+        localQueryResults = null
         errorMessage = null
+        syncProgress = null
         isLoading = false
         isRefreshing = false
     }
@@ -147,11 +168,29 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 CircularProgressIndicator()
                                 Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                        text = "$fetchedCount items fetched",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                when (val progress = syncProgress) {
+                                    is SyncProgress.InProgress -> {
+                                        Text(
+                                                text = "Fetched ${progress.totalCount} items (${progress.batchCount} in this batch)",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        progress.latestModified?.let { modified ->
+                                            Text(
+                                                    text = "Latest modified: ${modified}",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                    else -> {
+                                        Text(
+                                                text = "Starting sync...",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
                             }
                         } else if (errorMessage != null) {
                             Text(
@@ -159,8 +198,8 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
                                     color = MaterialTheme.colorScheme.error
                             )
                         } else {
-                            queryBatchResponse?.let { response ->
-                                DriveFetchList(items = response.searchResults)
+                            localQueryResults?.let { items ->
+                                DriveFetchList(items = items)
                             }
                         }
                     }
