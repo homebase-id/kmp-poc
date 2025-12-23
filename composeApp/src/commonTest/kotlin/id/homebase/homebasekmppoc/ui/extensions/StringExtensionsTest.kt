@@ -22,8 +22,15 @@ class StringExtensionsTest {
     }
 
     @Test
-    fun `trims leading and trailing whitespace`() {
-        assertEquals("example.com", "  example.com  ".cleanDomain())
+    fun `trims leading and trailing whitespace for validation`() {
+        // When used for final validation, trailing whitespace should be stripped
+        assertEquals("example.com", "  example.com  ".cleanDomain(preserveTrailingDot = false))
+    }
+
+    @Test
+    fun `trailing whitespace becomes dot for interactive typing`() {
+        // When used for interactive typing (default), trailing whitespace becomes trailing dot
+        assertEquals("example.com.", "  example.com  ".cleanDomain())
     }
 
     // Protocol handling tests
@@ -139,13 +146,23 @@ class StringExtensionsTest {
     }
 
     @Test
-    fun `removes trailing period`() {
-        assertEquals("example.com", "example.com.".cleanDomain())
+    fun `removes trailing period when preserveTrailingDot is false`() {
+        assertEquals("example.com", "example.com.".cleanDomain(preserveTrailingDot = false))
     }
 
     @Test
-    fun `removes leading and trailing periods`() {
-        assertEquals("example.com", "..example.com..".cleanDomain())
+    fun `preserves trailing period when preserveTrailingDot is true - the default`() {
+        assertEquals("example.com.", "example.com.".cleanDomain())
+    }
+
+    @Test
+    fun `removes leading and trailing periods when preserveTrailingDot is false`() {
+        assertEquals("example.com", "..example.com..".cleanDomain(preserveTrailingDot = false))
+    }
+
+    @Test
+    fun `removes leading but preserves trailing period when preserveTrailingDot is true`() {
+        assertEquals("example.com.", "..example.com..".cleanDomain())
     }
 
     // Hyphen handling tests
@@ -206,8 +223,18 @@ class StringExtensionsTest {
     }
 
     @Test
-    fun `handles badly formatted input with many issues`() {
-        assertEquals("my.domain.com", "  HTTPS:///..--my, domain ,com--..  ".cleanDomain())
+    fun `handles badly formatted input with many issues for validation`() {
+        // Use preserveTrailingDot = false for final validation
+        assertEquals(
+                "my.domain.com",
+                "  HTTPS:///..--my, domain ,com--..  ".cleanDomain(preserveTrailingDot = false)
+        )
+    }
+
+    @Test
+    fun `handles badly formatted input with many issues for interactive typing`() {
+        // Default behavior preserves trailing dot from trailing whitespace
+        assertEquals("my.domain.com.", "  HTTPS:///..--my, domain ,com--..  ".cleanDomain())
     }
 
     @Test
@@ -239,5 +266,96 @@ class StringExtensionsTest {
     @Test
     fun `preserves numeric TLDs`() {
         assertEquals("example.123", "example.123".cleanDomain())
+    }
+
+    // Interactive typing tests (preserveTrailingDot = true, the default)
+    @Test
+    fun `allows single trailing dot for interactive typing`() {
+        assertEquals("example.", "example.".cleanDomain())
+    }
+
+    @Test
+    fun `allows trailing dot after partial domain entry`() {
+        assertEquals("sub.example.", "sub.example.".cleanDomain())
+    }
+
+    @Test
+    fun `collapses multiple trailing dots to one when preserving`() {
+        assertEquals("example.", "example...".cleanDomain())
+    }
+
+    @Test
+    fun `space at end converts to trailing dot`() {
+        // User types "example " -> converts to "example."
+        assertEquals("example.", "example ".cleanDomain())
+    }
+
+    @Test
+    fun `comma at end converts to trailing dot`() {
+        // User types "example," -> converts to "example."
+        assertEquals("example.", "example,".cleanDomain())
+    }
+
+    @Test
+    fun `multiple trailing spaces collapse to single dot`() {
+        assertEquals("example.", "example   ".cleanDomain())
+    }
+
+    @Test
+    fun `space in middle becomes dot and space at end becomes trailing dot`() {
+        // User types "my example " -> "my.example."
+        assertEquals("my.example.", "my example ".cleanDomain())
+    }
+
+    @Test
+    fun `trailing space after subdomain allows continuing to type`() {
+        // User types "sub " and then will type "example"
+        assertEquals("sub.", "sub ".cleanDomain())
+    }
+
+    @Test
+    fun `trailing comma after subdomain allows continuing to type`() {
+        // User types "sub," and then will type "example"
+        assertEquals("sub.", "sub,".cleanDomain())
+    }
+
+    @Test
+    fun `trailing space is stripped when preserveTrailingDot is false`() {
+        assertEquals("example", "example ".cleanDomain(preserveTrailingDot = false))
+    }
+
+    @Test
+    fun `trailing comma is stripped when preserveTrailingDot is false`() {
+        assertEquals("example", "example,".cleanDomain(preserveTrailingDot = false))
+    }
+
+    @Test
+    fun `leading whitespace is always trimmed`() {
+        assertEquals("example.", "   example.".cleanDomain())
+    }
+
+    @Test
+    fun `leading and trailing whitespace with dot preserved`() {
+        assertEquals("example.", "   example.   ".cleanDomain())
+    }
+
+    @Test
+    fun `simulates typing domain character by character`() {
+        // Simulates user typing "my.id" one character at a time
+        assertEquals("m", "m".cleanDomain())
+        assertEquals("my", "my".cleanDomain())
+        assertEquals("my.", "my.".cleanDomain()) // Dot preserved for continuing
+        assertEquals("my.i", "my.i".cleanDomain())
+        assertEquals("my.id", "my.id".cleanDomain())
+    }
+
+    @Test
+    fun `simulates typing domain with space as separator`() {
+        // Simulates user typing "my id" using space as separator
+        assertEquals("m", "m".cleanDomain())
+        assertEquals("my", "my".cleanDomain())
+        assertEquals("my.", "my ".cleanDomain()) // Space becomes dot, preserved
+        assertEquals("my.i", "my i".cleanDomain()) // Space in middle becomes dot
+        assertEquals("my.id", "my id".cleanDomain())
     }
 }
