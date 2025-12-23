@@ -35,12 +35,10 @@ import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthState
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
 import id.homebase.homebasekmppoc.prototype.lib.database.QueryBatch
-import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResponse
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortField
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortOrder
 import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
-import id.homebase.homebasekmppoc.ui.screens.login.feedTargetDrive
 import id.homebase.homebasekmppoc.ui.screens.login.publicPostsDriveId
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -74,7 +72,7 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
         coroutineScope.launch {
             try {
                 // TODO: Where does the identityId live? Need to get it instead of random.
-                val driveId = publicPostsDriveId //feedTargetDrive.alias;
+                val driveId = publicPostsDriveId
 
                 val backend = DriveSync(identityId, driveId, driveQueryProvider)
                 
@@ -90,7 +88,7 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
                             // We don't really need to - this is just a demo and should return up to 1000 rows from the local DB
                             // which probably matches what was just synced.
                             val localResult = QueryBatch(DatabaseManager, identityId).queryBatchAsync(
-                                feedTargetDrive.alias,
+                                publicPostsDriveId,
                                 1000,
                                 null,
                                 QueryBatchSortOrder.OldestFirst,
