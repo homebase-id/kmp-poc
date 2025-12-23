@@ -47,7 +47,11 @@ import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () -> Unit) {
+fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager,
+                   onNavigateBack: () -> Unit,
+                   onNavigateToFileDetail: (String, String) -> Unit,
+                   viewModel: DriveFetchViewModel = androidx.lifecycle.viewmodel.compose.viewModel()) {
+
     val authState by youAuthFlowManager.authState.collectAsState()
     var localQueryResults by remember { mutableStateOf<List<SharedSecretEncryptedFileHeader>?>(null) }
     var isLoading by remember { mutableStateOf(false) }
@@ -60,6 +64,19 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
 
     // Inject DriveQueryProvider from Koin
     val driveQueryProvider: DriveQueryProvider? = koinInject()
+
+    LaunchedEffect(Unit) {
+        viewModel.uiEvent.collect { event ->
+            when (event) {
+                is DriveFetchUiEvent.NavigateToFileDetail ->
+                    onNavigateToFileDetail(event.driveId, event.fileId)
+
+                DriveFetchUiEvent.NavigateBack ->
+                    onNavigateBack()
+            }
+        }
+    }
+
 
     fun triggerFetch(withProgress: Boolean) {
         if (driveQueryProvider == null) {
@@ -138,13 +155,16 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
     Scaffold(
             topBar = {
                 TopAppBar(
-                        title = { Text("Drive Fetch") },
-                        navigationIcon = {
-                            IconButton(onClick = onNavigateBack) {
-                                Text("←", style = MaterialTheme.typography.headlineMedium)
-                            }
+                    title = { Text("Drive Fetch") },
+                    navigationIcon = {
+                        IconButton(onClick = {
+                            viewModel.onAction(DriveFetchUiAction.BackClicked)
+                        }) {
+                            Text("←", style = MaterialTheme.typography.headlineMedium)
                         }
+                    }
                 )
+
             }
     ) { paddingValues ->
         Box(
@@ -199,8 +219,16 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
                             )
                         } else {
                             localQueryResults?.let { items ->
-                                DriveFetchList(items = items)
+                                DriveFetchList(
+                                    items = items,
+                                    onFileClicked = { driveId, fileId ->
+                                        viewModel.onAction(
+                                            DriveFetchUiAction.FileClicked(driveId, fileId)
+                                        )
+                                    }
+                                )
                             }
+
                         }
                     }
                     else -> {

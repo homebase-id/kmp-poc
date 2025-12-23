@@ -1,5 +1,6 @@
 package id.homebase.homebasekmppoc.prototype.ui.driveFetch
-
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.Button
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,34 +12,62 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
 
 @Composable
-fun DriveFetchList(items: List<SharedSecretEncryptedFileHeader>, modifier: Modifier = Modifier) {
+fun DriveFetchList(
+    items: List<SharedSecretEncryptedFileHeader>,
+    modifier: Modifier = Modifier,
+    onFileClicked: (String, String) -> Unit
+) {
     LazyColumn(
-            modifier = modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) { items(items, key = { it.fileId.toString() }) { item -> DriveFetchItemCard(item) } }
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(items, key = { it.fileId.toString() }) { item ->
+            DriveFetchItemCard(
+                item = item,
+                onClick = { onFileClicked(item.driveId.toString(), item.fileId.toString()) }
+            )
+        }
+    }
 }
 
 @Composable
-fun DriveFetchItemCard(item: SharedSecretEncryptedFileHeader) {
+fun DriveFetchItemCard(
+    item: SharedSecretEncryptedFileHeader,
+    onClick: () -> Unit
+) {
     Card(
-            modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = item.fileId.toString(), style = MaterialTheme.typography.titleMedium)
-            if (item.fileMetadata.appData.content != null) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(item.fileId.toString(), style = MaterialTheme.typography.titleMedium)
+
+            item.fileMetadata.appData.content?.let {
                 Text(
-                        text = item.fileMetadata.appData.content,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 2
                 )
+            }
+
+            Button(
+                modifier = Modifier.align(Alignment.End),
+                onClick = onClick
+            ) {
+                Text("View details")
             }
         }
     }
 }
+

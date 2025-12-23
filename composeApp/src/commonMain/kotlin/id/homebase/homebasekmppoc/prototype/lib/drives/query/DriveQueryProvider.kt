@@ -3,6 +3,7 @@ package id.homebase.homebasekmppoc.prototype.lib.drives.query
 import id.homebase.homebasekmppoc.prototype.lib.core.SecureByteArray
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchRequest
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResponse
+import id.homebase.homebasekmppoc.prototype.lib.drives.files.ValidationUtil
 import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
 import io.ktor.client.call.body
 import io.ktor.client.request.accept
@@ -27,11 +28,7 @@ class DriveQueryProvider(private val odinClient: OdinClient) {
         request: QueryBatchRequest,
         options: QueryBatchOptions? = null
     ): QueryBatchResponse {
-
-        requireNotNull(driveId) { "driveId is required" }
-        require(driveId != Uuid.NIL) {
-            "driveId must not be all zeros"
-        }
+        ValidationUtil.requireValidUuid(driveId, "driveId")
 
         // Set includeMetadataHeader if decrypt is enabled
         val finalRequest =
@@ -43,7 +40,6 @@ class DriveQueryProvider(private val odinClient: OdinClient) {
             } else {
                 request
             }
-
 
         val url = "drives/${driveId}/files/query-batch"
         val client = odinClient.createHttpClient()

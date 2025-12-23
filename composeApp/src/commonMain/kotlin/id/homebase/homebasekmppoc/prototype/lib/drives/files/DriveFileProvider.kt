@@ -7,31 +7,33 @@ import id.homebase.homebasekmppoc.prototype.lib.core.SecureByteArray
 import id.homebase.homebasekmppoc.prototype.lib.crypto.EncryptedKeyHeader
 import id.homebase.homebasekmppoc.prototype.lib.crypto.KeyHeader
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileSystemType
-import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
 import id.homebase.homebasekmppoc.prototype.lib.http.CreateHttpClientOptions
 import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
+import io.ktor.client.call.body
+import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlinx.serialization.Serializable
+import kotlin.uuid.Uuid
 
 /** Options for file operations. */
 data class FileOperationOptions(
-        val fileSystemType: FileSystemType = FileSystemType.Standard,
-        val decrypt: Boolean = true,
-        val lastModified: Long? = null
+    val fileSystemType: FileSystemType = FileSystemType.Standard,
+    val decrypt: Boolean = true,
+    val lastModified: Long? = null
 )
 
 /** Options for payload operations with range support. */
 data class PayloadOperationOptions(
-        val fileSystemType: FileSystemType = FileSystemType.Standard,
-        val decrypt: Boolean = true,
-        val chunkStart: Long? = null,
-        val chunkEnd: Long? = null,
-        val lastModified: Long? = null
+    val fileSystemType: FileSystemType = FileSystemType.Standard,
+    val decrypt: Boolean = true,
+    val chunkStart: Long? = null,
+    val chunkEnd: Long? = null,
+    val lastModified: Long? = null
 )
 
 /** Response containing bytes and their content type. */
@@ -54,7 +56,7 @@ data class BytesResponse(val bytes: ByteArray, val contentType: String) {
 
 /** Provider for drive file operations. Ported from JS/TS odin-js DriveFileProvider. */
 @OptIn(ExperimentalEncodingApi::class)
-public class DriveFileProvider(private val client: OdinClient) {
+public class DriveFileProvider(private val odinClient: OdinClient) {
 
     companion object {
         private const val TAG = "DriveFileProvider"
@@ -65,166 +67,91 @@ public class DriveFileProvider(private val client: OdinClient) {
     /**
      * Gets a file header with optional decryption.
      *
-     * @param targetDrive The target drive containing the file
+     * @param driveId The target drive id containing the file
      * @param fileId The ID of the file
      * @param options Optional operation options
      * @return The HomebaseFile or null if not found
      */
+
     suspend fun getFileHeader(
-            targetDrive: TargetDrive,
-            fileId: String,
-            options: FileOperationOptions = FileOperationOptions()
+        driveId: Uuid,
+        fileId: Uuid,
+        options: FileOperationOptions = FileOperationOptions()
     ): HomebaseFile? {
-        require(targetDrive.isValid()) { "TargetDrive must be defined" }
-        require(fileId.isNotBlank()) { "FileId must be defined" }
 
-        val fileHeader = getFileHeaderBytes(targetDrive, fileId, options)
-        if (fileHeader == null) return null
-
-        // If decrypt is enabled and content is JSON, try to parse it
-        if (options.decrypt && fileHeader.fileMetadata.appData.content != null) {
-            val decryptedContent = fileHeader.fileMetadata.appData.content
-            // The content is already decrypted by getFileHeaderBytes, return as-is
-            return fileHeader
-        }
-
-        return fileHeader
-    }
-
-    /**
-     * Gets raw file header bytes with optional decryption.
-     *
-     * @param targetDrive The target drive containing the file
-     * @param fileId The ID of the file
-     * @param options Optional operation options
-     * @return The HomebaseFile or null if not found
-     */
-    suspend fun getFileHeaderBytes(
-            targetDrive: TargetDrive,
-            fileId: String,
-            options: FileOperationOptions = FileOperationOptions()
-    ): HomebaseFile? {
-        require(targetDrive.isValid()) { "TargetDrive must be defined" }
-        require(fileId.isNotBlank()) { "FileId must be defined" }
+        ValidationUtil.requireValidUuid(driveId, "driveId")
+        ValidationUtil.requireValidUuid(fileId, "fileId")
 
         val httpClient =
-                client.createHttpClient(
-                        CreateHttpClientOptions(
-                                overrideEncryption = false,
-                                fileSystemType = options.fileSystemType
-                        )
+            odinClient.createHttpClient(
+                CreateHttpClientOptions(
+                    fileSystemType = options.fileSystemType
                 )
+            )
 
-        val queryParams =
-                buildMap<String, String> {
-                    put("alias", targetDrive.alias.toString())
-                    put("type", targetDrive.type.toString())
-                    put("fileId", fileId)
-                }
-
-        try {
-            val response =
-                    httpClient.get("/drive/files/header") {
-                        url {
-                            queryParams.forEach { (key, value) -> parameters.append(key, value) }
-                        }
-                    }
-
-            if (response.status == HttpStatusCode.NotFound) {
-                return null
+        return try {
+            httpClient
+                .get("drives/$driveId/files/$fileId/header")
+                .body<HomebaseFile>()
+        } catch (e: ClientRequestException) {
+            if (e.response.status == HttpStatusCode.NotFound) {
+                null
+            } else {
+                throw e
             }
-
-            if (!response.status.isSuccess()) {
-                KLogger.e(TAG) { "[odin-kt:getFileHeader] Request failed: ${response.status}" }
-                return null
-            }
-
-            val body = response.bodyAsText()
-            val fileHeader = OdinSystemSerializer.json.decodeFromString<HomebaseFile>(body)
-
-            if (options.decrypt) {
-                val keyHeader =
-                        if (fileHeader.fileMetadata.isEncrypted) {
-                            decryptKeyHeader(fileHeader.sharedSecretEncryptedKeyHeader)
-                        } else {
-                            null
-                        }
-
-                // Decrypt JSON content if needed
-                if (keyHeader != null && fileHeader.fileMetadata.appData.content != null) {
-                    val decryptedContent = decryptJsonContent(fileHeader.fileMetadata, keyHeader)
-                    return fileHeader.copy(
-                            fileMetadata =
-                                    fileHeader.fileMetadata.copy(
-                                            appData =
-                                                    fileHeader.fileMetadata.appData.copy(
-                                                            content = decryptedContent
-                                                    )
-                                    )
-                    )
-                }
-            }
-
-            return fileHeader
-        } catch (e: Exception) {
-            if (e.message?.contains("404") == true) return null
-            KLogger.e(TAG) { "[odin-kt:getFileHeader] ${e.message}" }
-            throw e
-        } finally {
-            httpClient.close()
         }
     }
+
 
     /**
      * Gets payload bytes with optional decryption and range support.
      *
-     * @param targetDrive The target drive containing the file
+     * @param driveId
+     * The target drive containing the file
      * @param fileId The ID of the file
      * @param key The payload key
      * @param options Optional operation options with range support
      * @return BytesResponse containing the payload bytes and content type, or null if not found
      */
     suspend fun getPayloadBytes(
-            targetDrive: TargetDrive,
-            fileId: String,
-            key: String,
-            options: PayloadOperationOptions = PayloadOperationOptions()
+        driveId: Uuid,
+        fileId: Uuid,
+        key: String,
+        options: PayloadOperationOptions = PayloadOperationOptions()
     ): BytesResponse? {
-        require(targetDrive.isValid()) { "TargetDrive must be defined" }
-        require(fileId.isNotBlank()) { "FileId must be defined" }
+
+        ValidationUtil.requireValidUuid(driveId, "driveId")
+        ValidationUtil.requireValidUuid(fileId, "fileId")
+
         require(key.isNotBlank()) { "Key must be defined" }
 
         val httpClient =
-                client.createHttpClient(
-                        CreateHttpClientOptions(
-                                overrideEncryption = false,
-                                fileSystemType = options.fileSystemType
-                        )
+            odinClient.createHttpClient(
+                CreateHttpClientOptions(
+                    overrideEncryption = false,
+                    fileSystemType = options.fileSystemType
                 )
+            )
 
         val queryParams =
-                buildMap<String, String> {
-                    put("alias", targetDrive.alias.toString())
-                    put("type", targetDrive.type.toString())
-                    put("fileId", fileId)
-                    put("key", key)
-                    if (options.lastModified != null) {
-                        put("lastModified", options.lastModified.toString())
-                    }
+            buildMap<String, String> {
+                if (options.lastModified != null) {
+                    put("lastModified", options.lastModified.toString())
                 }
+            }
 
         val rangeResult = DriveFileHelpers.getRangeHeader(options.chunkStart, options.chunkEnd)
 
         try {
             val response =
-                    httpClient.get("/drive/files/payload") {
-                        url {
-                            queryParams.forEach { (key, value) -> parameters.append(key, value) }
-                        }
-                        if (rangeResult.rangeHeader != null) {
-                            header(HttpHeaders.Range, rangeResult.rangeHeader)
-                        }
+                httpClient.get("/drives/${driveId}/files/${fileId}/payload/${key}") {
+                    url {
+                        queryParams.forEach { (key, value) -> parameters.append(key, value) }
                     }
+                    if (rangeResult.rangeHeader != null) {
+                        header(HttpHeaders.Range, rangeResult.rangeHeader)
+                    }
+                }
 
             if (response.status == HttpStatusCode.NotFound) {
                 return null
@@ -239,26 +166,26 @@ public class DriveFileProvider(private val client: OdinClient) {
             if (bytes.isEmpty()) return null
 
             val contentType =
-                    response.headers["decryptedcontenttype"]
-                            ?: response.contentType()?.toString() ?: "application/octet-stream"
+                response.headers["decryptedcontenttype"]
+                    ?: response.contentType()?.toString() ?: "application/octet-stream"
 
             val resultBytes =
-                    if (!options.decrypt) {
-                        bytes
-                    } else if (rangeResult.updatedChunkStart != null) {
-                        // Chunked decryption - decrypt and slice
-                        val decrypted = decryptChunkedBytes(bytes, rangeResult.startOffset)
-                        val sliceEnd =
-                                if (options.chunkEnd != null && options.chunkStart != null) {
-                                    (options.chunkEnd - options.chunkStart).toInt()
-                                } else {
-                                    decrypted.size
-                                }
-                        decrypted.sliceArray(0 until minOf(sliceEnd, decrypted.size))
-                    } else {
-                        // Full decryption
-                        decryptBytes(bytes)
-                    }
+                if (!options.decrypt) {
+                    bytes
+                } else if (rangeResult.updatedChunkStart != null) {
+                    // Chunked decryption - decrypt and slice
+                    val decrypted = decryptChunkedBytes(bytes, rangeResult.startOffset)
+                    val sliceEnd =
+                        if (options.chunkEnd != null && options.chunkStart != null) {
+                            (options.chunkEnd - options.chunkStart).toInt()
+                        } else {
+                            decrypted.size
+                        }
+                    decrypted.sliceArray(0 until minOf(sliceEnd, decrypted.size))
+                } else {
+                    // Full decryption
+                    decryptBytes(bytes)
+                }
 
             return BytesResponse(bytes = resultBytes, contentType = contentType)
         } catch (e: Exception) {
@@ -273,28 +200,31 @@ public class DriveFileProvider(private val client: OdinClient) {
     /**
      * Gets payload as parsed JSON object.
      *
-     * @param targetDrive The target drive containing the file
+     * @param driveId The target drive containing the file
      * @param fileId The ID of the file
      * @param key The payload key
      * @param options Optional operation options
      * @return The parsed JSON object or null if not found
      */
     suspend inline fun <reified T> getPayloadAsJson(
-            targetDrive: TargetDrive,
-            fileId: String,
-            key: String,
-            options: PayloadOperationOptions = PayloadOperationOptions()
+        driveId: Uuid,
+        fileId: Uuid,
+        key: String,
+        options: PayloadOperationOptions = PayloadOperationOptions()
     ): T? {
-        val bytesResponse = getPayloadBytes(targetDrive, fileId, key, options) ?: return null
+        ValidationUtil.requireValidUuid(driveId, "driveId")
+        ValidationUtil.requireValidUuid(fileId, "fileId")
+
+        val bytesResponse = getPayloadBytes(driveId, fileId, key, options) ?: return null
         return DriveFileHelpers.parseBytesToObject<T>(
-                BytesWithContentType(bytesResponse.bytes, bytesResponse.contentType)
+            BytesWithContentType(bytesResponse.bytes, bytesResponse.contentType)
         )
     }
 
     /**
      * Gets thumbnail bytes.
      *
-     * @param targetDrive The target drive containing the file
+     * @param driveId The target drive containing the file
      * @param fileId The ID of the file
      * @param payloadKey The payload key
      * @param width Desired thumbnail width
@@ -303,47 +233,45 @@ public class DriveFileProvider(private val client: OdinClient) {
      * @return BytesResponse containing the thumbnail bytes and content type, or null if not found
      */
     suspend fun getThumbBytes(
-            targetDrive: TargetDrive,
-            fileId: String,
-            payloadKey: String,
-            width: Int,
-            height: Int,
-            options: FileOperationOptions = FileOperationOptions()
+        driveId: Uuid,
+        fileId: Uuid,
+        payloadKey: String,
+        width: Int,
+        height: Int,
+        options: FileOperationOptions = FileOperationOptions()
     ): BytesResponse? {
-        require(targetDrive.isValid()) { "TargetDrive must be defined" }
-        require(fileId.isNotBlank()) { "FileId must be defined" }
+        ValidationUtil.requireValidUuid(driveId, "driveId")
+        ValidationUtil.requireValidUuid(fileId, "fileId")
+
         require(payloadKey.isNotBlank()) { "PayloadKey must be defined" }
         require(width > 0) { "Width must be positive" }
         require(height > 0) { "Height must be positive" }
 
         val httpClient =
-                client.createHttpClient(
-                        CreateHttpClientOptions(
-                                overrideEncryption = false,
-                                fileSystemType = options.fileSystemType
-                        )
+            odinClient.createHttpClient(
+                CreateHttpClientOptions(
+                    overrideEncryption = false,
+                    fileSystemType = options.fileSystemType
                 )
+            )
 
         val queryParams =
-                buildMap<String, String> {
-                    put("alias", targetDrive.alias.toString())
-                    put("type", targetDrive.type.toString())
-                    put("fileId", fileId)
-                    put("payloadKey", payloadKey)
-                    put("width", width.toString())
-                    put("height", height.toString())
-                    if (options.lastModified != null) {
-                        put("lastModified", options.lastModified.toString())
-                    }
+            buildMap<String, String> {
+                put("width", width.toString())
+                put("height", height.toString())
+                if (options.lastModified != null) {
+                    put("lastModified", options.lastModified.toString())
                 }
+            }
+
 
         try {
             val response =
-                    httpClient.get("/drive/files/thumb") {
-                        url {
-                            queryParams.forEach { (key, value) -> parameters.append(key, value) }
-                        }
+                httpClient.get("/drives/${driveId}/files/${fileId}/payload/${payloadKey}/thumb") {
+                    url {
+                        queryParams.forEach { (key, value) -> parameters.append(key, value) }
                     }
+                }
 
             if (response.status == HttpStatusCode.NotFound) {
                 return null
@@ -358,15 +286,15 @@ public class DriveFileProvider(private val client: OdinClient) {
             if (bytes.isEmpty()) return null
 
             val contentType =
-                    response.headers["decryptedcontenttype"]
-                            ?: response.contentType()?.toString() ?: "image/jpeg"
+                response.headers["decryptedcontenttype"]
+                    ?: response.contentType()?.toString() ?: "image/jpeg"
 
             val resultBytes =
-                    if (options.decrypt) {
-                        decryptBytes(bytes)
-                    } else {
-                        bytes
-                    }
+                if (options.decrypt) {
+                    decryptBytes(bytes)
+                } else {
+                    bytes
+                }
 
             return BytesResponse(bytes = resultBytes, contentType = contentType)
         } catch (e: Exception) {
@@ -381,41 +309,37 @@ public class DriveFileProvider(private val client: OdinClient) {
     /**
      * Gets transfer history for a file.
      *
-     * @param targetDrive The target drive containing the file
+     * @param driveId The target drive containing the file
      * @param fileId The ID of the file
      * @param fileSystemType Optional file system type
      * @return The TransferHistory or null if not found
      */
     suspend fun getTransferHistory(
-            targetDrive: TargetDrive,
-            fileId: String,
-            fileSystemType: FileSystemType = FileSystemType.Standard
+        driveId: Uuid,
+        fileId: Uuid,
+        fileSystemType: FileSystemType = FileSystemType.Standard
     ): TransferHistory? {
-        require(targetDrive.isValid()) { "TargetDrive must be defined" }
-        require(fileId.isNotBlank()) { "FileId must be defined" }
+
+        ValidationUtil.requireValidUuid(driveId, "driveId")
+        ValidationUtil.requireValidUuid(fileId, "fileId")
 
         val httpClient =
-                client.createHttpClient(
-                        CreateHttpClientOptions(
-                                overrideEncryption = false,
-                                fileSystemType = fileSystemType
-                        )
+            odinClient.createHttpClient(
+                CreateHttpClientOptions(
+                    overrideEncryption = false,
+                    fileSystemType = fileSystemType
                 )
+            )
 
-        val queryParams =
-                buildMap<String, String> {
-                    put("alias", targetDrive.alias.toString())
-                    put("type", targetDrive.type.toString())
-                    put("fileId", fileId)
-                }
+        val queryParams = buildMap<String, String> { }
 
         try {
             val response =
-                    httpClient.get("/drive/files/transfer-history") {
-                        url {
-                            queryParams.forEach { (key, value) -> parameters.append(key, value) }
-                        }
+                httpClient.get("/drives/${driveId}/files/${fileId}/transfer-history") {
+                    url {
+                        queryParams.forEach { (key, value) -> parameters.append(key, value) }
                     }
+                }
 
             if (response.status == HttpStatusCode.NotFound) {
                 return null
@@ -442,7 +366,7 @@ public class DriveFileProvider(private val client: OdinClient) {
     /**
      * Deletes a single file from the drive.
      *
-     * @param targetDrive The target drive containing the file
+     * @param driveId The target drive containing the file
      * @param fileId The ID of the file to delete
      * @param recipients Optional list of recipients to notify
      * @param fileSystemType Optional file system type
@@ -451,36 +375,37 @@ public class DriveFileProvider(private val client: OdinClient) {
      * @throws OdinClientException on errors
      */
     suspend fun deleteFile(
-            targetDrive: TargetDrive,
-            fileId: String,
-            recipients: List<String>? = null,
-            fileSystemType: FileSystemType? = null,
-            hardDelete: Boolean = false
+        driveId: Uuid,
+        fileId: Uuid,
+        recipients: List<String>? = null,
+        fileSystemType: FileSystemType? = null,
+        hardDelete: Boolean = false
     ): Boolean {
-        require(targetDrive.isValid()) { "TargetDrive must be defined" }
-        require(fileId.isNotBlank()) { "FileId must be defined" }
+
+        ValidationUtil.requireValidUuid(driveId, "driveId")
+        ValidationUtil.requireValidUuid(fileId, "fileId")
 
         val httpClient =
-                client.createHttpClient(
-                        CreateHttpClientOptions(
-                                overrideEncryption = true,
-                                fileSystemType = fileSystemType ?: FileSystemType.Standard
-                        )
+            odinClient.createHttpClient(
+                CreateHttpClientOptions(
+                    overrideEncryption = true,
+                    fileSystemType = fileSystemType ?: FileSystemType.Standard
                 )
+            )
 
-        val endpoint = if (hardDelete) "/drive/files/harddelete" else "/drive/files/delete"
-        val request =
-                DeleteFileRequest(
-                        file = FileReference(targetDrive = targetDrive, fileId = fileId),
-                        recipients = recipients
-                )
+        val endpoint =
+            if (hardDelete) "/drives/${driveId}/files/${fileId}/hard-delete"
+            else "/drives/${driveId}files/${fileId}/delete"
+
+        // fileId not used  because we pass it in via query string
+        val request = DeleteFileRequest(fileId = Uuid.NIL, recipients = recipients)
 
         try {
             val response: HttpResponse =
-                    httpClient.post(endpoint) {
-                        contentType(ContentType.Application.Json)
-                        setBody(request)
-                    }
+                httpClient.post(endpoint) {
+                    contentType(ContentType.Application.Json)
+                    setBody(request)
+                }
 
             return response.status.isSuccess()
         } catch (e: OdinClientException) {
@@ -488,9 +413,9 @@ public class DriveFileProvider(private val client: OdinClient) {
         } catch (e: Exception) {
             KLogger.e(TAG) { "[odin-kt:deleteFile] ${e.message}" }
             throw OdinClientException(
-                    "Delete file failed: ${e.message}",
-                    OdinClientErrorCode.UnhandledScenario,
-                    e
+                "Delete file failed: ${e.message}",
+                OdinClientErrorCode.UnhandledScenario,
+                e
             )
         } finally {
             httpClient.close()
@@ -499,43 +424,39 @@ public class DriveFileProvider(private val client: OdinClient) {
 
     /** Deletes multiple files from the drive by file IDs. */
     suspend fun deleteFiles(
-            targetDrive: TargetDrive,
-            fileIds: List<String>,
-            recipients: List<String>? = null,
-            fileSystemType: FileSystemType? = null
+        driveId: Uuid,
+        fileIds: List<Uuid>,
+        recipients: List<String>? = null,
+        fileSystemType: FileSystemType? = null
     ): Boolean {
-        require(targetDrive.isValid()) { "TargetDrive must be defined" }
-        require(fileIds.isNotEmpty()) { "FileIds must be defined" }
+        ValidationUtil.requireValidUuid(driveId, "driveId")
+        ValidationUtil.requireValidUuidList(fileIds, "fileIds")
 
         val httpClient =
-                client.createHttpClient(
-                        CreateHttpClientOptions(
-                                overrideEncryption = true,
-                                fileSystemType = fileSystemType ?: FileSystemType.Standard
-                        )
+            odinClient.createHttpClient(
+                CreateHttpClientOptions(
+                    overrideEncryption = true,
+                    fileSystemType = fileSystemType ?: FileSystemType.Standard
                 )
+            )
 
         val request =
-                DeleteFilesBatchRequest(
-                        requests =
-                                fileIds.map { fileId ->
-                                    DeleteFileRequest(
-                                            file =
-                                                    FileReference(
-                                                            targetDrive = targetDrive,
-                                                            fileId = fileId
-                                                    ),
-                                            recipients = recipients
-                                    )
-                                }
-                )
+            DeleteFilesBatchRequest(
+                requests =
+                    fileIds.map { fileId ->
+                        DeleteFileRequest(
+                            fileId = fileId,
+                            recipients = recipients
+                        )
+                    }
+            )
 
         try {
             val response: HttpResponse =
-                    httpClient.post("/drive/files/deletefileidbatch") {
-                        contentType(ContentType.Application.Json)
-                        setBody(request)
-                    }
+                httpClient.post("/drives/${driveId}/files/delete-batch/by-file-id") {
+                    contentType(ContentType.Application.Json)
+                    setBody(request)
+                }
 
             return response.status.isSuccess()
         } catch (e: OdinClientException) {
@@ -543,9 +464,9 @@ public class DriveFileProvider(private val client: OdinClient) {
         } catch (e: Exception) {
             KLogger.e(TAG) { "[odin-kt:deleteFiles] ${e.message}" }
             throw OdinClientException(
-                    "Delete files batch failed: ${e.message}",
-                    OdinClientErrorCode.UnhandledScenario,
-                    e
+                "Delete files batch failed: ${e.message}",
+                OdinClientErrorCode.UnhandledScenario,
+                e
             )
         } finally {
             httpClient.close()
@@ -554,40 +475,39 @@ public class DriveFileProvider(private val client: OdinClient) {
 
     /** Deletes files from the drive by group IDs. */
     suspend fun deleteFilesByGroupId(
-            targetDrive: TargetDrive,
-            groupIds: List<String>,
-            recipients: List<String>? = null,
-            fileSystemType: FileSystemType? = null
+        driveId: Uuid,
+        groupIds: List<Uuid>,
+        recipients: List<String>? = null,
+        fileSystemType: FileSystemType? = null
     ): Boolean {
-        require(targetDrive.isValid()) { "TargetDrive must be defined" }
-        require(groupIds.isNotEmpty()) { "GroupIds must be defined" }
+        ValidationUtil.requireValidUuid(driveId, "driveId")
+        ValidationUtil.requireValidUuidList(groupIds, "groupIds")
 
         val httpClient =
-                client.createHttpClient(
-                        CreateHttpClientOptions(
-                                overrideEncryption = true,
-                                fileSystemType = fileSystemType ?: FileSystemType.Standard
-                        )
+            odinClient.createHttpClient(
+                CreateHttpClientOptions(
+                    overrideEncryption = true,
+                    fileSystemType = fileSystemType ?: FileSystemType.Standard
                 )
+            )
 
         val request =
-                DeleteByGroupIdBatchRequest(
-                        requests =
-                                groupIds.map { groupId ->
-                                    DeleteByGroupIdRequest(
-                                            targetDrive = targetDrive,
-                                            groupId = groupId,
-                                            recipients = recipients
-                                    )
-                                }
-                )
+            DeleteByGroupIdBatchRequest(
+                requests =
+                    groupIds.map { groupId ->
+                        DeleteByGroupIdRequest(
+                            groupId = groupId,
+                            recipients = recipients
+                        )
+                    }
+            )
 
         try {
             val response: HttpResponse =
-                    httpClient.post("/drive/files/deletegroupidbatch") {
-                        contentType(ContentType.Application.Json)
-                        setBody(request)
-                    }
+                httpClient.post("/drives/${driveId}/files/delete-batch/by-group-id") {
+                    contentType(ContentType.Application.Json)
+                    setBody(request)
+                }
 
             return response.status.isSuccess()
         } catch (e: OdinClientException) {
@@ -595,9 +515,9 @@ public class DriveFileProvider(private val client: OdinClient) {
         } catch (e: Exception) {
             KLogger.e(TAG) { "[odin-kt:deleteFilesByGroupId] ${e.message}" }
             throw OdinClientException(
-                    "Delete files by group ID batch failed: ${e.message}",
-                    OdinClientErrorCode.UnhandledScenario,
-                    e
+                "Delete files by group ID batch failed: ${e.message}",
+                OdinClientErrorCode.UnhandledScenario,
+                e
             )
         } finally {
             httpClient.close()
@@ -608,7 +528,7 @@ public class DriveFileProvider(private val client: OdinClient) {
 
     /** Decrypts the key header using the shared secret. */
     private suspend fun decryptKeyHeader(encryptedKeyHeader: EncryptedKeyHeader): KeyHeader? {
-        val sharedSecret = client.getSharedSecret() ?: return null
+        val sharedSecret = odinClient.getSharedSecret() ?: return null
         return encryptedKeyHeader.decryptAesToKeyHeader(SecureByteArray(sharedSecret))
     }
 
@@ -652,18 +572,16 @@ public class DriveFileProvider(private val client: OdinClient) {
 
 // Request data classes for delete operations
 
-@Serializable private data class FileReference(val targetDrive: TargetDrive, val fileId: String)
+@Serializable
+private data class DeleteFileRequest(val fileId: Uuid, val recipients: List<String>? = null)
 
 @Serializable
-private data class DeleteFileRequest(val file: FileReference, val recipients: List<String>? = null)
-
-@Serializable private data class DeleteFilesBatchRequest(val requests: List<DeleteFileRequest>)
+private data class DeleteFilesBatchRequest(val requests: List<DeleteFileRequest>)
 
 @Serializable
 private data class DeleteByGroupIdRequest(
-        val targetDrive: TargetDrive,
-        val groupId: String,
-        val recipients: List<String>? = null
+    val groupId: Uuid,
+    val recipients: List<String>? = null
 )
 
 @Serializable
