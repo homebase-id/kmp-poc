@@ -3,6 +3,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.material3.Button
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -41,6 +42,16 @@ fun DriveFetchItemCard(
     item: SharedSecretEncryptedFileHeader,
     onClick: () -> Unit
 ) {
+    val payloads = item.fileMetadata.payloads.orEmpty()
+
+    val payloadCount = payloads.size
+    val thumbnailCount =
+        payloads.sumOf { payload ->
+            val thumbs = payload.thumbnails ?: emptyList()
+            val preview = payload.previewThumbnail
+            thumbs.size + if (preview != null) 1 else 0
+        }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -51,8 +62,34 @@ fun DriveFetchItemCard(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(item.fileId.toString(), style = MaterialTheme.typography.titleMedium)
 
+            // ── File ID ─────────────────────────────
+            LabeledValue(
+                label = "File ID",
+                value = item.fileId.toString()
+            )
+
+            // ── Summary row ─────────────────────────
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                InfoChip(
+                    label = "Encrypted",
+                    value = if (item.fileMetadata.isEncrypted) "Yes" else "No"
+                )
+
+                InfoChip(
+                    label = "Payloads",
+                    value = payloadCount.toString()
+                )
+
+                InfoChip(
+                    label = "Thumbnails",
+                    value = thumbnailCount.toString()
+                )
+            }
+
+            // ── Content preview ─────────────────────
             item.fileMetadata.appData.content?.let {
                 Text(
                     text = it,
@@ -61,6 +98,7 @@ fun DriveFetchItemCard(
                 )
             }
 
+            // ── CTA ─────────────────────────────────
             Button(
                 modifier = Modifier.align(Alignment.End),
                 onClick = onClick
@@ -71,3 +109,39 @@ fun DriveFetchItemCard(
     }
 }
 
+
+@Composable
+private fun LabeledValue(
+    label: String,
+    value: String
+) {
+    Column {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium
+        )
+    }
+}
+
+@Composable
+private fun InfoChip(
+    label: String,
+    value: String
+) {
+    Column {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodySmall
+        )
+    }
+}

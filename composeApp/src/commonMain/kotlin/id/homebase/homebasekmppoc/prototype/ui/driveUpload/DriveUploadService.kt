@@ -69,22 +69,22 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
     /**
      * Uploads a text post to the drive.
      *
-     * @param targetDrive The target drive to upload to
+     * @param driveId The target drive to upload to
      * @param postContent The post content to upload
      * @param encrypt Whether to encrypt the file (default true)
      * @return The upload result containing file ID and version tag
      */
     suspend fun uploadTextPost(
-            targetDrive: TargetDrive,
-            postContent: PostContent,
-            encrypt: Boolean = false
+        driveId: Uuid,
+        postContent: PostContent,
+        encrypt: Boolean = false
     ): TextPostUploadResult {
         KLogger.d(TAG) { "Uploading text post with id: ${postContent.id}" }
 
         val contentJson = OdinSystemSerializer.serialize(postContent)
 
         val instructions =
-                UploadInstructionSet(storageOptions = StorageOptions(drive = targetDrive))
+                UploadInstructionSet(storageOptions = StorageOptions(driveId = driveId))
 
         val metadata =
                 UploadFileMetadata(
@@ -117,7 +117,7 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
     /**
      * Uploads an image to the drive.
      *
-     * @param targetDrive The target drive to upload to
+     * @param driveId The target drive to upload to
      * @param imageBytes The raw image bytes
      * @param payloadKey The key for the payload (default "pst_mdi")
      * @param uniqueId Optional unique ID for the file (auto-generated if not provided)
@@ -127,13 +127,13 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
      * @return The upload result containing file ID and version tag
      */
     suspend fun uploadImage(
-            targetDrive: TargetDrive,
-            imageBytes: ByteArray,
-            payloadKey: String = "pst_mdia",
-            uniqueId: String? = null,
-            fileType: Int = FILE_TYPE_MEDIA,
-            dataType: Int = DATA_TYPE_IMAGE,
-            encrypt: Boolean = false
+        driveId: Uuid,
+        imageBytes: ByteArray,
+        payloadKey: String = "pst_mdia",
+        uniqueId: String? = null,
+        fileType: Int = FILE_TYPE_MEDIA,
+        dataType: Int = DATA_TYPE_IMAGE,
+        encrypt: Boolean = false
     ): ImageUploadResult {
         val actualUniqueId = uniqueId ?: Uuid.random().toString()
         KLogger.d(TAG) {
@@ -141,7 +141,7 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
         }
 
         val instructions =
-                UploadInstructionSet(storageOptions = StorageOptions(drive = targetDrive),
+                UploadInstructionSet(storageOptions = StorageOptions(driveId = driveId),
                         transitOptions = TransitOptions.withoutNotifications(
                             recipients = emptyList(),
                             isTransient = false,
@@ -205,7 +205,7 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
      * @return The upload result
      */
     suspend fun uploadFileWithPayloads(
-            targetDrive: TargetDrive,
+            driveId: Uuid,
             metadata: UploadFileMetadata,
             payloads: List<PayloadFile>? = null,
             thumbnails: List<ThumbnailFile>? = null,
@@ -213,7 +213,7 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
             onVersionConflict: (suspend () -> UploadResult?)? = null
     ): UploadResult? {
         val instructions =
-                UploadInstructionSet(storageOptions = StorageOptions(drive = targetDrive))
+                UploadInstructionSet(storageOptions = StorageOptions(driveId = driveId))
 
         return driveUploadProvider.uploadFile(
                 instructions = instructions,

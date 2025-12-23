@@ -89,8 +89,24 @@ fun FileDetailPage(
                 }
 
                 header != null -> {
-                    FileHeaderPanel(header)
+                    FileHeaderPanel(
+                        header = header,
+                        thumbnailBytes = state.thumbnails,
+                        onViewPayload = { payloadKey ->
+                            // placeholder for now
+                        },
+                        onGetThumbnail = { payloadKey, width, height ->
+                            viewModel.onAction(
+                                FileDetailUiAction.GetThumbnailClicked(
+                                    payloadKey = payloadKey,
+                                    width = width,
+                                    height = height
+                                )
+                            )
+                        }
+                    )
                 }
+
             }
 
         }

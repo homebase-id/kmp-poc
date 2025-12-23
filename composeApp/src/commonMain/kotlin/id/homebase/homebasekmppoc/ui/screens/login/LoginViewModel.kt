@@ -31,12 +31,25 @@ val feedTargetDrive: TargetDrive =
 
 val publicPostsDriveId = Uuid.parse("e8475dc46cb4b6651c2d0dbd0f3aad5f")
 
+val channelDriveType = Uuid.parse("8f448716-e34c-edf9-0141-45e043ca6612")
+
 var targetDriveAccessRequest: List<TargetDriveAccessRequest> =
     listOf(
         TargetDriveAccessRequest(
             alias = feedTargetDrive.alias.toString(),
             type = feedTargetDrive.type.toString(),
             name = "Feed Drive",
+            description = " ",
+            permissions =
+                listOf(
+                    DrivePermissionType.Read,
+                    DrivePermissionType.Write,
+                )
+        ),
+        TargetDriveAccessRequest(
+            alias = publicPostsDriveId.toString(),
+            type = channelDriveType.toString(),
+            name = "Public Posts Drive",
             description = " ",
             permissions =
                 listOf(

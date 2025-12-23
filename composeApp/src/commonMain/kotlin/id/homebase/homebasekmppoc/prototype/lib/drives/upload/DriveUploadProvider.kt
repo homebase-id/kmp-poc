@@ -68,8 +68,6 @@ class DriveUploadProvider(private val client: OdinClient) {
 
     companion object {
         private const val TAG = "DriveUploadProvider"
-        private const val UPLOAD_ENDPOINT = "drive/files/upload"
-        private const val UPDATE_ENDPOINT = "drive/files/update"
         private const val LOCAL_METADATA_TAGS_ENDPOINT = "drive/files/update-local-metadata-tags"
         private const val LOCAL_METADATA_CONTENT_ENDPOINT =
                 "drive/files/update-local-metadata-content"
@@ -99,12 +97,7 @@ class DriveUploadProvider(private val client: OdinClient) {
             aesKey: ByteArray? = null
     ): UploadResult? {
         // Validate version tag usage
-        @Suppress("DEPRECATION")
-        if (instructions.storageOptions?.overwriteFileId == null && metadata.versionTag != null) {
-            KLogger.w(TAG) {
-                "VersionTag is set but no overwriteFileId is provided. The uniqueId is not used to identify the file for update anymore."
-            }
-        }
+
 
         // Force isEncrypted on metadata to match encrypt flag
         val shouldEncrypt = encrypt || aesKey != null
@@ -415,7 +408,8 @@ class DriveUploadProvider(private val client: OdinClient) {
                 )
 
         try {
-            val response: HttpResponse = httpClient.post(UPLOAD_ENDPOINT) { setBody(data) }
+            val url = "drives/files"
+            val response: HttpResponse = httpClient.post(url) { setBody(data) }
             return handleUploadResponse(response, onVersionConflict)
         } catch (e: OdinClientException) {
             throw e
@@ -446,7 +440,8 @@ class DriveUploadProvider(private val client: OdinClient) {
                 )
 
         try {
-            val response: HttpResponse = httpClient.patch(UPDATE_ENDPOINT) { setBody(data) }
+            val url = "drives/files"
+            val response: HttpResponse = httpClient.patch(url) { setBody(data) }
             return handleUpdateResponse(response, onVersionConflict)
         } catch (e: OdinClientException) {
             throw e

@@ -27,6 +27,10 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.uuid.Uuid
+import androidx.compose.foundation.Image
+import androidx.compose.runtime.remember
+import id.homebase.homebasekmppoc.prototype.lib.drives.files.BytesResponse
+
 
 class FileDetailViewModel(
     val driveId: Uuid,
@@ -47,8 +51,12 @@ class FileDetailViewModel(
 
             FileDetailUiAction.GetFileHeaderClicked ->
                 loadHeader()
+
+            is FileDetailUiAction.GetThumbnailClicked ->
+                loadThumbnail(action)
         }
     }
+
 
     private fun loadHeader() {
         if (driveFileProvider == null) {
@@ -83,6 +91,47 @@ class FileDetailViewModel(
         }
     }
 
+    private fun loadThumbnail(action: FileDetailUiAction.GetThumbnailClicked) {
+        val provider = driveFileProvider ?: return
+
+        val key = thumbKey(action.payloadKey, action.width, action.height)
+
+        // already loaded → do nothing
+        if (_uiState.value.thumbnails.containsKey(key)) return
+
+        viewModelScope.launch {
+            try {
+                val bytes =
+                    provider.getThumbBytes(
+                        driveId = driveId,
+                        fileId = fileId,
+                        payloadKey = action.payloadKey,
+                        width = action.width,
+                        height = action.height
+                    )
+
+                if (bytes != null) {
+                    _uiState.update {
+                        it.copy(
+                            thumbnails =
+                                it.thumbnails + (key to bytes)
+                        )
+                    }
+                }
+            } catch (t: Throwable) {
+                // swallow for now or surface later
+            }
+        }
+    }
+
+    private fun thumbKey(
+        payloadKey: String,
+        width: Int,
+        height: Int
+    ): String {
+        return "$payloadKey:${width}x$height"
+    }
+
     private fun sendEvent(event: FileDetailUiEvent) {
         viewModelScope.launch {
             _uiEvent.send(event)
@@ -90,12 +139,15 @@ class FileDetailViewModel(
     }
 }
 
+
 @Composable
 fun FileHeaderPanel(
     header: HomebaseFile,
+    thumbnailBytes: Map<String, BytesResponse>,
     onViewPayload: (key: String) -> Unit = {},
-    onGetThumbnail: (payloadKey: String, thumbnail: ThumbnailDescriptor) -> Unit = { _, _ -> }
-) {
+    onGetThumbnail: (payloadKey: String, width: Int, height: Int) -> Unit
+)
+{
     Column {
         Text(
             text = "File Header",
@@ -137,6 +189,7 @@ fun FileHeaderPanel(
             payloads.forEach { payload ->
                 PayloadWithThumbnails(
                     payload = payload,
+                    thumbnailBytes = thumbnailBytes,
                     onViewPayload = onViewPayload,
                     onGetThumbnail = onGetThumbnail
                 )
@@ -145,11 +198,13 @@ fun FileHeaderPanel(
         }
     }
 }
+
 @Composable
 private fun PayloadWithThumbnails(
     payload: PayloadDescriptor,
+    thumbnailBytes: Map<String, BytesResponse>,
     onViewPayload: (key: String) -> Unit,
-    onGetThumbnail: (payloadKey: String, thumbnail: ThumbnailDescriptor) -> Unit
+    onGetThumbnail: (payloadKey: String, width: Int, height: Int) -> Unit
 ) {
     Column {
         Row(
@@ -157,7 +212,7 @@ private fun PayloadWithThumbnails(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
-                text = payload.key,
+                text = "Key: ${payload.key}",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.weight(1f)
             )
@@ -177,12 +232,20 @@ private fun PayloadWithThumbnails(
             Spacer(Modifier.height(8.dp))
 
             thumbnails.forEach { thumb ->
+                val width = thumb.pixelWidth ?: 0
+                val height = thumb.pixelHeight ?: 0
+                val key = "${payload.key}:${width}x$height"
+
+                val bytes = thumbnailBytes[key]
+
                 ThumbnailRow(
                     payloadKey = payload.key,
                     thumbnail = thumb,
+                    thumbnailBytes = bytes,
                     onGetThumbnail = onGetThumbnail
                 )
             }
+
         } else {
             Spacer(Modifier.height(4.dp))
             Text(
@@ -198,7 +261,8 @@ private fun PayloadWithThumbnails(
 private fun ThumbnailRow(
     payloadKey: String,
     thumbnail: ThumbnailDescriptor,
-    onGetThumbnail: (payloadKey: String, thumbnail: ThumbnailDescriptor) -> Unit
+    thumbnailBytes: BytesResponse?, // 👈 NEW
+    onGetThumbnail: (payloadKey: String, width: Int, height: Int) -> Unit
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -206,23 +270,31 @@ private fun ThumbnailRow(
             .fillMaxWidth()
             .padding(start = 16.dp)
     ) {
-        val sizeText =
-            "${thumbnail.pixelWidth ?: "?"} × ${thumbnail.pixelHeight ?: "?"}"
+        val width = thumbnail.pixelWidth ?: 0
+        val height = thumbnail.pixelHeight ?: 0
 
         Text(
-            text = sizeText,
+            text = "${width} × ${height}",
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.weight(1f)
         )
 
         Button(
-            onClick = { onGetThumbnail(payloadKey, thumbnail) }
+            onClick = {
+                onGetThumbnail(payloadKey, width, height)
+            }
         ) {
             Text("Get thumbnail")
         }
     }
 
-    Spacer(Modifier.height(4.dp))
+    // 👇 Render image if loaded
+    if (thumbnailBytes != null) {
+        Spacer(Modifier.height(8.dp))
+        ThumbnailImage(bytes = thumbnailBytes.bytes)
+    }
+
+    Spacer(Modifier.height(8.dp))
 }
 
 
@@ -242,11 +314,37 @@ private fun LabeledValue(label: String, value: String) {
     }
 }
 
+// androidMain
+@Composable
+fun ThumbnailImage(
+    bytes: ByteArray,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .padding(8.dp)
+    ) {
+        Text(
+            text = "Thumbnail loaded",
+            style = MaterialTheme.typography.labelMedium
+        )
+
+        Text(
+            text = "${bytes.size} bytes",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+
 
 data class FileDetailUiState(
     val isLoading: Boolean = false,
     val header: HomebaseFile? = null,
-    val error: String? = null
+    val error: String? = null,
+
+    val thumbnails: Map<String, BytesResponse> = emptyMap()
 )
 
 sealed interface FileDetailUiEvent {
@@ -256,4 +354,10 @@ sealed interface FileDetailUiEvent {
 sealed interface FileDetailUiAction {
     object BackClicked : FileDetailUiAction
     object GetFileHeaderClicked : FileDetailUiAction
+
+    data class GetThumbnailClicked(
+        val payloadKey: String,
+        val width: Int,
+        val height: Int
+    ) : FileDetailUiAction
 }

@@ -3,7 +3,7 @@ package id.homebase.homebasekmppoc.prototype.ui.driveUpload
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
-import id.homebase.homebasekmppoc.ui.screens.login.feedTargetDrive
+import id.homebase.homebasekmppoc.ui.screens.login.publicPostsDriveId
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -95,7 +95,7 @@ class DriveUploadViewModel(private val driveUploadService: DriveUploadService?) 
             try {
                 val result =
                         driveUploadService.uploadTextPost(
-                                targetDrive = feedTargetDrive,
+                                driveId = publicPostsDriveId,
                                 postContent = postContent,
                                 encrypt = false
                         )
@@ -136,7 +136,7 @@ class DriveUploadViewModel(private val driveUploadService: DriveUploadService?) 
             try {
                 val result =
                         driveUploadService.uploadImage(
-                                targetDrive = feedTargetDrive,
+                                driveId = publicPostsDriveId,
                                 imageBytes = imageBytes,
                                 encrypt = true
                         )
