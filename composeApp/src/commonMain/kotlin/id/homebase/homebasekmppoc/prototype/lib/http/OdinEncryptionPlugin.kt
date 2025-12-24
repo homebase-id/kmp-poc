@@ -34,7 +34,6 @@ val OdinEncryptionPlugin =
                     val currentBody = request.body
                     if (currentBody is TextContent && currentBody.text.isNotBlank()) {
                         val payload = CryptoHelper.encryptData(currentBody.text, secret)
-//                            request.setBody(payload)
                         request.setBody(
                             TextContent(
                                 OdinSystemSerializer.json.encodeToString(payload),
@@ -63,11 +62,9 @@ val OdinEncryptionPlugin =
                     OdinEncryptionKeys.Secret
                 )
                     ?: return@transformResponseBody null
-            val override =
-                this@createClientPlugin.client.attributes.getOrNull(
-                    OdinEncryptionKeys.Override
-                )
-                    ?: false
+            val override = this@createClientPlugin.client.attributes.getOrNull(
+                OdinEncryptionKeys.Override
+            ) ?: false
 
             if (secret.isEmpty() || override || response.status.value == 204) {
                 return@transformResponseBody null
@@ -116,8 +113,8 @@ val OdinEncryptionPlugin =
     }
 
 
-val OdinEncryptedErrorPlugin =
-    createClientPlugin("OdinEncryptedError") {
+val OdinErrorPlugin =
+    createClientPlugin("OdinErrorPlugin") {
 
         on(Send) { request ->
             try {

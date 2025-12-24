@@ -4,6 +4,7 @@ import id.homebase.homebasekmppoc.prototype.lib.core.SecureByteArray
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchRequest
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResponse
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.ValidationUtil
+import id.homebase.homebasekmppoc.prototype.lib.http.CreateHttpClientOptions
 import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
 import io.ktor.client.call.body
 import io.ktor.client.request.accept
@@ -42,7 +43,7 @@ class DriveQueryProvider(private val odinClient: OdinClient) {
             }
 
         val url = "drives/${driveId}/files/query-batch"
-        val client = odinClient.createHttpClient()
+        val client = odinClient.createHttpClient(CreateHttpClientOptions())
 
         val response: QueryBatchResponse =
             client

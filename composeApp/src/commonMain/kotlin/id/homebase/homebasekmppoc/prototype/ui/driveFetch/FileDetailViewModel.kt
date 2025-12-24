@@ -28,8 +28,12 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.uuid.Uuid
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalDensity
+import id.homebase.homebasekmppoc.lib.image.toImageBitmap
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.BytesResponse
+import id.homebase.homebasekmppoc.prototype.lib.drives.files.FileOperationOptions
 
 
 class FileDetailViewModel(
@@ -107,7 +111,8 @@ class FileDetailViewModel(
                         fileId = fileId,
                         payloadKey = action.payloadKey,
                         width = action.width,
-                        height = action.height
+                        height = action.height,
+                        options = FileOperationOptions(decrypt = true)
                     )
 
                 if (bytes != null) {
@@ -146,8 +151,7 @@ fun FileHeaderPanel(
     thumbnailBytes: Map<String, BytesResponse>,
     onViewPayload: (key: String) -> Unit = {},
     onGetThumbnail: (payloadKey: String, width: Int, height: Int) -> Unit
-)
-{
+) {
     Column {
         Text(
             text = "File Header",
@@ -261,7 +265,7 @@ private fun PayloadWithThumbnails(
 private fun ThumbnailRow(
     payloadKey: String,
     thumbnail: ThumbnailDescriptor,
-    thumbnailBytes: BytesResponse?, // 👈 NEW
+    thumbnailBytes: BytesResponse?,
     onGetThumbnail: (payloadKey: String, width: Int, height: Int) -> Unit
 ) {
     Row(
@@ -291,7 +295,11 @@ private fun ThumbnailRow(
     // 👇 Render image if loaded
     if (thumbnailBytes != null) {
         Spacer(Modifier.height(8.dp))
-        ThumbnailImage(bytes = thumbnailBytes.bytes)
+        ThumbnailImage(
+            bytes = thumbnailBytes.bytes,
+            pixelWidth = thumbnail.pixelWidth,
+            pixelHeight = thumbnail.pixelHeight
+        )
     }
 
     Spacer(Modifier.height(8.dp))
@@ -314,29 +322,49 @@ private fun LabeledValue(label: String, value: String) {
     }
 }
 
-// androidMain
+
 @Composable
 fun ThumbnailImage(
     bytes: ByteArray,
+    pixelWidth: Int?,
+    pixelHeight: Int?,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier
-            .padding(8.dp)
-    ) {
-        Text(
-            text = "Thumbnail loaded",
-            style = MaterialTheme.typography.labelMedium
-        )
+    val imageBitmap = remember(bytes) {
+        bytes.toImageBitmap()
+    }
 
-        Text(
-            text = "${bytes.size} bytes",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+    val density = LocalDensity.current
+
+    // Convert only if both dimensions are known
+    val sizeModifier =
+        if (pixelWidth != null && pixelHeight != null) {
+            val widthDp = with(density) { pixelWidth.toDp() }
+            val heightDp = with(density) { pixelHeight.toDp() }
+            Modifier.size(widthDp, heightDp)
+        } else {
+            // Fallback size to avoid zero / layout issues
+            Modifier
+                .fillMaxWidth()
+                .height(120.dp)
+        }
+
+    Column(modifier = modifier.padding(8.dp)) {
+        if (imageBitmap != null) {
+            Image(
+                bitmap = imageBitmap,
+                contentDescription = "Thumbnail",
+                modifier = sizeModifier
+            )
+        } else {
+            Text(
+                text = "Unable to render image",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
     }
 }
-
 
 
 data class FileDetailUiState(

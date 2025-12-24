@@ -149,6 +149,7 @@ open class DriveSyncThreadSafetyTest {
         return SharedSecretEncryptedFileHeader(
             fileId = uniqueId,
             targetDrive = targetDrive,
+            driveId = targetDrive.alias,
             fileState = FileState.Active,
             fileSystemType = FileSystemType.Standard,
             sharedSecretEncryptedKeyHeader = id.homebase.homebasekmppoc.prototype.lib.crypto.EncryptedKeyHeader(

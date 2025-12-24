@@ -114,12 +114,12 @@ class UploadTypesTest {
         fun `StorageOptions creation works correctly`() {
                 val options =
                         StorageOptions(
-                                driveId = testTargetDrive,
+                                driveId = testTargetDrive.alias,
                                 expiresTimestamp = 1702656000L,
                                 storageIntent = "metadataOnly"
                         )
 
-                assertEquals(testTargetDrive, options.driveId)
+                assertEquals(testTargetDrive.alias, options.driveId)
                 assertEquals(1702656000L, options.expiresTimestamp)
                 assertEquals("metadataOnly", options.storageIntent)
         }

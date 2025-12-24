@@ -109,10 +109,9 @@ object MockOdinClientSetup {
             mockClient: HttpClient,
             sharedSecret: ByteArray? = createTestSharedSecret(),
             hostIdentity: String = "test.domain.com",
-            api: ApiType = ApiType.App
     ): OdinClient {
         val options =
-                ProviderOptions(api = api, sharedSecret = sharedSecret, hostIdentity = hostIdentity)
+                ProviderOptions(sharedSecret = sharedSecret, hostIdentity = hostIdentity)
         return TestableOdinClient(options, mockClient)
     }
 

@@ -3,8 +3,11 @@ package id.homebase.homebasekmppoc.prototype.ui.driveFetch
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
@@ -89,26 +92,31 @@ fun FileDetailPage(
                 }
 
                 header != null -> {
-                    FileHeaderPanel(
-                        header = header,
-                        thumbnailBytes = state.thumbnails,
-                        onViewPayload = { payloadKey ->
-                            // placeholder for now
-                        },
-                        onGetThumbnail = { payloadKey, width, height ->
-                            viewModel.onAction(
-                                FileDetailUiAction.GetThumbnailClicked(
-                                    payloadKey = payloadKey,
-                                    width = width,
-                                    height = height
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f) // 👈 take remaining space
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        FileHeaderPanel(
+                            header = header,
+                            thumbnailBytes = state.thumbnails,
+                            onViewPayload = { payloadKey ->
+                                // placeholder
+                            },
+                            onGetThumbnail = { payloadKey, width, height ->
+                                viewModel.onAction(
+                                    FileDetailUiAction.GetThumbnailClicked(
+                                        payloadKey = payloadKey,
+                                        width = width,
+                                        height = height
+                                    )
                                 )
-                            )
-                        }
-                    )
+                            }
+                        )
+                    }
                 }
-
             }
-
         }
     }
 }
