@@ -19,7 +19,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.*
-import kotlinx.coroutines.flow.collect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -102,7 +101,11 @@ fun FileDetailPage(
                             header = header,
                             thumbnailBytes = state.thumbnails,
                             onViewPayload = { payloadKey ->
-                                // placeholder
+                                viewModel.onAction(
+                                    FileDetailUiAction.ViewPayloadClicked(
+                                        payloadKey = payloadKey
+                                    )
+                                )
                             },
                             onGetThumbnail = { payloadKey, width, height ->
                                 viewModel.onAction(

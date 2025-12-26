@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.LocalDensity
 import id.homebase.homebasekmppoc.lib.image.toImageBitmap
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.BytesResponse
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.FileOperationOptions
+import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadOperationOptions
 
 
 class FileDetailViewModel(
@@ -58,6 +59,9 @@ class FileDetailViewModel(
 
             is FileDetailUiAction.GetThumbnailClicked ->
                 loadThumbnail(action)
+
+            is FileDetailUiAction.ViewPayloadClicked ->
+                loadPayload(action)
         }
     }
 
@@ -91,6 +95,35 @@ class FileDetailViewModel(
                         error = t.message ?: "Failed to load file header"
                     )
                 }
+            }
+        }
+    }
+
+    private fun loadPayload(action: FileDetailUiAction.ViewPayloadClicked) {
+        val provider = driveFileProvider ?: return
+
+        // already loaded → do nothing
+        if (_uiState.value.payload != null) return;
+
+        viewModelScope.launch {
+            try {
+                val bytes =
+                    provider.getPayloadBytes(
+                        driveId = driveId,
+                        fileId = fileId,
+                        key = action.payloadKey,
+                        options = PayloadOperationOptions()
+                    )
+
+                if (bytes != null) {
+                    _uiState.update {
+                        it.copy(
+                            payload = it.payload
+                        )
+                    }
+                }
+            } catch (t: Throwable) {
+                // swallow for now or surface later
             }
         }
     }
@@ -372,7 +405,8 @@ data class FileDetailUiState(
     val header: HomebaseFile? = null,
     val error: String? = null,
 
-    val thumbnails: Map<String, BytesResponse> = emptyMap()
+    val thumbnails: Map<String, BytesResponse> = emptyMap(),
+    val payload: BytesResponse? = null
 )
 
 sealed interface FileDetailUiEvent {
@@ -387,5 +421,9 @@ sealed interface FileDetailUiAction {
         val payloadKey: String,
         val width: Int,
         val height: Int
+    ) : FileDetailUiAction
+
+    data class ViewPayloadClicked(
+        val payloadKey: String
     ) : FileDetailUiAction
 }
