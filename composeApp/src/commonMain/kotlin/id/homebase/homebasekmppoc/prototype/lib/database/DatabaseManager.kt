@@ -1,6 +1,9 @@
 package id.homebase.homebasekmppoc.prototype.lib.database
 
 import app.cash.sqldelight.db.SqlDriver
+import app.cash.sqldelight.db.QueryResult
+import app.cash.sqldelight.db.SqlCursor
+import app.cash.sqldelight.db.SqlPreparedStatement
 import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.lib.database.AppNotifications
 import id.homebase.homebasekmppoc.lib.database.DriveLocalTagIndex
@@ -70,6 +73,17 @@ object DatabaseManager {
         }
     }
 
+    suspend fun <R> executeReadQuery(
+        identifier: Int?,
+        sql: String,
+        mapper: (SqlCursor) -> QueryResult<R>,
+        parameters: Int,
+        binders: (SqlPreparedStatement.() -> Unit)? = null
+    ): QueryResult<R>
+    {
+        return getDriver().executeQuery(identifier, sql, mapper, parameters, binders);
+    }
+
     suspend fun withWriteTransaction(block: (OdinDatabase) -> Unit) {
         withContext(dbDispatcher) {
             val db = getDatabase()
@@ -90,7 +104,7 @@ object DatabaseManager {
         return database ?: throw IllegalStateException("Database not initialized. Call initialize() first.")
     }
 
-    fun getDriver(): SqlDriver {
+    private fun getDriver(): SqlDriver {
         return driver ?: throw IllegalStateException("Database not initialized. Call initialize() first.")
     }
 

@@ -216,7 +216,7 @@ class QueryBatch(
         } ORDER BY $orderString LIMIT ${actualNoOfItems + 1}"
 
         // Execute custom SQL using SQLDelight driver
-        val result = database.getDriver().executeQuery(
+        val result = database.executeReadQuery(
             identifier = null,
             sql = sqlStatement,
             mapper = { sqlCursor ->

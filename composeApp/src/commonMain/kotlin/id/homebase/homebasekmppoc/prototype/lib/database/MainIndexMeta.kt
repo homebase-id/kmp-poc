@@ -51,8 +51,7 @@ object MainIndexMetaHelpers {
             driveId: Uuid,
             fileId: Uuid
         ) {
-            val db = database.getDatabase();
-            db.transaction {
+            database.withWriteTransaction { db ->
                 db.driveMainIndexQueries.deleteBy(identityId, driveId, fileId)
                 db.driveTagIndexQueries.deleteByFile(identityId, driveId, fileId)
                 db.driveLocalTagIndexQueries.deleteByFile(identityId, driveId, fileId)
