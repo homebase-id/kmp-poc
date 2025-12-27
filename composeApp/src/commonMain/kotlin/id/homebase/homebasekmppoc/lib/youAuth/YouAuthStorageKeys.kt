@@ -10,4 +10,7 @@ object YouAuthStorageKeys {
 
     /** Base64-encoded shared secret for request encryption */
     const val SHARED_SECRET = "youauth_shared_secret"
+
+    /** The last used Homebase ID for login */
+    const val LAST_HOMEBASE_ID = "youauth_last_homebase_id"
 }

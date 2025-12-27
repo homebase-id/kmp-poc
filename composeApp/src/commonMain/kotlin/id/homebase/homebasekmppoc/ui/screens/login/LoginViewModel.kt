@@ -2,7 +2,9 @@ package id.homebase.homebasekmppoc.ui.screens.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.lib.youAuth.DrivePermissionType
+import id.homebase.homebasekmppoc.lib.youAuth.LoginNameStorage
 import id.homebase.homebasekmppoc.lib.youAuth.TargetDriveAccessRequest
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthState
@@ -55,7 +57,10 @@ var targetDriveAccessRequest: List<TargetDriveAccessRequest> =
  * - Single entry point via onAction()
  * - One-off events via Channel
  */
-class LoginViewModel(private val youAuthFlowManager: YouAuthFlowManager) : ViewModel() {
+class LoginViewModel(
+    private val youAuthFlowManager: YouAuthFlowManager,
+    private val loginNameStorage: LoginNameStorage
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
@@ -64,8 +69,17 @@ class LoginViewModel(private val youAuthFlowManager: YouAuthFlowManager) : ViewM
     val uiEvent = _uiEvent.receiveAsFlow()
 
     init {
+        Logger.d("LoginViewModel", null, "LoginViewModel init - starting")
+        loadSavedLoginName()
         checkExistingSession()
         observeAuthState()
+        Logger.d("LoginViewModel", null, "LoginViewModel init - completed")
+    }
+
+    /** Load the last saved Homebase ID on initialization. */
+    private fun loadSavedLoginName() {
+        val savedHomebaseId = loginNameStorage.loadLoginName()
+        _uiState.update { it.copy(homebaseId = savedHomebaseId) }
     }
 
     /** Single entry point for all UI actions. */
@@ -89,13 +103,25 @@ class LoginViewModel(private val youAuthFlowManager: YouAuthFlowManager) : ViewM
     }
 
     private fun handleAppResumed() {
-        viewModelScope.launch { youAuthFlowManager.onAppResumed() }
+        Logger.d("LoginViewModel", null, "handleAppResumed called")
+        viewModelScope.launch { 
+            Logger.d("LoginViewModel", null, "Calling onAppResumed at ${System.currentTimeMillis()}")
+            youAuthFlowManager.onAppResumed() 
+        }
     }
 
     private fun checkExistingSession() {
-        if (youAuthFlowManager.restoreSession()) {
-            _uiState.update { it.copy(isAuthenticated = true) }
-            viewModelScope.launch { _uiEvent.send(LoginUiEvent.NavigateToHome) }
+        try {
+            Logger.d("LoginViewModel", null, "checkExistingSession - starting")
+            val sessionRestored = youAuthFlowManager.restoreSession()
+            Logger.d("LoginViewModel", null, "checkExistingSession - restoreSession returned: $sessionRestored")
+            if (sessionRestored) {
+                _uiState.update { it.copy(isAuthenticated = true) }
+                viewModelScope.launch { _uiEvent.send(LoginUiEvent.NavigateToHome) }
+            }
+        } catch (e: Exception) {
+            Logger.e("LoginViewModel", e, "Error checking existing session")
+            _uiState.update { it.copy(errorMessage = "Error checking existing session: ${e.message}") }
         }
     }
 
@@ -126,6 +152,7 @@ private fun performLogin() {
 
             // Start the YouAuth authorization flow
             try {
+                Logger.d("LoginViewModel", null, "Starting authorization for: $homebaseId")
                 youAuthFlowManager.authorize(
                         identity = homebaseId,
                         scope = viewModelScope,
@@ -133,9 +160,11 @@ private fun performLogin() {
                         appName = AppConfig.APP_NAME,
                         drives = targetDriveAccessRequest
                 )
+                Logger.d("LoginViewModel", null, "Authorization method completed")
             } catch (e: Exception) {
+                Logger.e("LoginViewModel", e, "Error starting authorization")
                 _uiState.update {
-                    it.copy(isLoading = false, errorMessage = e.message ?: "Login failed")
+                    it.copy(isLoading = false, errorMessage = "Failed to start login: ${e.message ?: "Unknown error"}")
                 }
             }
         }
@@ -144,20 +173,36 @@ private fun performLogin() {
     private fun observeAuthState() {
         viewModelScope.launch {
             youAuthFlowManager.authState.collect { authState ->
+                Logger.d("LoginViewModel", null, "Auth state changed to: ${authState::class.simpleName}, message: ${if (authState is YouAuthState.Error) authState.message else "N/A"}")
                 when (authState) {
                     is YouAuthState.Unauthenticated -> {
-                        _uiState.update { it.copy(isLoading = false, isAuthenticated = false) }
+                        Logger.d("LoginViewModel", null, "Processing Unauthenticated state, current error: ${_uiState.value.errorMessage}")
+                        // Only clear error if it was from a successful logout, not from an error
+                        val currentError = _uiState.value.errorMessage
+                        _uiState.update { 
+                            it.copy(isLoading = false, isAuthenticated = false, 
+                                errorMessage = if (currentError?.contains("logout") == true) null else currentError)
+                        }
+                        Logger.d("LoginViewModel", null, "Updated state to Unauthenticated, error: ${_uiState.value.errorMessage}")
                     }
                     is YouAuthState.Authenticating -> {
-                        _uiState.update { it.copy(isLoading = true) }
+                        _uiState.update { it.copy(isLoading = true, errorMessage = null) }
                     }
                     is YouAuthState.Authenticated -> {
-                        _uiState.update { it.copy(isLoading = false, isAuthenticated = true) }
+                        _uiState.update { it.copy(isLoading = false, isAuthenticated = true, errorMessage = null) }
+                        
+                        // Save the successful homebaseId for next time
+                        val currentHomebaseId = _uiState.value.homebaseId.cleanDomain(false)
+                        if (currentHomebaseId.isNotBlank()) {
+                            loginNameStorage.saveLoginName(currentHomebaseId)
+                        }
+                        
                         _uiEvent.send(LoginUiEvent.NavigateToHome)
                     }
                     is YouAuthState.Error -> {
+                        Logger.w("LoginViewModel", null, "Authentication error: ${authState.message}")
                         _uiState.update {
-                            it.copy(isLoading = false, errorMessage = authState.message)
+                            it.copy(isLoading = false, isAuthenticated = false, errorMessage = authState.message ?: "Authentication failed")
                         }
                     }
                 }

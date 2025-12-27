@@ -101,22 +101,39 @@ class YouAuthFlowManager {
 
     /** Check if there are stored credentials and restore session. */
     fun restoreSession(): Boolean {
-        if (OdinClientFactory.hasStoredCredentials()) {
-            val client = OdinClientFactory.createFromStorage()
-            if (client != null) {
-                val identity = client.getHostIdentity()
-                // We don't have the raw tokens here, but we know we're authenticated
-                client.getSharedSecret()?.let {
-                    _authState.value =
-                        YouAuthState.Authenticated(
-                            identity = identity,
-                            clientAuthToken =  SecureStorage.get(YouAuthStorageKeys.CLIENT_AUTH_TOKEN) ?:  "" , // TODO: Remove this afterwards when seb decided to ditch the old http code Not needed since OdinClient is configured
-                            sharedSecret = Base64.encode( it)
-                        )
+        try {
+            if (OdinClientFactory.hasStoredCredentials()) {
+                Logger.d(TAG) { "Found stored credentials, attempting to restore session" }
+                val client = OdinClientFactory.createFromStorage()
+                if (client != null) {
+                    val identity = client.getHostIdentity()
+                    // We don't have the raw tokens here, but we know we're authenticated
+                    val sharedSecret = client.getSharedSecret()
+                    if (sharedSecret != null) {
+                        _authState.value =
+                            YouAuthState.Authenticated(
+                                identity = identity,
+                                clientAuthToken = SecureStorage.get(YouAuthStorageKeys.CLIENT_AUTH_TOKEN) ?: "",
+                                sharedSecret = Base64.encode(sharedSecret)
+                            )
+                        Logger.i(TAG) { "Session restored successfully for $identity" }
+                        return true
+                    } else {
+                        Logger.w(TAG) { "Failed to get shared secret for $identity" }
+                        _authState.value = YouAuthState.Error("Failed to restore session: invalid shared secret")
+                        return false
+                    }
+                } else {
+                    Logger.w(TAG) { "Failed to create client from stored credentials" }
+                    _authState.value = YouAuthState.Error("Failed to restore session: invalid client")
+                    return false
                 }
-                Logger.i(TAG) { "Session restored for $identity" }
-                return true
+            } else {
+                Logger.d(TAG) { "No stored credentials found" }
             }
+        } catch (e: Exception) {
+            Logger.e(TAG, e) { "Error during session restoration" }
+            _authState.value = YouAuthState.Error("Failed to restore session: ${e.message}")
         }
         return false
     }
@@ -142,11 +159,17 @@ class YouAuthFlowManager {
             circles: List<String>? = null,
             clientFriendlyName: String? = null
     ) {
-        if (_authState.value == YouAuthState.Authenticating ||
-                        _authState.value is YouAuthState.Authenticated
-        ) {
-            Logger.e(TAG) { "Already authenticating or authenticated" }
+        // Check if we're already in the middle of authentication
+        if (_authState.value == YouAuthState.Authenticating) {
+            Logger.w(TAG) { "Authentication already in progress" }
+            _authState.value = YouAuthState.Error("Authentication already in progress")
             return
+        }
+        
+        // If we think we're authenticated but credentials might be stale, allow re-auth
+        if (_authState.value is YouAuthState.Authenticated) {
+            Logger.w(TAG) { "Already authenticated, but proceeding with new auth request for identity: $identity" }
+            // Continue with new authorization - this handles stale token scenarios
         }
 
         _authState.value = YouAuthState.Authenticating
@@ -161,6 +184,7 @@ class YouAuthFlowManager {
 
             // Register for callback
             callbackRegistry[state] = this
+            Logger.d(TAG, null, "Registered auth flow with state: $state")
 
             // Build redirect URI
             val redirectUri = RedirectConfig.buildRedirectUri(appId)
@@ -207,6 +231,8 @@ class YouAuthFlowManager {
 
     /** Complete the authentication flow after browser callback. */
     private suspend fun completeAuth(url: String, state: String, queryParams: Map<String, String>) {
+        Logger.d(TAG, null, "completeAuth called with state: $state")
+        
         if (authCodeFlowState == null) {
             Logger.e(TAG) { "No pending auth code flow state" }
             _authState.value = YouAuthState.Error("No pending auth code flow")
@@ -256,7 +282,7 @@ class YouAuthFlowManager {
                             sharedSecret = result.sharedSecret
                     )
 
-            Logger.i(TAG) { "Authentication completed successfully for ${result.identity}" }
+            Logger.i(TAG) { "Authentication completed successfully for ${result.identity} at ${System.currentTimeMillis()}" }
         } catch (e: Exception) {
             Logger.e(TAG, e) { "Error completing auth" }
             _authState.value = YouAuthState.Error(e.message ?: "Unknown error")
@@ -269,18 +295,25 @@ class YouAuthFlowManager {
     /** Logout and clear credentials. */
     suspend fun logout() {
         try {
+            Logger.d(TAG, null, "Logout process started")
+            // Clean up any in-progress authentication
+            cancelAuth()
+            
             val client = OdinClientFactory.createFromStorage()
             if (client != null) {
+                Logger.d(TAG, null, "Calling provider logout")
                 val provider = YouAuthProvider(client)
                 provider.logout()
             }
         } catch (e: Exception) {
             Logger.e(TAG, e) { "Error during logout" }
+        } finally {
+            // Always clear credentials and reset state
+            Logger.d(TAG, null, "Clearing credentials and setting unauthenticated state")
+            OdinClientFactory.clearCredentials()
+            _authState.value = YouAuthState.Unauthenticated
+            Logger.i(TAG) { "User logged out" }
         }
-
-        OdinClientFactory.clearCredentials()
-        _authState.value = YouAuthState.Unauthenticated
-        Logger.i(TAG) { "User logged out" }
     }
 
     /** Check if authentication is in progress. */
@@ -315,13 +348,15 @@ class YouAuthFlowManager {
      */
     suspend fun onAppResumed(delayMs: Long = 500) {
         if (_authState.value == YouAuthState.Authenticating) {
+            Logger.d(TAG, null, "App resumed during authentication, waiting ${delayMs}ms for callback")
+            
             // Wait a short time for callback to potentially arrive
             kotlinx.coroutines.delay(delayMs)
 
-            // If still authenticating, assume user cancelled
+            // If still authenticating, assume user cancelled or timeout occurred
             if (_authState.value == YouAuthState.Authenticating) {
-                Logger.i(TAG) { "App resumed without auth callback, assuming user cancelled" }
-                cancelAuth()
+                Logger.i(TAG) { "App resumed without auth callback, setting error state" }
+                _authState.value = YouAuthState.Error("Authentication timed out - please try again")
             }
         }
     }

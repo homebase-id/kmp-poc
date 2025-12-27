@@ -1,5 +1,6 @@
 package id.homebase.homebasekmppoc.di
 
+import id.homebase.homebasekmppoc.lib.youAuth.LoginNameStorage
 import id.homebase.homebasekmppoc.lib.youAuth.OdinClientFactory
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthProvider
@@ -51,6 +52,9 @@ val appModule = module {
 
     // YouAuthFlowManager - the main auth flow manager for UI
     singleOf(::YouAuthFlowManager)
+
+    // LoginNameStorage - for saving/loading last used Homebase ID
+    singleOf(::LoginNameStorage)
 
     // ViewModels
     viewModelOf(::LoginViewModel)

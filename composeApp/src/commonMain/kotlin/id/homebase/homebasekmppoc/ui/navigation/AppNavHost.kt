@@ -9,6 +9,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthState
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthenticationManager
@@ -56,8 +57,11 @@ fun AppNavHost(
     NavHost(navController = navController, startDestination = startDestination) {
         // Login route
         composable<Route.Login> {
+            Logger.d("AppNavHost", null, "Composing Login route")
             val viewModel = koinViewModel<LoginViewModel>()
             val state by viewModel.uiState.collectAsState()
+            
+            Logger.d("AppNavHost", null, "Login route state: isLoading=${state.isLoading}, errorMessage=${state.errorMessage}")
 
             // Observe navigation events
             ObserveAsEvents(viewModel.uiEvent) { event ->
@@ -210,6 +214,10 @@ private fun AuthenticatedRouteWithFlowManager(
         is YouAuthState.Authenticating -> {
             // Show loading or nothing while authenticating
         }
-        is YouAuthState.Error -> onUnauthenticated()
+        is YouAuthState.Error -> {
+            val errorMessage = (currentAuthState as YouAuthState.Error).message
+            Logger.e("AppNavHost", null, "Authentication error in protected route: $errorMessage")
+            onUnauthenticated() // Still redirect to login, but now we log the error
+        }
     }
 }

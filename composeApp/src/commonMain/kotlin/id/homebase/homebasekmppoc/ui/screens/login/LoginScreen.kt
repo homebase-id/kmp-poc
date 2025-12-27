@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.ui.assets.Homebase
 import id.homebase.homebasekmppoc.ui.assets.HomebaseIcons
 
@@ -49,6 +50,9 @@ import id.homebase.homebasekmppoc.ui.assets.HomebaseIcons
  */
 @Composable
 fun LoginScreen(state: LoginUiState, onAction: (LoginUiAction) -> Unit) {
+    // Debug logging to track state changes
+    Logger.d("LoginScreen", null, "LoginScreen recomposed with state: isLoading=${state.isLoading}, isAuthenticated=${state.isAuthenticated}, errorMessage=${state.errorMessage}, homebaseId=${state.homebaseId}")
+    
     // Detect when app resumes from background (e.g., after browser auth was cancelled)
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
