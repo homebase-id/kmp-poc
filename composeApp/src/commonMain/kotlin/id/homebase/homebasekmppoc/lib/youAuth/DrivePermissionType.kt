@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc.lib.youAuth
+package id.homebase.homebasekmppoc.lib.youauth
 
 /**
  * Bitwise permission flags for drive access. Multiple permissions can be combined by summing their

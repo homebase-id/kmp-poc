@@ -2,7 +2,7 @@ package id.homebase.homebasekmppoc.ui.screens.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
+import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

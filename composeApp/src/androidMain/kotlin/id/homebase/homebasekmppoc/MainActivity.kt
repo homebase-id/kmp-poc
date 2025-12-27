@@ -11,7 +11,7 @@ import androidx.lifecycle.lifecycleScope
 import id.homebase.homebasekmppoc.lib.core.ActivityProvider
 import id.homebase.homebasekmppoc.lib.storage.SecureStorage
 import id.homebase.homebasekmppoc.lib.storage.SharedPreferences
-import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
+import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseDriverFactory
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
 import io.github.vinceglb.filekit.FileKit

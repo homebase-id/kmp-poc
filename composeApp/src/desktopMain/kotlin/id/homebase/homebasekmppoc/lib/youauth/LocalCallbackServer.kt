@@ -1,7 +1,7 @@
 package id.homebase.homebasekmppoc.lib.youauth
 
 import co.touchlab.kermit.Logger
-import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
+import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import io.ktor.server.cio.CIO
 import io.ktor.server.cio.CIOApplicationEngine
 import io.ktor.server.engine.EmbeddedServer
