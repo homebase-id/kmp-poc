@@ -220,19 +220,7 @@ private fun ErrorContent(
                 keyboardActions = KeyboardActions(onDone = { onRetryClick() })
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-OutlinedTextField(
-                value = homebaseId,
-                onValueChange = onHomebaseIdChange,
-                label = { Text("Homebase ID") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { onRetryClick() })
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
+Spacer(modifier = Modifier.height(24.dp))
 
         Button(onClick = onRetryClick, modifier = Modifier.fillMaxWidth()) { Text("Try Again") }
     }
