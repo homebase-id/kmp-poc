@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -20,9 +22,17 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -145,14 +155,26 @@ private fun LoginFormContent(
         onHomebaseIdChange: (String) -> Unit,
         onLoginClick: () -> Unit
 ) {
+    val focusRequester = remember { FocusRequester() }
+    
+    // Request focus when login form is first displayed
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
+    
     Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         OutlinedTextField(
-                value = homebaseId,
-                onValueChange = onHomebaseIdChange,
+                value = TextFieldValue(
+                    text = homebaseId,
+                    selection = TextRange(homebaseId.length) // Position cursor at end
+                ),
+                onValueChange = { onHomebaseIdChange(it.text) },
                 label = { Text("Homebase ID") },
                 placeholder = { Text("your.identity.id") },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { onLoginClick() })
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -168,6 +190,13 @@ private fun ErrorContent(
         onHomebaseIdChange: (String) -> Unit,
         onRetryClick: () -> Unit
 ) {
+    val focusRequester = remember { FocusRequester() }
+    
+    // Request focus when error form is displayed
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
+    
     Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
                 text = "Error: $message",
@@ -179,11 +208,28 @@ private fun ErrorContent(
         Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(
+                value = TextFieldValue(
+                    text = homebaseId,
+                    selection = TextRange(homebaseId.length) // Position cursor at end
+                ),
+                onValueChange = { onHomebaseIdChange(it.text) },
+                label = { Text("Homebase ID") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { onRetryClick() })
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+OutlinedTextField(
                 value = homebaseId,
                 onValueChange = onHomebaseIdChange,
                 label = { Text("Homebase ID") },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { onRetryClick() })
         )
 
         Spacer(modifier = Modifier.height(24.dp))

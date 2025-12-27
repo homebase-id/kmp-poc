@@ -7,7 +7,13 @@ import id.homebase.homebasekmppoc.lib.youAuth.TargetDriveAccessRequest
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youAuth.YouAuthState
 import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
+import id.homebase.homebasekmppoc.prototype.lib.http.createHttpClient
 import id.homebase.homebasekmppoc.ui.extensions.cleanDomain
+import io.ktor.client.HttpClient
+import io.ktor.client.request.head
+import io.ktor.client.statement.HttpResponse
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.isSuccess
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -93,8 +99,8 @@ class LoginViewModel(private val youAuthFlowManager: YouAuthFlowManager) : ViewM
         }
     }
 
-    private fun performLogin() {
-        val homebaseId = _uiState.value.homebaseId
+private fun performLogin() {
+        val homebaseId = _uiState.value.homebaseId.cleanDomain(false)
         if (homebaseId.isBlank()) {
             _uiState.update { it.copy(errorMessage = "Please enter a valid Homebase ID") }
             return
@@ -102,6 +108,23 @@ class LoginViewModel(private val youAuthFlowManager: YouAuthFlowManager) : ViewM
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            
+            // Verify the identity is reachable before starting auth flow
+            try {
+                val httpClient = createHttpClient()
+                val pingUrl = "https://$homebaseId/api/v1/ping"
+                val response: HttpResponse = httpClient.head(pingUrl)
+
+                if (!response.status.isSuccess()) {
+                    _uiState.update { it.copy(isLoading = false, errorMessage = "Unable to ping $homebaseId - are you sure it's a Homebase ID?") }
+                    return@launch
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, errorMessage = "Unable to contact $homebaseId - are you sure it's a Homebase ID? ${e.message}") }
+                return@launch
+            }
+
+            // Start the YouAuth authorization flow
             try {
                 youAuthFlowManager.authorize(
                         identity = homebaseId,
