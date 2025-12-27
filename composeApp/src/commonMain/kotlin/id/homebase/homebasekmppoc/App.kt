@@ -3,8 +3,8 @@ package id.homebase.homebasekmppoc
 import androidx.compose.runtime.Composable
 import androidx.navigation.compose.rememberNavController
 import id.homebase.homebasekmppoc.di.allModules
-import id.homebase.homebasekmppoc.lib.youAuth.OdinClientFactory
-import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
+import id.homebase.homebasekmppoc.lib.youauth.OdinClientFactory
+import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.ui.navigation.AppNavHost
 import id.homebase.homebasekmppoc.ui.theme.HomebaseTheme
 import org.jetbrains.compose.ui.tooling.preview.Preview

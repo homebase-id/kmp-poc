@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc.lib.youAuth
+package id.homebase.homebasekmppoc.lib.youauth
 
 /** Secure storage keys for YouAuth authentication data. */
 object YouAuthStorageKeys {

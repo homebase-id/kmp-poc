@@ -9,8 +9,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
-import id.homebase.homebasekmppoc.lib.youAuth.YouAuthState
+import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
+import id.homebase.homebasekmppoc.lib.youauth.YouAuthState
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthenticationManager
 import id.homebase.homebasekmppoc.prototype.ui.cdn.CdnTestPage
 import id.homebase.homebasekmppoc.prototype.ui.db.DbPage

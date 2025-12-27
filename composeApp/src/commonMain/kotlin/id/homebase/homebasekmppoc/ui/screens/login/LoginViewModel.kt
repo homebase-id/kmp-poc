@@ -2,11 +2,11 @@ package id.homebase.homebasekmppoc.ui.screens.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import id.homebase.homebasekmppoc.lib.youAuth.DrivePermissionType
-import id.homebase.homebasekmppoc.lib.youAuth.TargetDriveAccessRequest
-import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
-import id.homebase.homebasekmppoc.lib.youAuth.YouAuthState
-import id.homebase.homebasekmppoc.lib.youAuth.UsernameStorage
+import id.homebase.homebasekmppoc.lib.youauth.DrivePermissionType
+import id.homebase.homebasekmppoc.lib.youauth.TargetDriveAccessRequest
+import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
+import id.homebase.homebasekmppoc.lib.youauth.YouAuthState
+import id.homebase.homebasekmppoc.lib.youauth.UsernameStorage
 import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
 import id.homebase.homebasekmppoc.prototype.lib.http.createHttpClient
 import id.homebase.homebasekmppoc.ui.extensions.cleanDomain
