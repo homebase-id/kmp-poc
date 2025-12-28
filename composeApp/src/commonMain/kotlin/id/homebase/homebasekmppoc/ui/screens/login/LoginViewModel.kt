@@ -2,17 +2,15 @@ package id.homebase.homebasekmppoc.ui.screens.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import id.homebase.homebasekmppoc.lib.youAuth.DrivePermissionType
-import id.homebase.homebasekmppoc.lib.youAuth.PingResponse
-import id.homebase.homebasekmppoc.lib.youAuth.TargetDriveAccessRequest
-import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
-import id.homebase.homebasekmppoc.lib.youAuth.YouAuthState
+import id.homebase.homebasekmppoc.lib.youauth.DrivePermissionType
+import id.homebase.homebasekmppoc.lib.youauth.TargetDriveAccessRequest
+import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
+import id.homebase.homebasekmppoc.lib.youauth.YouAuthState
 import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
 import id.homebase.homebasekmppoc.prototype.lib.http.createHttpClient
 import id.homebase.homebasekmppoc.ui.extensions.cleanDomain
-import io.ktor.client.call.body
-import io.ktor.client.request.get
-import io.ktor.http.HttpStatusCode
+import io.ktor.client.request.head
+import io.ktor.client.statement.HttpResponse
 import io.ktor.http.isSuccess
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.channels.Channel
@@ -109,44 +107,18 @@ private fun performLogin() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             
-            // Verify the identity is reachable and matches before starting auth flow
+            // Verify the identity is reachable before starting auth flow
             try {
                 val httpClient = createHttpClient()
-                val pingUrl = "https://$homebaseId/api/v2/health/ping"
-                val response = httpClient.get(pingUrl)
+                val pingUrl = "https://$homebaseId/api/v1/ping"
+                val response: HttpResponse = httpClient.head(pingUrl)
 
                 if (!response.status.isSuccess()) {
-                    val errorMessage = when (response.status.value) {
-                        404 -> "The API endpoint was not found at $homebaseId - this may not be a valid Homebase server"
-                        in 400..499 -> "Client error (${response.status.value}) when contacting $homebaseId - please check the domain and try again"
-                        in 500..599 -> "Server error (${response.status.value}) at $homebaseId - the service may be temporarily unavailable"
-                        else -> "Unable to contact $homebaseId (HTTP ${response.status.value}) - are you sure it's a Homebase ID?"
-                    }
-                    _uiState.update { it.copy(isLoading = false, errorMessage = errorMessage) }
-                    return@launch
-                }
-
-                try {
-                    val pingResponse: PingResponse = response.body()
-                    if (pingResponse.identity != homebaseId) {
-                        _uiState.update { it.copy(isLoading = false, errorMessage = "Identity mismatch: you entered '$homebaseId' but the server reports as '${pingResponse.identity}'") }
-                        return@launch
-                    }
-                } catch (e: Exception) {
-                    _uiState.update { it.copy(isLoading = false, errorMessage = "Server at $homebaseId responded but the API response format is invalid - this may not be a Homebase server") }
+                    _uiState.update { it.copy(isLoading = false, errorMessage = "Unable to ping $homebaseId - are you sure it's a Homebase ID?") }
                     return@launch
                 }
             } catch (e: Exception) {
-                val errorMessage = when {
-                    e.message?.contains("UnknownHost", ignoreCase = true) == true -> 
-                        "Domain '$homebaseId' does not exist or cannot be reached - please check the spelling"
-                    e.message?.contains("Network", ignoreCase = true) == true -> 
-                        "Network error connecting to $homebaseId - please check your internet connection"
-                    e.message?.contains("timeout", ignoreCase = true) == true -> 
-                        "Connection to $homebaseId timed out - the server may be slow or unavailable"
-                    else -> "Unable to contact $homebaseId - ${e.message ?: "unknown error occurred"}"
-                }
-                _uiState.update { it.copy(isLoading = false, errorMessage = errorMessage) }
+                _uiState.update { it.copy(isLoading = false, errorMessage = "Unable to contact $homebaseId - are you sure it's a Homebase ID? ${e.message}") }
                 return@launch
             }
 

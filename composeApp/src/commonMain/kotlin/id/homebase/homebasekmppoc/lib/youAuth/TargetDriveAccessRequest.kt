@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc.lib.youAuth
+package id.homebase.homebasekmppoc.lib.youauth
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject

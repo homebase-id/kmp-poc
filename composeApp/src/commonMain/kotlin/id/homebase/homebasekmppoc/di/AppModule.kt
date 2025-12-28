@@ -1,8 +1,8 @@
 package id.homebase.homebasekmppoc.di
 
-import id.homebase.homebasekmppoc.lib.youAuth.OdinClientFactory
-import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
-import id.homebase.homebasekmppoc.lib.youAuth.YouAuthProvider
+import id.homebase.homebasekmppoc.lib.youauth.OdinClientFactory
+import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
+import id.homebase.homebasekmppoc.lib.youauth.YouAuthProvider
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.DriveUploadProvider
 import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
@@ -53,7 +53,7 @@ val appModule = module {
     singleOf(::YouAuthFlowManager)
 
     // ViewModels
-    viewModelOf(::LoginViewModel)
+    viewModel { LoginViewModel(get()) }
     viewModelOf(::HomeViewModel)
 
     // DriveUploadViewModel - factory with nullable DriveUploadService

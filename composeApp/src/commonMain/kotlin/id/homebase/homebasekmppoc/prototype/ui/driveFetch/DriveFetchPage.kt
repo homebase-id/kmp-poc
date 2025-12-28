@@ -31,8 +31,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import co.touchlab.kermit.Logger
-import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
-import id.homebase.homebasekmppoc.lib.youAuth.YouAuthState
+import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
+import id.homebase.homebasekmppoc.lib.youauth.YouAuthState
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
 import id.homebase.homebasekmppoc.prototype.lib.database.QueryBatch
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResponse

@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc.lib.youAuth
+package id.homebase.homebasekmppoc.lib.youauth
 
 import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.prototype.lib.core.SecureByteArray
