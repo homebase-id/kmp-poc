@@ -6,14 +6,11 @@ import id.homebase.homebasekmppoc.lib.youauth.DrivePermissionType
 import id.homebase.homebasekmppoc.lib.youauth.TargetDriveAccessRequest
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthState
-import id.homebase.homebasekmppoc.lib.youauth.UsernameStorage
 import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
 import id.homebase.homebasekmppoc.prototype.lib.http.createHttpClient
 import id.homebase.homebasekmppoc.ui.extensions.cleanDomain
-import io.ktor.client.HttpClient
 import io.ktor.client.request.head
 import io.ktor.client.statement.HttpResponse
-import io.ktor.http.HttpStatusCode
 import io.ktor.http.isSuccess
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.channels.Channel
@@ -56,10 +53,7 @@ var targetDriveAccessRequest: List<TargetDriveAccessRequest> =
  * - Single entry point via onAction()
  * - One-off events via Channel
  */
-class LoginViewModel(
-    private val youAuthFlowManager: YouAuthFlowManager,
-    private val usernameStorage: UsernameStorage = UsernameStorage()
-) : ViewModel() {
+class LoginViewModel(private val youAuthFlowManager: YouAuthFlowManager) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
@@ -68,16 +62,8 @@ class LoginViewModel(
     val uiEvent = _uiEvent.receiveAsFlow()
 
     init {
-        loadUsernameFromStorage()
         checkExistingSession()
         observeAuthState()
-    }
-
-    private fun loadUsernameFromStorage() {
-        val savedUsername = usernameStorage.loadUsername()
-        if (savedUsername.isNotBlank()) {
-            _uiState.update { it.copy(homebaseId = savedUsername) }
-        }
     }
 
     /** Single entry point for all UI actions. */
@@ -165,7 +151,6 @@ private fun performLogin() {
                     }
                     is YouAuthState.Authenticated -> {
                         _uiState.update { it.copy(isLoading = false, isAuthenticated = true) }
-                        usernameStorage.saveUsername(_uiState.value.homebaseId)
                         _uiEvent.send(LoginUiEvent.NavigateToHome)
                     }
                     is YouAuthState.Error -> {
