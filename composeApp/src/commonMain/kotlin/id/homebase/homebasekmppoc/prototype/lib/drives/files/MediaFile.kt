@@ -45,7 +45,7 @@ data class PayloadFile(
         val key: String,
         val payload: ByteArray,
         val previewThumbnail: EmbeddedThumb? = null,
-        val contentType: String = "application/octet-stream",
+        val contentType: String = "",
         val descriptorContent: String? = null,
         val skipEncryption: Boolean = false,
         /** IV for manual encryption mode (when skipEncryption = true). */
