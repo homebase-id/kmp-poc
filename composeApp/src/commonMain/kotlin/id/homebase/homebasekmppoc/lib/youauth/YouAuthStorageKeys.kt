@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc.lib.youAuth
+package id.homebase.homebasekmppoc.lib.youauth
 
 /** Secure storage keys for YouAuth authentication data. */
 object YouAuthStorageKeys {
@@ -10,4 +10,7 @@ object YouAuthStorageKeys {
 
     /** Base64-encoded shared secret for request encryption */
     const val SHARED_SECRET = "youauth_shared_secret"
+
+    /** The last used username */
+    const val USERNAME = "youauth_username"
 }

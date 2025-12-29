@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc.lib.youAuth
+package id.homebase.homebasekmppoc.lib.youauth
 
 import id.homebase.homebasekmppoc.lib.storage.SecureStorage
 import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient

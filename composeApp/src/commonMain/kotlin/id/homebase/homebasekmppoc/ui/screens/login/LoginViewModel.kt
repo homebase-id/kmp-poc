@@ -2,12 +2,17 @@ package id.homebase.homebasekmppoc.ui.screens.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import id.homebase.homebasekmppoc.lib.youAuth.DrivePermissionType
-import id.homebase.homebasekmppoc.lib.youAuth.TargetDriveAccessRequest
-import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
-import id.homebase.homebasekmppoc.lib.youAuth.YouAuthState
+import id.homebase.homebasekmppoc.lib.youauth.DrivePermissionType
+import id.homebase.homebasekmppoc.lib.youauth.TargetDriveAccessRequest
+import id.homebase.homebasekmppoc.lib.youauth.UsernameStorage
+import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
+import id.homebase.homebasekmppoc.lib.youauth.YouAuthState
 import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
+import id.homebase.homebasekmppoc.prototype.lib.http.createHttpClient
 import id.homebase.homebasekmppoc.ui.extensions.cleanDomain
+import io.ktor.client.request.head
+import io.ktor.client.statement.HttpResponse
+import io.ktor.http.isSuccess
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -65,7 +70,10 @@ var targetDriveAccessRequest: List<TargetDriveAccessRequest> =
  * - Single entry point via onAction()
  * - One-off events via Channel
  */
-class LoginViewModel(private val youAuthFlowManager: YouAuthFlowManager) : ViewModel() {
+class LoginViewModel(
+        private val youAuthFlowManager: YouAuthFlowManager,
+        private val usernameStorage: UsernameStorage = UsernameStorage()
+    ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
@@ -74,8 +82,16 @@ class LoginViewModel(private val youAuthFlowManager: YouAuthFlowManager) : ViewM
     val uiEvent = _uiEvent.receiveAsFlow()
 
     init {
+        loadUsernameFromStorage()
         checkExistingSession()
         observeAuthState()
+    }
+
+    private fun loadUsernameFromStorage() {
+        val savedUsername = usernameStorage.loadUsername()
+        if (savedUsername.isNotBlank()) {
+            _uiState.update { it.copy(homebaseId = savedUsername) }
+        }
     }
 
     /** Single entry point for all UI actions. */
@@ -113,7 +129,7 @@ class LoginViewModel(private val youAuthFlowManager: YouAuthFlowManager) : ViewM
     }
 
     private fun performLogin() {
-        val homebaseId = _uiState.value.homebaseId
+        val homebaseId = _uiState.value.homebaseId.cleanDomain(false)
         if (homebaseId.isBlank()) {
             _uiState.update { it.copy(errorMessage = "Please enter a valid Homebase ID") }
             return
@@ -121,6 +137,33 @@ class LoginViewModel(private val youAuthFlowManager: YouAuthFlowManager) : ViewM
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+
+            // Verify the identity is reachable before starting auth flow
+            try {
+                val httpClient = createHttpClient()
+                val pingUrl = "https://$homebaseId/api/v1/ping"
+                val response: HttpResponse = httpClient.head(pingUrl)
+
+                if (!response.status.isSuccess()) {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = "Unable to ping $homebaseId - are you sure it's a Homebase ID?"
+                        )
+                    }
+                    return@launch
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "Unable to contact $homebaseId - are you sure it's a Homebase ID? ${e.message}"
+                    )
+                }
+                return@launch
+            }
+
+            // Start the YouAuth authorization flow
             try {
                 youAuthFlowManager.authorize(
                     identity = homebaseId,
@@ -150,6 +193,7 @@ class LoginViewModel(private val youAuthFlowManager: YouAuthFlowManager) : ViewM
                     }
 
                     is YouAuthState.Authenticated -> {
+                        usernameStorage.saveUsername(_uiState.value.homebaseId)
                         _uiState.update { it.copy(isLoading = false, isAuthenticated = true) }
                         _uiEvent.send(LoginUiEvent.NavigateToHome)
                     }

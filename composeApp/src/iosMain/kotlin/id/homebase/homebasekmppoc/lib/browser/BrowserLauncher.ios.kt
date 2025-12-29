@@ -1,7 +1,7 @@
 package id.homebase.homebasekmppoc.lib.browser
 
 import id.homebase.homebasekmppoc.AuthPresentationContextProvider
-import id.homebase.homebasekmppoc.lib.youAuth.YouAuthFlowManager
+import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
