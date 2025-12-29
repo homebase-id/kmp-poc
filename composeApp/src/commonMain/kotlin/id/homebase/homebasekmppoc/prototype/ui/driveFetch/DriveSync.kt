@@ -23,20 +23,45 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-sealed interface SyncProgress {
-    data class InProgress(
-        val totalCount: Int,
-        val batchCount: Int,
-        val latestModified: UnixTimeUtc?,
-        val batchData: List<SharedSecretEncryptedFileHeader>
-    ) : SyncProgress
+sealed interface  BackendEvent {
+    enum class SyncSource {
+        DriveSync,
+        WebSocket
+    }
 
-    data class Completed(val totalCount: Int) : SyncProgress
-    data class Failed(val errorMessage: String) : SyncProgress  // Or val throwable: Throwable for more detail
+    // A SyncUpdate event happens on a drive when either sync() has received a batch of data from
+    // the host, or when the websocket listener has received some data.
+    sealed interface SyncUpdate : BackendEvent {
+        val driveId: Uuid  // Common property for all sync events (implement in each data class)
+
+        data class BatchReceived(
+            override val driveId : Uuid,
+            val totalCount: Int,
+            val batchCount: Int,
+            val latestModified: UnixTimeUtc?,
+            val batchData: List<SharedSecretEncryptedFileHeader>,
+            val source: SyncSource = SyncSource.DriveSync
+        ) : SyncUpdate
+
+        data class Completed(
+            override val driveId: Uuid,
+            val totalCount: Int,
+            val source: SyncSource = SyncSource.DriveSync
+        ) : SyncUpdate  // Likely only raised by sync()
+
+        data class Failed(
+            override val driveId: Uuid,
+            val errorMessage: String,  // Or add throwable: Throwable
+            val source: SyncSource = SyncSource.DriveSync
+        ) : SyncUpdate // Likely only raised by sync()
+    }
+
+    // We go online / offline when the websocket listener is connected / disconnected
+    data object GoingOnline : BackendEvent
+    data object GoingOffline : BackendEvent
 }
 
 // TODO: When we update main-index-meta we should PROBABLY ignore any item with incoming.modified < db.modified
-// TODO: Make a callback with memory List<> when we got data from both HERE && Websocket
 
 class DriveSync(private val identityId : Uuid,
                 private val targetDrive: TargetDrive, // TODO: <- change to driveId
@@ -65,9 +90,13 @@ class DriveSync(private val identityId : Uuid,
         cursor = cursorStorage.loadCursor()
     }
 
-    suspend fun sync(): Flow<SyncProgress> = flow {
+    // I remain tempted to let the sync() function spawn a thread
+    // when it acquires the lock. Then sync() should return true
+    // if it begins syncing, and false if another thread is already
+    // syncing. Then the call immediately knows what is going on.
+    suspend fun sync(): Flow<BackendEvent> = flow {
         if (!mutex.tryLock()) {
-            emit(SyncProgress.Failed("Another sync already in progress"))
+            emit(BackendEvent.SyncUpdate.Failed(targetDrive.alias,"Another sync already in progress"))
             return@flow
         }
         try {
@@ -123,7 +152,8 @@ class DriveSync(private val identityId : Uuid,
                             // Calculate latest modified (assuming FileHeader has a 'modified: Long' field)
                             val latestModified = searchResults.last().fileMetadata.updated
 
-                            emit(SyncProgress.InProgress(
+                            emit(BackendEvent.SyncUpdate.BatchReceived(
+                                driveId = targetDrive.alias,
                                 totalCount = totalCount,
                                 batchCount = batchCount,
                                 latestModified = latestModified,
@@ -133,7 +163,7 @@ class DriveSync(private val identityId : Uuid,
 
                         keepGoing = searchResults?.let { it.size >= batchSize } ?: false
                     } catch (e: Exception) {
-                        emit(SyncProgress.Failed("Sync failed: ${e.message}"))
+                        emit(BackendEvent.SyncUpdate.Failed(targetDrive.alias,"Sync failed: ${e.message}"))
                         keepGoing = false  // Stop on error
                     }
                 }
@@ -150,7 +180,7 @@ class DriveSync(private val identityId : Uuid,
                 Logger.d("Batch size: $batchWas, took ${durationMs.duration.inWholeMilliseconds}ms, now adjusted to: $batchSize")
             }
 
-            emit(SyncProgress.Completed(totalCount))
+            emit(BackendEvent.SyncUpdate.Completed(targetDrive.alias, totalCount))
         } finally {
             mutex.unlock()
         }
