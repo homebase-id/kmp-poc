@@ -1,6 +1,5 @@
 package id.homebase.homebasekmppoc.lib.youauth
-
-import id.homebase.homebasekmppoc.lib.storage.SecureStorage
+import id.homebase.homebasekmppoc.lib.storage.SharedPreferences
 
 /**
  * Handles username storage operations using SecureStorage.
@@ -18,12 +17,12 @@ class UsernameStorage {
      * Returns empty string if no username is found in storage.
      */
     fun loadUsername(): String {
-        val s = SecureStorage.get(YouAuthStorageKeys.USERNAME)
+        val s = SharedPreferences.getString(YouAuthStorageKeys.USERNAME)
 
-        if (s.isNullOrEmpty())
-            return ""
+        return if (s.isNullOrEmpty())
+            ""
         else
-            return s
+            s
     }
 
     /**
@@ -31,7 +30,7 @@ class UsernameStorage {
      */
     fun saveUsername(username: String) {
         if (username.isNotBlank()) {
-            SecureStorage.put(YouAuthStorageKeys.USERNAME, username)
+            SharedPreferences.putString(YouAuthStorageKeys.USERNAME, username)
         }
     }
 
@@ -39,6 +38,6 @@ class UsernameStorage {
      * Delete the saved username from secure storage.
      */
     fun deleteUsername() {
-        SecureStorage.remove(YouAuthStorageKeys.USERNAME)
+        SharedPreferences.remove(YouAuthStorageKeys.USERNAME)
     }
 }
