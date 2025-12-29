@@ -35,7 +35,6 @@ import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthState
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
 import id.homebase.homebasekmppoc.prototype.lib.database.QueryBatch
-import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResponse
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortField
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortOrder
 import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
@@ -54,7 +53,7 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
     var isLoading by remember { mutableStateOf(false) }
     var isRefreshing by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var syncProgress by remember { mutableStateOf<SyncProgress?>(null) }
+    var syncProgress by remember { mutableStateOf<BackendEvent?>(null) }
     val coroutineScope = rememberCoroutineScope()
     val database = DatabaseManager.getDatabase()
     val identityId = Uuid.parse("7b1be23b-48bb-4304-bc7b-db5910c09a92") // TODO: <- get the real identityId
@@ -80,10 +79,10 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
                 backend.sync().collect { progress ->
                     syncProgress = progress
                     when (progress) {
-                        is SyncProgress.InProgress -> {
+                        is BackendEvent.SyncUpdate.BatchReceived -> {
                             // You can optionally use progress.batchData directly, e.g., add to a in-memory list or update UI
                         }
-                        is SyncProgress.Completed -> {
+                        is BackendEvent.SyncUpdate.Completed -> {
                             // Sync completed, we can fetch local results
                             // We don't really need to - this is just a demo and should return up to 1000 rows from the local DB
                             // which probably matches what was just synced.
@@ -98,10 +97,14 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
                             isLoading = false
                             isRefreshing = false
                         }
-                        is SyncProgress.Failed -> {
+                        is BackendEvent.SyncUpdate.Failed -> {
                             errorMessage = progress.errorMessage
                             isLoading = false
                             isRefreshing = false
+                        }
+                        is BackendEvent.GoingOnline -> {
+                        }
+                        is BackendEvent.GoingOffline -> {
                         }
                     }
                 }
@@ -169,7 +172,7 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
                                 CircularProgressIndicator()
                                 Spacer(modifier = Modifier.height(8.dp))
                                 when (val progress = syncProgress) {
-                                    is SyncProgress.InProgress -> {
+                                    is BackendEvent.SyncUpdate.BatchReceived -> {
                                         Text(
                                                 text = "Fetched ${progress.totalCount} items (${progress.batchCount} in this batch)",
                                                 style = MaterialTheme.typography.bodyMedium,
