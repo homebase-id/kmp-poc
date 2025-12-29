@@ -4,20 +4,22 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.upload.PostContent
 
 /** Single immutable state for Drive Upload screen. */
 data class DriveUploadUiState(
-        val isUploadingText: Boolean = false,
-        val isUploadingImage: Boolean = false,
-        val isPickingImage: Boolean = false,
-        val uploadResult: String? = null,
-        val errorMessage: String? = null,
-        val selectedImageBytes: ByteArray? = null,
-        val selectedImageName: String? = null,
-        val postContent: PostContent? = null
+    val isUploadingText: Boolean = false,
+    val isUploadingEncryptedPayloadText: Boolean = false,
+    val isUploadingImage: Boolean = false,
+    val isPickingImage: Boolean = false,
+    val uploadResult: String? = null,
+    val errorMessage: String? = null,
+    val selectedImageBytes: ByteArray? = null,
+    val selectedImageName: String? = null,
+    val postContent: PostContent? = null
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other == null || this::class != other::class) return false
         other as DriveUploadUiState
         if (isUploadingText != other.isUploadingText) return false
+        if (isUploadingEncryptedPayloadText != other.isUploadingEncryptedPayloadText) return false
         if (isUploadingImage != other.isUploadingImage) return false
         if (isPickingImage != other.isPickingImage) return false
         if (uploadResult != other.uploadResult) return false
@@ -34,6 +36,7 @@ data class DriveUploadUiState(
     override fun hashCode(): Int {
         var result = isUploadingText.hashCode()
         result = 31 * result + isUploadingImage.hashCode()
+        result = 31 * result + isUploadingEncryptedPayloadText.hashCode()
         result = 31 * result + isPickingImage.hashCode()
         result = 31 * result + (uploadResult?.hashCode() ?: 0)
         result = 31 * result + (errorMessage?.hashCode() ?: 0)
@@ -52,6 +55,8 @@ sealed interface DriveUploadUiAction {
     /** User wants to upload text post */
     data object UploadTextPostClicked : DriveUploadUiAction
 
+    data object UploadEncryptedPayloadTextClicked : DriveUploadUiAction
+
     /** User wants to upload selected image */
     data object UploadImageClicked : DriveUploadUiAction
 
@@ -65,6 +70,7 @@ sealed interface DriveUploadUiAction {
             if (name != other.name) return false
             return true
         }
+
         override fun hashCode(): Int {
             var result = bytes.contentHashCode()
             result = 31 * result + name.hashCode()

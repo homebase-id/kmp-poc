@@ -27,8 +27,8 @@ class DriveUploadProviderTest {
                         type = Uuid.parse("00000000-0000-0000-0000-000000000002")
                 )
 
-        private fun createTestUploadResult(): UploadResult {
-                return UploadResult(
+        private fun createTestUploadResult(): CreateFileResult {
+                return CreateFileResult(
                         keyHeader = null,
                         file =
                                 FileIdFileIdentifier(
@@ -45,8 +45,8 @@ class DriveUploadProviderTest {
                 )
         }
 
-        private fun createTestUpdateResult(): UpdateResult {
-                return UpdateResult(
+        private fun createTestUpdateResult(): UpdateFileResult {
+                return UpdateFileResult(
                         file =
                                 FileIdFileIdentifier(
                                         fileId = "test-file-id",

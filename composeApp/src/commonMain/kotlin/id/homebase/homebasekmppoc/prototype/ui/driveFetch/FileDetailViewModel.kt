@@ -1,5 +1,6 @@
 package id.homebase.homebasekmppoc.prototype.ui.driveFetch
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -57,14 +58,126 @@ class FileDetailViewModel(
             FileDetailUiAction.GetFileHeaderClicked ->
                 loadHeader()
 
+            FileDetailUiAction.SoftDeleteClicked ->
+                softDeleteFile()
+
+            FileDetailUiAction.HardDeleteClicked ->
+                hardDeleteFile()
+
             is FileDetailUiAction.GetThumbnailClicked ->
                 loadThumbnail(action)
 
             is FileDetailUiAction.ViewPayloadClicked ->
                 loadPayload(action)
+
+            is FileDetailUiAction.GetPayloadRangeClicked ->
+                loadPayloadRange(action)
         }
     }
 
+    private fun loadPayloadRange(action: FileDetailUiAction.GetPayloadRangeClicked) {
+        val provider = driveFileProvider ?: return
+
+        viewModelScope.launch {
+            try {
+                val rangeBytes =
+                    provider.getPayloadBytes(
+                        driveId = driveId,
+                        fileId = fileId,
+                        key = action.payloadKey,
+                        options = PayloadOperationOptions(
+                            chunkStart = action.start,
+                            chunkLength = action.length
+                        )
+                    )
+
+                if (rangeBytes != null) {
+                    _uiState.update {
+                        it.copy(
+                            payloads = it.payloads + (action.payloadKey to rangeBytes)
+                        )
+                    }
+                }
+            } catch (_: Throwable) {
+            }
+        }
+    }
+
+    private fun softDeleteFile() {
+        if (driveFileProvider == null) {
+            _uiState.update {
+                it.copy(error = "Not authenticated")
+            }
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(isLoading = true, error = null)
+            }
+
+            try {
+                val result = driveFileProvider.deleteFile(driveId, fileId)
+
+                // load the deleted header
+                if (result) {
+                    val deletedHeader = driveFileProvider.getFileHeader(driveId, fileId)
+
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            header = deletedHeader
+                        )
+                    }
+                }
+            } catch (t: Throwable) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = t.message ?: "Failed to load file header"
+                    )
+                }
+            }
+        }
+    }
+
+    private fun hardDeleteFile() {
+        if (driveFileProvider == null) {
+            _uiState.update {
+                it.copy(error = "Not authenticated")
+            }
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(isLoading = true, error = null)
+            }
+
+            try {
+                val result = driveFileProvider.deleteFile(driveId, fileId, hardDelete = true)
+
+                // load the deleted header
+                if (result) {
+                    val deletedHeader = driveFileProvider.getFileHeader(driveId, fileId)
+
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            header = deletedHeader
+                        )
+                    }
+                }
+            } catch (t: Throwable) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = t.message ?: "Failed to load file header"
+                    )
+                }
+            }
+        }
+    }
 
     private fun loadHeader() {
         if (driveFileProvider == null) {
@@ -76,7 +189,11 @@ class FileDetailViewModel(
 
         viewModelScope.launch {
             _uiState.update {
-                it.copy(isLoading = true, error = null)
+                it.copy(
+                    isLoading = true,
+                    error = null,
+                    hasTriedToLoadHeader = true
+                )
             }
 
             try {
@@ -102,10 +219,25 @@ class FileDetailViewModel(
     private fun loadPayload(action: FileDetailUiAction.ViewPayloadClicked) {
         val provider = driveFileProvider ?: return
 
-        // already loaded → do nothing
-        if (_uiState.value.payload != null) return;
-
         viewModelScope.launch {
+            val current = _uiState.value
+
+            // toggle if already expanded
+            if (current.expandedPayloadKey == action.payloadKey) {
+                _uiState.update {
+                    it.copy(expandedPayloadKey = null)
+                }
+                return@launch
+            }
+
+            // expand immediately (panel shows loading)
+            _uiState.update {
+                it.copy(expandedPayloadKey = action.payloadKey)
+            }
+
+            // already loaded → done
+            if (current.payloads.containsKey(action.payloadKey)) return@launch
+
             try {
                 val bytes =
                     provider.getPayloadBytes(
@@ -118,15 +250,16 @@ class FileDetailViewModel(
                 if (bytes != null) {
                     _uiState.update {
                         it.copy(
-                            payload = it.payload
+                            payloads = it.payloads + (action.payloadKey to bytes)
                         )
                     }
                 }
-            } catch (t: Throwable) {
-                // swallow for now or surface later
+            } catch (_: Throwable) {
+                // surface later if needed
             }
         }
     }
+
 
     private fun loadThumbnail(action: FileDetailUiAction.GetThumbnailClicked) {
         val provider = driveFileProvider ?: return
@@ -182,8 +315,12 @@ class FileDetailViewModel(
 fun FileHeaderPanel(
     header: HomebaseFile,
     thumbnailBytes: Map<String, BytesResponse>,
+    payloadBytes: Map<String, BytesResponse>,
+    expandedPayloadKey: String?,
     onViewPayload: (key: String) -> Unit = {},
-    onGetThumbnail: (payloadKey: String, width: Int, height: Int) -> Unit
+    onGetThumbnail: (payloadKey: String, width: Int, height: Int) -> Unit,
+    onGetPayloadRange: (key: String, start: Long, length: Long) -> Unit
+
 ) {
     Column {
         Text(
@@ -195,6 +332,7 @@ fun FileHeaderPanel(
 
         // ── Core metadata ────────────────────────
 
+        LabeledValue("State", header.fileState.toString())
         LabeledValue("Created", header.fileMetadata.created.toString())
         LabeledValue("Updated", header.fileMetadata.updated.toString())
         LabeledValue("Encrypted", header.fileMetadata.isEncrypted.toString())
@@ -227,8 +365,11 @@ fun FileHeaderPanel(
                 PayloadWithThumbnails(
                     payload = payload,
                     thumbnailBytes = thumbnailBytes,
+                    payloadBytes = payloadBytes,
+                    expandedPayloadKey = expandedPayloadKey,
                     onViewPayload = onViewPayload,
-                    onGetThumbnail = onGetThumbnail
+                    onGetThumbnail = onGetThumbnail,
+                    onGetPayloadRange = onGetPayloadRange
                 )
                 Spacer(Modifier.height(12.dp))
             }
@@ -240,10 +381,20 @@ fun FileHeaderPanel(
 private fun PayloadWithThumbnails(
     payload: PayloadDescriptor,
     thumbnailBytes: Map<String, BytesResponse>,
+
+    payloadBytes: Map<String, BytesResponse>,
+    expandedPayloadKey: String?,
+
     onViewPayload: (key: String) -> Unit,
-    onGetThumbnail: (payloadKey: String, width: Int, height: Int) -> Unit
+    onGetThumbnail: (payloadKey: String, width: Int, height: Int) -> Unit,
+    onGetPayloadRange: (key: String, start: Long, length: Long) -> Unit
+
 ) {
+    val isExpanded = expandedPayloadKey == payload.key
+    val bytes = payloadBytes[payload.key]
+
     Column {
+        // ── Header row ───────────────────────────────
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
@@ -257,10 +408,34 @@ private fun PayloadWithThumbnails(
             Button(
                 onClick = { onViewPayload(payload.key) }
             ) {
-                Text("View payload")
+                Text(if (isExpanded) "Hide payload" else "View payload")
             }
         }
 
+        AnimatedVisibility(visible = isExpanded) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+                    .padding(12.dp)
+            ) {
+                when {
+                    bytes == null -> {
+                        Text(
+                            text = "Loading payload…",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    else -> {
+                        PayloadPreview(payload, bytes, onGetPayloadRange)
+                    }
+                }
+            }
+        }
+
+        // ── Thumbnails (unchanged) ──────────────────
         val thumbnails = payload.thumbnails
             ?: payload.previewThumbnail?.let { listOf(it) }
             ?: emptyList()
@@ -273,16 +448,15 @@ private fun PayloadWithThumbnails(
                 val height = thumb.pixelHeight ?: 0
                 val key = "${payload.key}:${width}x$height"
 
-                val bytes = thumbnailBytes[key]
+                val thumbBytes = thumbnailBytes[key]
 
                 ThumbnailRow(
                     payloadKey = payload.key,
                     thumbnail = thumb,
-                    thumbnailBytes = bytes,
+                    thumbnailBytes = thumbBytes,
                     onGetThumbnail = onGetThumbnail
                 )
             }
-
         } else {
             Spacer(Modifier.height(4.dp))
             Text(
@@ -293,6 +467,7 @@ private fun PayloadWithThumbnails(
         }
     }
 }
+
 
 @Composable
 private fun ThumbnailRow(
@@ -403,10 +578,15 @@ fun ThumbnailImage(
 data class FileDetailUiState(
     val isLoading: Boolean = false,
     val header: HomebaseFile? = null,
+    val hasTriedToLoadHeader: Boolean = false,
     val error: String? = null,
 
     val thumbnails: Map<String, BytesResponse> = emptyMap(),
-    val payload: BytesResponse? = null
+
+    val payloads: Map<String, BytesResponse> = emptyMap(),
+
+    val expandedPayloadKey: String? = null
+
 )
 
 sealed interface FileDetailUiEvent {
@@ -417,6 +597,9 @@ sealed interface FileDetailUiAction {
     object BackClicked : FileDetailUiAction
     object GetFileHeaderClicked : FileDetailUiAction
 
+    object HardDeleteClicked : FileDetailUiAction
+    object SoftDeleteClicked : FileDetailUiAction
+
     data class GetThumbnailClicked(
         val payloadKey: String,
         val width: Int,
@@ -426,4 +609,12 @@ sealed interface FileDetailUiAction {
     data class ViewPayloadClicked(
         val payloadKey: String
     ) : FileDetailUiAction
+
+    data class GetPayloadRangeClicked(
+        val payloadKey: String,
+        val start: Long,
+        val length: Long
+    ) : FileDetailUiAction
+
 }
+

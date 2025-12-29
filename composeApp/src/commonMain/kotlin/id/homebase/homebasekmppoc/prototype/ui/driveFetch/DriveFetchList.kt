@@ -98,7 +98,6 @@ fun DriveFetchItemCard(
                 )
             }
 
-            // ── CTA ─────────────────────────────────
             Button(
                 modifier = Modifier.align(Alignment.End),
                 onClick = onClick

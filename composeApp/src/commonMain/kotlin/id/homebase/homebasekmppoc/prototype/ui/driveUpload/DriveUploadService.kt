@@ -17,11 +17,11 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.upload.SendContents
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.StorageOptions
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.TransitOptions
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UpdateLocalInstructionSet
-import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UpdateResult
+import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UpdateFileResult
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UploadAppFileMetaData
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UploadFileMetadata
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UploadInstructionSet
-import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UploadResult
+import id.homebase.homebasekmppoc.prototype.lib.drives.upload.CreateFileResult
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -106,11 +106,11 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
                         encrypt = encrypt
                 )
 
-        KLogger.i(TAG) { "Text post uploaded successfully: ${result?.file?.fileId}" }
+        KLogger.i(TAG) { "Text post uploaded successfully: ${result?.fileId}" }
 
         return TextPostUploadResult(
-                fileId = result?.file?.fileId,
-                versionTag = result?.newVersionTag
+                fileId = result?.fileId.toString(),
+                versionTag = result?.newVersionTag.toString()
         )
     }
 
@@ -186,9 +186,9 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
                         encrypt = encrypt
                 )
 
-        KLogger.i(TAG) { "Image uploaded successfully: ${result?.file?.fileId}" }
+        KLogger.i(TAG) { "Image uploaded successfully: ${result?.fileId.toString()}" }
 
-        return ImageUploadResult(fileId = result?.file?.fileId, versionTag = result?.newVersionTag)
+        return ImageUploadResult(fileId = result?.fileId.toString(), versionTag = result?.newVersionTag.toString())
     }
 
     /**
@@ -210,10 +210,9 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
             payloads: List<PayloadFile>? = null,
             thumbnails: List<ThumbnailFile>? = null,
             encrypt: Boolean = true,
-            onVersionConflict: (suspend () -> UploadResult?)? = null
-    ): UploadResult? {
-        val instructions =
-                UploadInstructionSet(storageOptions = StorageOptions(driveId = driveId))
+            onVersionConflict: (suspend () -> CreateFileResult?)? = null
+    ): CreateFileResult? {
+        val instructions = UploadInstructionSet(storageOptions = StorageOptions(driveId = driveId))
 
         return driveUploadProvider.uploadFile(
                 instructions = instructions,
@@ -248,8 +247,8 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
             payloads: List<PayloadFile>? = null,
             thumbnails: List<ThumbnailFile>? = null,
             toDeletePayloads: List<PayloadDeleteKey>? = null,
-            onVersionConflict: (suspend () -> UpdateResult?)? = null
-    ): UpdateResult? {
+            onVersionConflict: (suspend () -> UpdateFileResult?)? = null
+    ): UpdateFileResult? {
         val fileIdentifier = FileIdFileIdentifier(fileId = fileId, targetDrive = targetDrive)
 
         val instructions = UpdateLocalInstructionSet(versionTag = versionTag, file = fileIdentifier)

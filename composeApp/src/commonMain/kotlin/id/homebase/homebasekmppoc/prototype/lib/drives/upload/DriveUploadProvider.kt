@@ -11,8 +11,6 @@ import id.homebase.homebasekmppoc.prototype.lib.crypto.EncryptedKeyHeader
 import id.homebase.homebasekmppoc.prototype.lib.crypto.KeyHeader
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileSystemType
 import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
-import id.homebase.homebasekmppoc.prototype.lib.drives.files.DriveFileProvider
-import id.homebase.homebasekmppoc.prototype.lib.drives.files.FileOperationOptions
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.HomebaseFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.ThumbnailFile
@@ -95,9 +93,9 @@ class DriveUploadProvider(private val client: OdinClient) {
         payloads: List<PayloadFile>? = null,
         thumbnails: List<ThumbnailFile>? = null,
         encrypt: Boolean = true,
-        onVersionConflict: (suspend () -> UploadResult?)? = null,
+        onVersionConflict: (suspend () -> CreateFileResult?)? = null,
         aesKey: ByteArray? = null
-    ): UploadResult? {
+    ): CreateFileResult? {
         // Validate version tag usage
 
 
@@ -186,8 +184,8 @@ class DriveUploadProvider(private val client: OdinClient) {
         payloads: List<PayloadFile>? = null,
         thumbnails: List<ThumbnailFile>? = null,
         toDeletePayloads: List<PayloadDeleteKey>? = null,
-        onVersionConflict: (suspend () -> UpdateResult?)? = null
-    ): UpdateResult? {
+        onVersionConflict: (suspend () -> UpdateFileResult?)? = null
+    ): UpdateFileResult? {
         // Decrypt key header if encrypted
         val decryptedKeyHeader: KeyHeader? =
             when (keyHeader) {
@@ -400,8 +398,8 @@ class DriveUploadProvider(private val client: OdinClient) {
     suspend fun pureUpload(
         data: MultiPartFormDataContent,
         fileSystemType: FileSystemType? = null,
-        onVersionConflict: (suspend () -> UploadResult?)? = null
-    ): UploadResult? {
+        onVersionConflict: (suspend () -> CreateFileResult?)? = null
+    ): CreateFileResult? {
         val httpClient =
             client.createHttpClient(CreateHttpClientOptions(overrideEncryption = true))
 
@@ -442,8 +440,8 @@ class DriveUploadProvider(private val client: OdinClient) {
     /** Performs a raw update to an existing file on the drive. */
     suspend fun pureUpdate(
         data: MultiPartFormDataContent,
-        onVersionConflict: (suspend () -> UpdateResult?)? = null
-    ): UpdateResult? {
+        onVersionConflict: (suspend () -> UpdateFileResult?)? = null
+    ): UpdateFileResult? {
         val httpClient =
             client.createHttpClient(
                 CreateHttpClientOptions(
@@ -513,12 +511,12 @@ class DriveUploadProvider(private val client: OdinClient) {
 
     private suspend fun handleUploadResponse(
         response: HttpResponse,
-        onVersionConflict: (suspend () -> UploadResult?)? = null
-    ): UploadResult? {
+        onVersionConflict: (suspend () -> CreateFileResult?)? = null
+    ): CreateFileResult? {
         return when {
             response.status.isSuccess() -> {
                 val body = response.bodyAsText()
-                OdinSystemSerializer.json.decodeFromString<UploadResult>(body)
+                OdinSystemSerializer.json.decodeFromString<CreateFileResult>(body)
             }
 
             else -> handleErrorResponse(response, onVersionConflict) { it() }
@@ -527,12 +525,12 @@ class DriveUploadProvider(private val client: OdinClient) {
 
     private suspend fun handleUpdateResponse(
         response: HttpResponse,
-        onVersionConflict: (suspend () -> UpdateResult?)? = null
-    ): UpdateResult? {
+        onVersionConflict: (suspend () -> UpdateFileResult?)? = null
+    ): UpdateFileResult? {
         return when {
             response.status.isSuccess() -> {
                 val body = response.bodyAsText()
-                OdinSystemSerializer.json.decodeFromString<UpdateResult>(body)
+                OdinSystemSerializer.json.decodeFromString<UpdateFileResult>(body)
             }
 
             else -> handleErrorResponse(response, onVersionConflict) { it() }

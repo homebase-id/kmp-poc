@@ -4,6 +4,7 @@ import co.touchlab.kermit.Logger as KLogger
 import id.homebase.homebasekmppoc.prototype.lib.core.OdinClientErrorCode
 import id.homebase.homebasekmppoc.prototype.lib.core.OdinClientException
 import id.homebase.homebasekmppoc.prototype.lib.core.SecureByteArray
+import id.homebase.homebasekmppoc.prototype.lib.crypto.AesCbc
 import id.homebase.homebasekmppoc.prototype.lib.crypto.EncryptedKeyHeader
 import id.homebase.homebasekmppoc.prototype.lib.crypto.KeyHeader
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileSystemType
@@ -32,7 +33,7 @@ data class PayloadOperationOptions(
     val fileSystemType: FileSystemType = FileSystemType.Standard,
     val decrypt: Boolean = true,
     val chunkStart: Long? = null,
-    val chunkEnd: Long? = null,
+    val chunkLength: Long? = null,
     val lastModified: Long? = null
 )
 
@@ -128,11 +129,18 @@ public class DriveFileProvider(private val odinClient: OdinClient) {
                 }
             }
 
-        val rangeResult = DriveFileHelpers.getRangeHeader(options.chunkStart, options.chunkEnd)
+        val rangeResult = DriveFileHelpers.getRangeHeader(options.chunkStart, options.chunkLength)
+
+        val path =
+            if (options.chunkStart != null)
+                "drives/$driveId/files/$fileId/payload/$key/${options.chunkStart}/${options.chunkLength ?: ""}"
+            else
+                "drives/$driveId/files/$fileId/payload/$key"
+
 
         try {
             val response =
-                httpClient.get("drives/${driveId}/files/${fileId}/payload/${key}") {
+                httpClient.get(path) {
                     url {
                         queryParams.forEach { (key, value) -> parameters.append(key, value) }
                     }
@@ -162,10 +170,15 @@ public class DriveFileProvider(private val odinClient: OdinClient) {
                     bytes
                 } else if (rangeResult.updatedChunkStart != null) {
                     // Chunked decryption - decrypt and slice
-                    val decrypted = decryptChunkedBytes(bytes, rangeResult.startOffset)
+                    val decrypted = decryptChunkedBytes(
+                        response,
+                        bytes,
+                        startOffset = rangeResult.startOffset,
+                        chunkStart = (options.chunkStart ?: 0).toInt()
+                    )
                     val sliceEnd =
-                        if (options.chunkEnd != null && options.chunkStart != null) {
-                            (options.chunkEnd - options.chunkStart).toInt()
+                        if (options.chunkLength != null && options.chunkStart != null) {
+                            (options.chunkLength - options.chunkStart).toInt()
                         } else {
                             decrypted.size
                         }
@@ -287,16 +300,13 @@ public class DriveFileProvider(private val odinClient: OdinClient) {
                 return null
             }
             throw e
-        }
-        catch (e: ServerResponseException) {
+        } catch (e: ServerResponseException) {
             // HTTP 5xx → real server error
             throw e
-        }
-        catch (e: Exception) {
+        } catch (e: Exception) {
             KLogger.e(TAG, e) { "[odin-kt:getThumbBytes] Unexpected failure" }
             throw e
-        }
-        finally {
+        } finally {
             // httpClient.close()
         }
     }
@@ -375,11 +385,10 @@ public class DriveFileProvider(private val odinClient: OdinClient) {
         ValidationUtil.requireValidUuid(fileId, "fileId")
 
         val httpClient =
-            odinClient.createHttpClient(CreateHttpClientOptions(overrideEncryption = true))
+            odinClient.createHttpClient(CreateHttpClientOptions())
 
-        val endpoint =
-            if (hardDelete) "drives/${driveId}/files/${fileId}/hard-delete"
-            else "drives/${driveId}files/${fileId}/delete"
+        val method = if (hardDelete) "hard-delete" else "delete"
+        val endpoint = "drives/${driveId}/files/${fileId}/${method}"
 
         // fileId not used  because we pass it in via query string
         val request = DeleteFileRequest(fileId = Uuid.NIL, recipients = recipients)
@@ -417,7 +426,7 @@ public class DriveFileProvider(private val odinClient: OdinClient) {
         ValidationUtil.requireValidUuidList(fileIds, "fileIds")
 
         val httpClient =
-            odinClient.createHttpClient(CreateHttpClientOptions(overrideEncryption = true))
+            odinClient.createHttpClient(CreateHttpClientOptions())
 
         val request =
             DeleteFilesBatchRequest(
@@ -463,7 +472,7 @@ public class DriveFileProvider(private val odinClient: OdinClient) {
         ValidationUtil.requireValidUuidList(groupIds, "groupIds")
 
         val httpClient =
-            odinClient.createHttpClient(CreateHttpClientOptions(overrideEncryption = true))
+            odinClient.createHttpClient(CreateHttpClientOptions())
 
         val request =
             DeleteByGroupIdBatchRequest(
@@ -560,14 +569,96 @@ public class DriveFileProvider(private val odinClient: OdinClient) {
 
 
     /** Decrypts chunked bytes with offset handling. */
-    private suspend fun decryptChunkedBytes(bytes: ByteArray, startOffset: Int): ByteArray {
-        // Handle chunked decryption with offset
-        // The actual decryption is handled by OdinEncryptionPlugin
-        return if (startOffset > 0 && bytes.size > startOffset) {
-            bytes.sliceArray(startOffset until bytes.size)
+    suspend fun decryptChunkedBytes(
+        response: HttpResponse,
+        responseBytes: ByteArray,
+        startOffset: Int,
+        chunkStart: Int
+    ): ByteArray {
+
+        val payloadEncrypted =
+            response.headers["payloadencrypted"]?.equals("True", ignoreCase = false) == true
+
+        val encryptedHeader64 =
+            response.headers["sharedsecretencryptedheader64"]
+
+        if (payloadEncrypted && encryptedHeader64 != null) {
+
+            val encryptedKeyHeader = EncryptedKeyHeader.fromBase64(encryptedHeader64)
+            val keyHeader = decryptKeyHeader(encryptedKeyHeader)
+                ?: throw IllegalStateException("Can't decrypt; missing key header")
+
+            val key = keyHeader.aesKey
+
+            val (iv, cipher) = run {
+                val padding = ByteArray(16) { 16 }
+
+                val encryptedPadding =
+                    AesCbc.encrypt(
+                        padding,
+                        key,
+                        iv = responseBytes.copyOfRange(
+                            responseBytes.size - 16,
+                            responseBytes.size
+                        )
+                    ).copyOfRange(0, 16)
+
+                if (chunkStart == 0) {
+                    // First block
+                    Pair(
+                        keyHeader.iv,
+                        mergeByteArrays(
+                            listOf(responseBytes, encryptedPadding)
+                        )
+                    )
+                } else {
+                    // Middle blocks
+                    Pair(
+                        responseBytes.copyOfRange(0, 16),
+                        mergeByteArrays(
+                            listOf(
+                                responseBytes.copyOfRange(16, responseBytes.size),
+                                encryptedPadding
+                            )
+                        )
+                    )
+                }
+            }
+
+            val decryptedBytes = AesCbc.decrypt(cipher, key, iv)
+
+            // Match TS behavior:
+            // decryptedBytes.slice(startOffset ? startOffset - 16 : 0)
+            val sliceStart =
+                if (startOffset > 0) maxOf(startOffset - 16, 0) else 0
+
+            return decryptedBytes.copyOfRange(sliceStart, decryptedBytes.size)
+
         } else {
-            bytes
+            // Not encrypted → return raw bytes with offset
+            return responseBytes.copyOfRange(startOffset, responseBytes.size)
         }
+    }
+
+
+    fun mergeByteArrays(chunks: List<ByteArray>): ByteArray {
+        var size = 0
+        for (chunk in chunks) {
+            size += chunk.size
+        }
+
+        val merged = ByteArray(size)
+        var offset = 0
+
+        for (chunk in chunks) {
+            chunk.copyInto(
+                destination = merged,
+                destinationOffset = offset
+            )
+            offset += chunk.size
+        }
+
+        return merged
     }
 
     private suspend fun decryptUsingKeyHeader(
