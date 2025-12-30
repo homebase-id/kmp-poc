@@ -11,6 +11,7 @@ import id.homebase.homebasekmppoc.lib.database.DriveMainIndex
 import id.homebase.homebasekmppoc.lib.database.DriveTagIndex
 import id.homebase.homebasekmppoc.lib.database.KeyValue
 import id.homebase.homebasekmppoc.lib.database.OdinDatabase
+import id.homebase.homebasekmppoc.lib.database.Outbox
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.sync.Mutex
@@ -60,13 +61,19 @@ object DatabaseManager {
             val keyValueAdapter = KeyValue.Adapter(
                 keyAdapter = UuidAdapter
             )
-            
+
+            val outboxAdapter = Outbox.Adapter(
+                driveIdAdapter = UuidAdapter,
+                fileIdAdapter = UuidAdapter,
+                dependencyFileIdAdapter = UuidAdapter
+            )
+
             val appNotificationsAdapter = AppNotifications.Adapter(
                 identityIdAdapter = UuidAdapter,
                 notificationIdAdapter = UuidAdapter
             )
             
-            database = OdinDatabase(driver!!, appNotificationsAdapter, driveLocalTagIndexAdapter, driveMainIndexAdapter, driveTagIndexAdapter, keyValueAdapter)
+            database = OdinDatabase(driver!!, appNotificationsAdapter, driveLocalTagIndexAdapter, driveMainIndexAdapter, driveTagIndexAdapter, keyValueAdapter, outboxAdapter)
             logger.i { "Database initialized successfully" }
         } else {
             logger.w { "Database already initialized" }
@@ -159,13 +166,19 @@ object DatabaseManager {
             val keyValueAdapter = KeyValue.Adapter(
                 keyAdapter = UuidAdapter
             )
-            
+
+            val outboxAdapter = Outbox.Adapter(
+                driveIdAdapter = UuidAdapter,
+                fileIdAdapter = UuidAdapter,
+                dependencyFileIdAdapter = UuidAdapter
+            )
+
             val appNotificationsAdapter = AppNotifications.Adapter(
                 identityIdAdapter = UuidAdapter,
                 notificationIdAdapter = UuidAdapter
             )
-            
-            database = OdinDatabase(driver!!, appNotificationsAdapter, driveLocalTagIndexAdapter, driveMainIndexAdapter, driveTagIndexAdapter, keyValueAdapter)
+
+            database = OdinDatabase(driver!!, appNotificationsAdapter, driveLocalTagIndexAdapter, driveMainIndexAdapter, driveTagIndexAdapter, keyValueAdapter, outboxAdapter)
             logger.i { "Database initialized successfully with custom driver" }
         } else {
             logger.w { "Database already initialized" }
