@@ -30,7 +30,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthState
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
@@ -40,10 +39,9 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortOrder
 import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.ui.screens.login.feedTargetDrive
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collectLatest
 import org.koin.compose.koinInject
 import kotlin.uuid.Uuid
-
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -55,11 +53,12 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var syncProgress by remember { mutableStateOf<BackendEvent?>(null) }
     val coroutineScope = rememberCoroutineScope()
-    val database = DatabaseManager.getDatabase()
     val identityId = Uuid.parse("7b1be23b-48bb-4304-bc7b-db5910c09a92") // TODO: <- get the real identityId
+    val driveId = feedTargetDrive.alias // For filtering events from EventBusFlow
 
     // Inject DriveQueryProvider from Koin
     val driveQueryProvider: DriveQueryProvider? = koinInject()
+
 
     fun triggerFetch(withProgress: Boolean) {
         val provider = driveQueryProvider
@@ -69,52 +68,18 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
         }
         isLoading = true
         errorMessage = null
-        if (withProgress) syncProgress = null
-        coroutineScope.launch {
-            try {
-                // TODO: Where does the identityId live? Need to get it instead of random.
-                val backend = DriveSync(identityId, feedTargetDrive, driveQueryProvider)
-                
-                // Collect Flow updates and update UI state
-                backend.sync().collect { progress ->
-                    syncProgress = progress
-                    when (progress) {
-                        is BackendEvent.SyncUpdate.BatchReceived -> {
-                            // You can optionally use progress.batchData directly, e.g., add to a in-memory list or update UI
-                        }
-                        is BackendEvent.SyncUpdate.Completed -> {
-                            // Sync completed, we can fetch local results
-                            // We don't really need to - this is just a demo and should return up to 1000 rows from the local DB
-                            // which probably matches what was just synced.
-                            val localResult = QueryBatch(DatabaseManager, identityId).queryBatchAsync(
-                                feedTargetDrive.alias,
-                                1000,
-                                null,
-                                QueryBatchSortOrder.OldestFirst,
-                                QueryBatchSortField.AnyChangeDate,
-                                fileSystemType = 0);
-                            localQueryResults = localResult.records
-                            isLoading = false
-                            isRefreshing = false
-                        }
-                        is BackendEvent.SyncUpdate.Failed -> {
-                            errorMessage = progress.errorMessage
-                            isLoading = false
-                            isRefreshing = false
-                        }
-                        is BackendEvent.GoingOnline -> {
-                        }
-                        is BackendEvent.GoingOffline -> {
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                Logger.e("Error fetching Drive Fetch data", e)
-                errorMessage = e.message ?: "Unknown error"
-                isLoading = false
-                isRefreshing = false
-            }
-        }
+        if (withProgress)
+            syncProgress = null
+
+        // TODO: Create once for the whole project per drive to sync
+        val driveSynchronizer = DriveSync(identityId, feedTargetDrive, driveQueryProvider)
+
+        // TODO: Where does the identityId live? Need to get it instead of random.
+        val isSyncing = driveSynchronizer.sync();
+
+        // If isSyncing is true then it spawned a backend thread to sync data from the host
+        // if false then it means another sync job is already running
+        // We could do something UX-wise here on true / false
     }
 
 
@@ -136,6 +101,49 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
         syncProgress = null
         isLoading = false
         isRefreshing = false
+    }
+
+    // New: Collect events from the bus once, filter by driveId
+    LaunchedEffect(Unit) {
+        EventBusFlow.events.collectLatest { event ->
+            when (event) {
+                is BackendEvent.SyncUpdate.BatchReceived -> {
+                    if (event.driveId == driveId) {
+                        syncProgress = event
+                    }
+                }
+                is BackendEvent.SyncUpdate.Completed -> {
+                    if (event.driveId == driveId) {
+                        syncProgress = event
+                        // Fetch local results as before
+                        val localResult = QueryBatch(DatabaseManager, identityId).queryBatchAsync(
+                            feedTargetDrive.alias,
+                            1000,
+                            null,
+                            QueryBatchSortOrder.OldestFirst,
+                            QueryBatchSortField.AnyChangeDate,
+                            fileSystemType = 0
+                        )
+                        localQueryResults = localResult.records
+                        isLoading = false
+                        isRefreshing = false
+                    }
+                }
+                is BackendEvent.SyncUpdate.Failed -> {
+                    if (event.driveId == driveId) {
+                        errorMessage = event.errorMessage
+                        isLoading = false
+                        isRefreshing = false
+                    }
+                }
+                is BackendEvent.GoingOnline -> {
+                    // Handle global online (e.g., trigger auto-sync if desired)
+                }
+                is BackendEvent.GoingOffline -> {
+                    // Handle global offline
+                }
+            }
+        }
     }
 
     Scaffold(
