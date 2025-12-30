@@ -52,6 +52,7 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
     var isRefreshing by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var syncProgress by remember { mutableStateOf<BackendEvent?>(null) }
+    var isOnline by remember { mutableStateOf(true) } // Assume online by default
     val identityId = Uuid.parse("7b1be23b-48bb-4304-bc7b-db5910c09a92") // TODO: <- get the real identityId
     val driveId = feedTargetDrive.alias // For filtering events from EventBusFlow
 
@@ -145,10 +146,10 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
                     }
                 }
                 is BackendEvent.GoingOnline -> {
-                    // Handle global online (e.g., trigger auto-sync if desired)
+                    isOnline = true
                 }
                 is BackendEvent.GoingOffline -> {
-                    // Handle global offline
+                    isOnline = false
                 }
             }
         }
@@ -162,8 +163,31 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
                             IconButton(onClick = onNavigateBack) {
                                 Text("←", style = MaterialTheme.typography.headlineMedium)
                             }
+                        },
+                        actions = {
+                            // Spinner when loading
+                            if (isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.padding(end = 8.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            }
+                            // Numerical progress
+                            if (syncProgress is BackendEvent.SyncUpdate.BatchReceived) {
+                                val progress = syncProgress as BackendEvent.SyncUpdate.BatchReceived
+                                Text(
+                                    text = "${progress.totalCount}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.padding(end = 8.dp)
+                                )
+                            }
+                            // Online/offline indicator
+                            Text(
+                                text = if (isOnline) "🟢" else "🔴",
+                                style = MaterialTheme.typography.headlineSmall
+                            )
                         }
-                )
+                 )
             }
     ) { paddingValues ->
         Box(
@@ -179,39 +203,13 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
                         Button(
                                 onClick = { triggerFetch(true) },
                                 enabled = !isLoading
-                        ) { Text(if (isLoading) "Fetching..." else "Fetch Files") }
+                        ) {
+                            Text(if (isLoading) "Fetching..." else "Fetch Files")
+                        }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                         Spacer(modifier = Modifier.height(16.dp))
 
-                        if (isLoading) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                CircularProgressIndicator()
-                                Spacer(modifier = Modifier.height(8.dp))
-                                when (val progress = syncProgress) {
-                                    is BackendEvent.SyncUpdate.BatchReceived -> {
-                                        Text(
-                                                text = "Fetched ${progress.totalCount} items (${progress.batchCount} in this batch)",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                        progress.latestModified?.let { modified ->
-                                            Text(
-                                                    text = "Latest modified: ${modified}",
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-                                    else -> {
-                                        Text(
-                                                text = "Starting sync...",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            }
-                        } else if (errorMessage != null) {
+                         if (errorMessage != null) {
                             Text(
                                     text = "Error: $errorMessage",
                                     color = MaterialTheme.colorScheme.error
