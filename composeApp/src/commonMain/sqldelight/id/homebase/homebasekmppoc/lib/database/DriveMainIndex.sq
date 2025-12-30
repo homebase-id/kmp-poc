@@ -50,7 +50,8 @@ SET uniqueId = excluded.uniqueId,globalTransitId = excluded.globalTransitId,
     archivalStatus = excluded.archivalStatus,historyStatus = excluded.historyStatus,
     userDate = excluded.userDate,created = excluded.created,modified = excluded.modified,
     fileSystemType = excluded.fileSystemType,
-    jsonHeader = excluded.jsonHeader;
+    jsonHeader = excluded.jsonHeader
+WHERE excluded.modified > DriveMainIndex.modified; -- Only update if the row is newer. Host guarantees it.
 
 -- Select by identity and drive and file (get single row)
 selectByIdentityAndDriveAndFile:
