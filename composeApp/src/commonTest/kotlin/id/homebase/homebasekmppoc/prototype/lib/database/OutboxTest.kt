@@ -10,6 +10,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
+import kotlin.uuid.Uuid
 
 class OutboxTest {
     private var driver: SqlDriver? = null
@@ -36,6 +37,9 @@ class OutboxTest {
 
         // Insert into outbox
         db.outboxQueries.insert(
+            driveId = Uuid.random(),
+            fileId = Uuid.random(),
+            dependencyFileId = Uuid.random(),
             lastAttempt = lastAttempt,
             attemptCount = attemptCount,
             data_ = data,
@@ -57,7 +61,7 @@ class OutboxTest {
         assertEquals(files.contentToString(), nextItem.files.contentToString(), "Files should match")
 
         // Delete the item
-        db.outboxQueries.delete(nextItem.rowId)
+        db.outboxQueries.deleteByRowid(nextItem.rowId)
 
         // Verify deletion
         val countAfterDelete = db.outboxQueries.count().executeAsOne()
@@ -92,6 +96,9 @@ class OutboxTest {
         // Insert multiple items
         items.forEach { (lastAttempt, attemptCount, data) ->
             db.outboxQueries.insert(
+                driveId = Uuid.random(),
+                fileId = Uuid.random(),
+                dependencyFileId = Uuid.random(),
                 lastAttempt = lastAttempt,
                 attemptCount = attemptCount,
                 data_ = data,
@@ -109,19 +116,19 @@ class OutboxTest {
             "First item should be the first inserted")
 
         // Delete first item and verify next is second
-        db.outboxQueries.delete(firstItem.rowId)
+        db.outboxQueries.deleteByRowid(firstItem.rowId)
         val secondItem = db.outboxQueries.selectNext().executeAsOne()
         assertEquals("second".toByteArray().contentToString(), secondItem.data_.contentToString(),
             "Second item should be next after deleting first")
 
         // Delete second item and verify next is third
-        db.outboxQueries.delete(secondItem.rowId)
+        db.outboxQueries.deleteByRowid(secondItem.rowId)
         val thirdItem = db.outboxQueries.selectNext().executeAsOne()
         assertEquals("third".toByteArray().contentToString(), thirdItem.data_.contentToString(),
             "Third item should be next after deleting second")
 
         // Delete third item and verify outbox is empty
-        db.outboxQueries.delete(thirdItem.rowId)
+        db.outboxQueries.deleteByRowid(thirdItem.rowId)
         val noItem = db.outboxQueries.selectNext().executeAsOneOrNull()
         assertNull(noItem, "Should return null when all items are deleted")
     }
@@ -135,6 +142,9 @@ class OutboxTest {
 
         // Insert item with null files
         db.outboxQueries.insert(
+            driveId = Uuid.random(),
+            fileId = Uuid.random(),
+            dependencyFileId = Uuid.random(),
             lastAttempt = lastAttempt,
             attemptCount = attemptCount,
             data_ = data,
@@ -150,7 +160,7 @@ class OutboxTest {
         assertNull(item.files, "Files should be null")
 
         // Clean up
-        db.outboxQueries.delete(item.rowId)
+        db.outboxQueries.deleteByRowid(item.rowId)
     }
 
     @Test
@@ -161,6 +171,9 @@ class OutboxTest {
         val data = "test data".toByteArray()
         
         db.outboxQueries.insert(
+            driveId = Uuid.random(),
+            fileId = Uuid.random(),
+            dependencyFileId = Uuid.random(),
             lastAttempt = initialLastAttempt,
             attemptCount = initialAttemptCount,
             data_ = data,
@@ -176,8 +189,11 @@ class OutboxTest {
         val updatedLastAttempt = 1704153600000L
         val updatedAttemptCount = 2L
         
-        db.outboxQueries.delete(item.rowId)
+        db.outboxQueries.deleteByRowid(item.rowId)
         db.outboxQueries.insert(
+            driveId = Uuid.random(),
+            fileId = Uuid.random(),
+            dependencyFileId = Uuid.random(),
             lastAttempt = updatedLastAttempt,
             attemptCount = updatedAttemptCount,
             data_ = data,

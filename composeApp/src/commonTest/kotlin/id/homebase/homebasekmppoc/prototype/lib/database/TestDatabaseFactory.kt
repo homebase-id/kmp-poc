@@ -7,6 +7,8 @@ import id.homebase.homebasekmppoc.lib.database.DriveMainIndex
 import id.homebase.homebasekmppoc.lib.database.DriveTagIndex
 import id.homebase.homebasekmppoc.lib.database.KeyValue
 import id.homebase.homebasekmppoc.lib.database.OdinDatabase
+import id.homebase.homebasekmppoc.lib.database.Outbox
+import kotlin.uuid.Uuid
 
 /**
  * Factory for creating test databases with all necessary adapters pre-configured.
@@ -42,6 +44,12 @@ object TestDatabaseFactory {
         keyAdapter = UuidAdapter
     )
 
+    private val outboxAdapter = Outbox.Adapter(
+        driveIdAdapter = UuidAdapter,
+        fileIdAdapter = UuidAdapter,
+        dependencyFileIdAdapter = UuidAdapter
+    )
+
     private val appNotificationsAdapter = AppNotifications.Adapter(
         identityIdAdapter = UuidAdapter,
         notificationIdAdapter = UuidAdapter
@@ -63,7 +71,8 @@ object TestDatabaseFactory {
             driveLocalTagIndexAdapter,
             driveMainIndexAdapter,
             driveTagIndexAdapter,
-            keyValueAdapter
+            keyValueAdapter,
+            outboxAdapter
         )
     }
 }

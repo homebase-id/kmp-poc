@@ -1,15 +1,22 @@
+import kotlin.uuid.Uuid;
+
 CREATE TABLE IF NOT EXISTS Outbox(
    rowId INTEGER PRIMARY KEY AUTOINCREMENT,
+   driveId BLOB AS Uuid NOT NULL,
+   fileId BLOB AS Uuid NOT NULL,
+   dependencyFileId BLOB AS Uuid,
    lastAttempt INTEGER NOT NULL,
    attemptCount INTEGER NOT NULL,
    data BLOB NOT NULL,
-   files BLOB
+   files BLOB,
+
+   UNIQUE(driveId,fileId)
 );
 
 -- Insert into outbox
 insert:
-INSERT INTO Outbox(lastAttempt, attemptCount, data, files)
-VALUES (?,?, ?, ?);
+INSERT INTO Outbox(driveId, fileId, dependencyFileId, lastAttempt, attemptCount, data, files)
+VALUES (?,?, ?, ?, ?, ?, ?);
 
 
 -- Get next item to send (must be sent sequentially)
@@ -19,9 +26,15 @@ ORDER BY rowId ASC
 LIMIT 1;
 
 -- Delete a value
-delete:
+deleteByRowid:
 DELETE FROM Outbox
 WHERE rowId = ?;
+
+-- Delete a value
+deleteBy:
+DELETE FROM Outbox
+WHERE driveId = ? AND fileId = ?;
+
 
 -- Get count
 count:
