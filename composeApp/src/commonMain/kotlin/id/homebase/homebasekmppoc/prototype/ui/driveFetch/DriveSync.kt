@@ -64,6 +64,8 @@ class DriveSync(private val identityId : Uuid,
                 var queryBatchResponse: QueryBatchResponse? = null
                 var keepGoing = true
 
+                EventBusFlow.emit(BackendEvent.SyncUpdate.SyncStarted(targetDrive.alias));
+
                 while (keepGoing) {
                     val request = QueryBatchRequest(
                         queryParams = FileQueryParams(

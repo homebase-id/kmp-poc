@@ -24,17 +24,20 @@ sealed interface  BackendEvent {
             val source: SyncSource = SyncSource.DriveSync
         ) : SyncUpdate
 
+        data class SyncStarted(
+            override val driveId : Uuid,
+        ) : SyncUpdate // Only raised by Drive.sync()
+
         data class Completed(
             override val driveId: Uuid,
-            val totalCount: Int,
-            val source: SyncSource = SyncSource.DriveSync
-        ) : SyncUpdate  // Likely only raised by sync()
+            val totalCount: Int
+        ) : SyncUpdate  // Only raised by Drive.sync()
 
         data class Failed(
             override val driveId: Uuid,
             val errorMessage: String,  // Or add throwable: Throwable
             val source: SyncSource = SyncSource.DriveSync
-        ) : SyncUpdate // Likely only raised by sync()
+        ) : SyncUpdate
     }
 
     // We go online / offline when the websocket listener is connected / disconnected

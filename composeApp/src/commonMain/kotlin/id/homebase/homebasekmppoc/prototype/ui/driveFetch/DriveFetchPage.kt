@@ -52,34 +52,36 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
     var isRefreshing by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var syncProgress by remember { mutableStateOf<BackendEvent?>(null) }
-    val coroutineScope = rememberCoroutineScope()
     val identityId = Uuid.parse("7b1be23b-48bb-4304-bc7b-db5910c09a92") // TODO: <- get the real identityId
     val driveId = feedTargetDrive.alias // For filtering events from EventBusFlow
 
     // Inject DriveQueryProvider from Koin
     val driveQueryProvider: DriveQueryProvider? = koinInject()
 
+    // Create driveSynchronizer once
+    val driveSynchronizer = remember(driveQueryProvider) {
+        driveQueryProvider?.let { DriveSync(identityId, feedTargetDrive, it) }
+    }
 
     fun triggerFetch(withProgress: Boolean) {
-        val provider = driveQueryProvider
-        if (provider == null) {
+        if (driveSynchronizer == null) {
             errorMessage = "Not authenticated - no credentials stored"
             return
         }
-        isLoading = true
         errorMessage = null
-        if (withProgress)
-            syncProgress = null
-
-        // TODO: Create once for the whole project per drive to sync
-        val driveSynchronizer = DriveSync(identityId, feedTargetDrive, driveQueryProvider)
 
         // TODO: Where does the identityId live? Need to get it instead of random.
-        val isSyncing = driveSynchronizer.sync();
-
-        // If isSyncing is true then it spawned a backend thread to sync data from the host
-        // if false then it means another sync job is already running
-        // We could do something UX-wise here on true / false
+        if (driveSynchronizer.sync())
+        {
+            isLoading = true
+            if (withProgress)
+            {
+                syncProgress = null
+            }
+        } else {
+            // Optional: Handle UX for already syncing (e.g., brief message)
+            // For now, do nothing to avoid interrupting current sync
+        }
     }
 
 
@@ -134,6 +136,12 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
                         errorMessage = event.errorMessage
                         isLoading = false
                         isRefreshing = false
+                    }
+                }
+                is BackendEvent.SyncUpdate.SyncStarted -> {
+                    if (event.driveId == driveId) {
+                        isLoading = true
+                        syncProgress = null
                     }
                 }
                 is BackendEvent.GoingOnline -> {
