@@ -63,6 +63,8 @@ val appModule = module {
      * Services
      * ─────────────────────────── */
 
+    single { OdinClientFactory }
+
     factory<DriveUploadService?> {
         val provider: DriveUploadProvider? = get()
         provider?.let { DriveUploadService(it) }
@@ -73,7 +75,12 @@ val appModule = module {
      * ─────────────────────────── */
 
     // ViewModels
-    viewModel { LoginViewModel(get()) }
+    viewModel {
+        LoginViewModel(
+            youAuthFlowManager = get(),
+            odinClientFactory = get()
+        )
+    }
     viewModelOf(::HomeViewModel)
 
     viewModel {

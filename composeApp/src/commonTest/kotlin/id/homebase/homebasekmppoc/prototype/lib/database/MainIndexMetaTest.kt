@@ -641,8 +641,7 @@ assertEquals(driveId, retrievedRecord.driveId)
 
         // Verify round-trip conversion preserves all data
         assertEquals(originalHeader.fileId, reconstructedHeader.fileId)
-        assertEquals(originalHeader.targetDrive.alias, reconstructedHeader.targetDrive.alias)
-        assertEquals(originalHeader.targetDrive.type, reconstructedHeader.targetDrive.type)
+        assertEquals(originalHeader.driveId, reconstructedHeader.driveId)
         assertEquals(originalHeader.fileState, reconstructedHeader.fileState)
         assertEquals(originalHeader.fileSystemType, reconstructedHeader.fileSystemType)
         assertEquals(originalHeader.sharedSecretEncryptedKeyHeader.encryptionVersion, reconstructedHeader.sharedSecretEncryptedKeyHeader.encryptionVersion)

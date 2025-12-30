@@ -37,10 +37,8 @@ open class DriveSyncThreadSafetyTest {
     private lateinit var database: OdinDatabase
     private lateinit var fileHeaderProcessor: MainIndexMetaHelpers.HomebaseFileProcessor
     private val identityId = Uuid.random()
-    private val targetDrive = TargetDrive(
-        type = Uuid.random(),
-        alias = Uuid.random()
-    )
+
+    private val driveId = Uuid.random()
 
     @BeforeTest
     fun setup() {
@@ -94,7 +92,7 @@ open class DriveSyncThreadSafetyTest {
                         // Use direct database operations (no additional transaction)
                         fileHeaderProcessor.performBaseUpsert(
                             identityId = identityId,
-                            driveId = targetDrive.alias,
+                            driveId = driveId,
                             fileHeaders = threadHeaders,
                             cursor = null
                         )
@@ -148,8 +146,7 @@ open class DriveSyncThreadSafetyTest {
         
         return SharedSecretEncryptedFileHeader(
             fileId = uniqueId,
-            targetDrive = targetDrive,
-            driveId = targetDrive.alias,
+            driveId = driveId,
             fileState = FileState.Active,
             fileSystemType = FileSystemType.Standard,
             sharedSecretEncryptedKeyHeader = id.homebase.homebasekmppoc.prototype.lib.crypto.EncryptedKeyHeader(

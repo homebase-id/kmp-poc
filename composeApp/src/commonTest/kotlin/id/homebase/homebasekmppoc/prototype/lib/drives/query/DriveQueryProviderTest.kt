@@ -124,11 +124,6 @@ class DriveQueryProviderTest {
             SharedSecretEncryptedFileHeader(
                 fileId = Uuid.random(),
                 driveId = Uuid.parse("00000000-0000-0000-0000-000000000001"),
-                targetDrive =
-                    TargetDrive(
-                        alias = Uuid.parse("00000000-0000-0000-0000-000000000001"),
-                        type = Uuid.parse("00000000-0000-0000-0000-000000000002")
-                    ),
                 fileState =
                     id.homebase.homebasekmppoc.prototype.lib.drives.FileState.Active,
                 fileSystemType = FileSystemType.Standard,

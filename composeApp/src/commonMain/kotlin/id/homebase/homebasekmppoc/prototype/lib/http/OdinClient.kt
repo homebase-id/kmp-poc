@@ -133,14 +133,10 @@ open class OdinClient(
         plainClient = null
     }
 
-    // ─────────────────────────────────────────────
-    // LEGACY API — PRESERVED, NOW SAFE
-    // ─────────────────────────────────────────────
+    open fun createHttpClient(): HttpClient = createHttpClient(CreateHttpClientOptions())
 
-    open fun createHttpClient(
-        createHttpClientOptions: CreateHttpClientOptions
-    ): HttpClient =
-        client(encrypted = !createHttpClientOptions.overrideEncryption)
+    open fun createHttpClient(createHttpClientOptions: CreateHttpClientOptions
+    ): HttpClient =client(encrypted = !createHttpClientOptions.overrideEncryption)
 }
 
 
