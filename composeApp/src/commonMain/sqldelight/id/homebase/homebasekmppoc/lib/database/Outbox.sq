@@ -90,6 +90,12 @@ DELETE FROM Outbox
 WHERE driveId = ? AND fileId = ?;
 
 
+-- Select checked out item
+selectCheckedOut:
+SELECT rowId,driveId,fileId,dependencyFileId,lastAttempt,nextRunTime,checkOutCount,checkOutStamp,priority,data,files
+FROM Outbox
+WHERE checkOutStamp = ?;
+
 -- Get count
 count:
 SELECT count(*) FROM Outbox;
