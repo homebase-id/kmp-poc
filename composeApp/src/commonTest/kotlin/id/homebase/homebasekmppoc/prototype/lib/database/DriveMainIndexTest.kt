@@ -6,6 +6,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.test.assertNotNull
 import kotlin.random.Random
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -276,5 +277,314 @@ for (i in 1..3) {
         
         val allRecords = db.driveMainIndexQueries.selectAll().executeAsList()
         assertTrue(allRecords.isEmpty(), "Should have no records after deleteAll")
+    }
+
+    @Test
+    fun testUpsertOnConflictScenarios() = runTest {
+        val currentTime = Random.nextLong()
+        val identityId = Uuid.random()
+        val driveId = Uuid.random()
+
+        // Test data
+        val initialFileId = Uuid.random()
+        val initialUniqueId = Uuid.random()
+        val initialGlobalTransitId = Uuid.random()
+        val updatedFileId = Uuid.random()
+        val updatedUniqueId = Uuid.random()
+        val updatedGlobalTransitId = Uuid.random()
+
+        val baseJsonHeader = """{"versionTag":"${"version".encodeToByteArray().contentToString()}","byteCount":1024,"encryptedKeyHeader":"key","appData":"data","localVersionTag":null,"localAppData":null,"reactionSummary":null,"serverData":"server","transferHistory":null,"fileMetaData":"meta"}"""
+
+        // === Test 1: ON CONFLICT (identityId,driveId,fileId) ===
+        // Insert initial record
+        db.driveMainIndexQueries.upsertDriveMainIndex(
+            identityId = identityId,
+            driveId = driveId,
+            fileId = initialFileId,
+            uniqueId = initialUniqueId,
+            globalTransitId = initialGlobalTransitId,
+            groupId = null,
+            senderId = "initial-sender",
+            fileType = 1L,
+            dataType = 2L,
+            archivalStatus = 3L,
+            historyStatus = 4L,
+            userDate = currentTime,
+            created = currentTime,
+            modified = currentTime,
+            fileSystemType = 5L,
+            jsonHeader = baseJsonHeader
+        )
+
+        // Upsert with same identityId, driveId, fileId - should trigger first ON CONFLICT
+        val updatedTime1 = currentTime + 1000
+        db.driveMainIndexQueries.upsertDriveMainIndex(
+            identityId = identityId,
+            driveId = driveId,
+            fileId = initialFileId, // Same fileId - triggers conflict
+            uniqueId = updatedUniqueId, // Should update
+            globalTransitId = updatedGlobalTransitId, // Should update
+            groupId = Uuid.random(),
+            senderId = "updated-sender-1",
+            fileType = 11L,
+            dataType = 22L,
+            archivalStatus = 33L,
+            historyStatus = 44L,
+            userDate = updatedTime1,
+            created = currentTime,
+            modified = updatedTime1,
+            fileSystemType = 55L,
+            jsonHeader = baseJsonHeader.replace("data", "updated-data-1")
+        )
+
+        var record = db.driveMainIndexQueries.selectByIdentityAndDriveAndFile(
+            identityId = identityId,
+            driveId = driveId,
+            fileId = initialFileId
+        ).executeAsOne()
+
+        // Verify fileId stayed the same, but other fields updated
+        assertEquals(initialFileId, record.fileId, "fileId should remain unchanged in first conflict")
+        assertEquals(updatedUniqueId, record.uniqueId, "uniqueId should be updated")
+        assertEquals(updatedGlobalTransitId, record.globalTransitId, "globalTransitId should be updated")
+        assertEquals("updated-sender-1", record.senderId, "senderId should be updated")
+        assertEquals(11L, record.fileType, "fileType should be updated")
+        assertEquals(updatedTime1, record.modified, "modified should be updated")
+
+        // === Test 2: ON CONFLICT (identityId,driveId,uniqueId) ===
+        // Create a new record with same identityId, driveId, uniqueId but different fileId
+        val newFileId = Uuid.random()
+        db.driveMainIndexQueries.upsertDriveMainIndex(
+            identityId = identityId,
+            driveId = driveId,
+            fileId = newFileId,
+            uniqueId = updatedUniqueId, // Same uniqueId - triggers second conflict
+            globalTransitId = Uuid.random(),
+            groupId = null,
+            senderId = "sender-unique-conflict",
+            fileType = 100L,
+            dataType = 200L,
+            archivalStatus = 300L,
+            historyStatus = 400L,
+            userDate = currentTime,
+            created = currentTime,
+            modified = currentTime,
+            fileSystemType = 500L,
+            jsonHeader = baseJsonHeader.replace("data", "unique-conflict-data")
+        )
+
+        // This should trigger the second ON CONFLICT (identityId,driveId,uniqueId)
+        // Since fileId is NULL in existing record? Wait, no - we already have fileId set.
+        // Actually, this will create a new record because uniqueId is already taken by the first record.
+        // To test the uniqueId conflict, I need to upsert with the same uniqueId but different other keys.
+
+        // Let me create a record with NULL fileId first, then update it via uniqueId conflict
+        val nullFileIdRecordId = Uuid.random()
+        db.driveMainIndexQueries.upsertDriveMainIndex(
+            identityId = identityId,
+            driveId = driveId,
+            fileId = null, // NULL fileId
+            uniqueId = nullFileIdRecordId,
+            globalTransitId = Uuid.random(),
+            groupId = null,
+            senderId = "null-fileid-sender",
+            fileType = 1L,
+            dataType = 2L,
+            archivalStatus = 3L,
+            historyStatus = 4L,
+            userDate = currentTime,
+            created = currentTime,
+            modified = currentTime,
+            fileSystemType = 5L,
+            jsonHeader = baseJsonHeader.replace("data", "null-fileid-data")
+        )
+
+        // Now upsert with same identityId, driveId, uniqueId but provide a fileId - should update fileId since it's NULL
+        val updatedTime2 = currentTime + 2000
+        val providedFileId = Uuid.random()
+        db.driveMainIndexQueries.upsertDriveMainIndex(
+            identityId = identityId,
+            driveId = driveId,
+            fileId = providedFileId, // Provide fileId
+            uniqueId = nullFileIdRecordId, // Same uniqueId - triggers second conflict
+            globalTransitId = Uuid.random(),
+            groupId = null,
+            senderId = "updated-null-fileid-sender",
+            fileType = 11L,
+            dataType = 22L,
+            archivalStatus = 33L,
+            historyStatus = 44L,
+            userDate = updatedTime2,
+            created = currentTime,
+            modified = updatedTime2,
+            fileSystemType = 55L,
+            jsonHeader = baseJsonHeader.replace("data", "updated-null-fileid-data")
+        )
+
+        // Find the record by identityId, driveId, uniqueId (since fileId was null, we can't query by fileId)
+        val recordsByUnique = db.driveMainIndexQueries.selectAll().executeAsList()
+            .filter { it.identityId == identityId && it.driveId == driveId && it.uniqueId == nullFileIdRecordId }
+
+        assertEquals(1, recordsByUnique.size, "Should find exactly one record with this uniqueId")
+        val uniqueConflictRecord = recordsByUnique.first()
+
+        // Verify fileId was updated from NULL to providedFileId
+        assertEquals(providedFileId, uniqueConflictRecord.fileId, "fileId should be updated from NULL via uniqueId conflict")
+        assertEquals("updated-null-fileid-sender", uniqueConflictRecord.senderId, "senderId should be updated")
+
+        // === Test 3: ON CONFLICT (identityId,driveId,globalTransitId) ===
+        // Create a record with NULL fileId
+        val globalTransitConflictId = Uuid.random()
+        db.driveMainIndexQueries.upsertDriveMainIndex(
+            identityId = identityId,
+            driveId = driveId,
+            fileId = null, // NULL fileId
+            uniqueId = Uuid.random(),
+            globalTransitId = globalTransitConflictId,
+            groupId = null,
+            senderId = "global-transit-sender",
+            fileType = 1L,
+            dataType = 2L,
+            archivalStatus = 3L,
+            historyStatus = 4L,
+            userDate = currentTime,
+            created = currentTime,
+            modified = currentTime,
+            fileSystemType = 5L,
+            jsonHeader = baseJsonHeader.replace("data", "global-transit-data")
+        )
+
+        // Try to update with older modified time - should NOT update due to WHERE clause
+        val olderTime = currentTime - 1000
+        db.driveMainIndexQueries.upsertDriveMainIndex(
+            identityId = identityId,
+            driveId = driveId,
+            fileId = Uuid.random(), // Different fileId
+            uniqueId = Uuid.random(),
+            globalTransitId = globalTransitConflictId, // Same globalTransitId - triggers third conflict
+            groupId = null,
+            senderId = "should-not-update-sender",
+            fileType = 999L,
+            dataType = 888L,
+            archivalStatus = 777L,
+            historyStatus = 666L,
+            userDate = olderTime,
+            created = olderTime,
+            modified = olderTime, // Older than current - should not update
+            fileSystemType = 555L,
+            jsonHeader = baseJsonHeader.replace("data", "should-not-update-data")
+        )
+
+        // Find the record
+        val recordsByGlobal = db.driveMainIndexQueries.selectAll().executeAsList()
+            .filter { it.identityId == identityId && it.driveId == driveId && it.globalTransitId == globalTransitConflictId }
+
+        assertEquals(1, recordsByGlobal.size, "Should find exactly one record with this globalTransitId")
+        val globalConflictRecord = recordsByGlobal.first()
+
+        // Verify it was NOT updated (sender should still be "global-transit-sender")
+        assertEquals("global-transit-sender", globalConflictRecord.senderId, "Record should not be updated due to older modified time")
+        assertEquals(currentTime, globalConflictRecord.modified, "Modified time should remain the same")
+
+        // Now update with newer modified time - should update
+        val newerTime = currentTime + 3000
+        val newFileIdForGlobal = Uuid.random()
+        db.driveMainIndexQueries.upsertDriveMainIndex(
+            identityId = identityId,
+            driveId = driveId,
+            fileId = newFileIdForGlobal, // Provide fileId
+            uniqueId = Uuid.random(),
+            globalTransitId = globalTransitConflictId, // Same globalTransitId - triggers third conflict
+            groupId = null,
+            senderId = "updated-global-sender",
+            fileType = 111L,
+            dataType = 222L,
+            archivalStatus = 333L,
+            historyStatus = 444L,
+            userDate = newerTime,
+            created = currentTime,
+            modified = newerTime, // Newer than current - should update
+            fileSystemType = 555L,
+            jsonHeader = baseJsonHeader.replace("data", "updated-global-data")
+        )
+
+        // Find the updated record
+        val updatedRecordsByGlobal = db.driveMainIndexQueries.selectAll().executeAsList()
+            .filter { it.identityId == identityId && it.driveId == driveId && it.globalTransitId == globalTransitConflictId }
+
+        assertEquals(1, updatedRecordsByGlobal.size, "Should find exactly one record with this globalTransitId")
+        val updatedGlobalRecord = updatedRecordsByGlobal.first()
+
+        // Verify it was updated
+        assertEquals("updated-global-sender", updatedGlobalRecord.senderId, "Record should be updated with newer modified time")
+        assertEquals(newerTime, updatedGlobalRecord.modified, "Modified time should be updated")
+
+        // === Test 4: CHECK constraint violation ===
+        // Try to insert record with all three identifiers NULL - should fail CHECK constraint
+        val exception = kotlin.runCatching {
+            db.driveMainIndexQueries.upsertDriveMainIndex(
+                identityId = Uuid.random(), // Different identity to avoid conflicts
+                driveId = Uuid.random(),
+                fileId = null,
+                uniqueId = null,
+                globalTransitId = null, // All three NULL - violates CHECK
+                groupId = null,
+                senderId = "check-violation-sender",
+                fileType = 1L,
+                dataType = 2L,
+                archivalStatus = 3L,
+                historyStatus = 4L,
+                userDate = currentTime,
+                created = currentTime,
+                modified = currentTime,
+                fileSystemType = 5L,
+                jsonHeader = baseJsonHeader
+            )
+        }.exceptionOrNull()
+
+        assertNotNull(exception, "Inserting record with all identifiers NULL should throw an exception")
+
+        // === Test 5: fileId immutability ===
+        // Get a record that has fileId set
+        val recordWithFileId = db.driveMainIndexQueries.selectByIdentityAndDriveAndFile(
+            identityId = identityId,
+            driveId = driveId,
+            fileId = initialFileId
+        ).executeAsOne()
+
+        assertNotNull(recordWithFileId.fileId, "Record should have fileId set")
+
+        val originalFileId = recordWithFileId.fileId!!
+
+        // Try to update this record with a different fileId via uniqueId conflict
+        // This should NOT change the fileId since it's already set
+        db.driveMainIndexQueries.upsertDriveMainIndex(
+            identityId = identityId,
+            driveId = driveId,
+            fileId = Uuid.random(), // Different fileId - should be ignored
+            uniqueId = recordWithFileId.uniqueId, // Same uniqueId - triggers conflict
+            globalTransitId = Uuid.random(),
+            groupId = null,
+            senderId = "attempt-change-fileid-sender",
+            fileType = 999L,
+            dataType = 888L,
+            archivalStatus = 777L,
+            historyStatus = 666L,
+            userDate = currentTime,
+            created = currentTime,
+            modified = currentTime + 4000,
+            fileSystemType = 555L,
+            jsonHeader = baseJsonHeader.replace("data", "attempt-change-fileid-data")
+        )
+
+        // Verify fileId did NOT change
+        val finalRecord = db.driveMainIndexQueries.selectByIdentityAndDriveAndFile(
+            identityId = identityId,
+            driveId = driveId,
+            fileId = originalFileId
+        ).executeAsOne()
+
+        assertEquals(originalFileId, finalRecord.fileId, "fileId should remain immutable once set")
+        assertEquals("attempt-change-fileid-sender", finalRecord.senderId, "Other fields should still update")
     }
 }
