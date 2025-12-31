@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS DriveMainIndex(
    rowId INTEGER PRIMARY KEY AUTOINCREMENT,
    identityId BLOB AS Uuid NOT NULL,
    driveId BLOB AS Uuid NOT NULL,
-   fileId BLOB AS Uuid NOT NULL,
+   fileId BLOB AS Uuid,  -- You can set fileId to NULL so it can get set once assigned by host
    uniqueId BLOB AS Uuid,
    globalTransitId BLOB AS Uuid,
    senderId TEXT,
@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS DriveMainIndex(
    modified INTEGER NOT NULL,
    fileSystemType INTEGER NOT NULL,
    jsonHeader TEXT NOT NULL,
+   CHECK (fileId IS NOT NULL OR uniqueId IS NOT NULL OR globalTransitId IS NOT NULL),
 
    UNIQUE(identityId,driveId,fileId),
    UNIQUE(identityId,driveId,uniqueId),
@@ -43,7 +44,8 @@ VALUES (
    ?,?,?,?,?,?,?,
    ?,?,?,?)
 ON CONFLICT (identityId,driveId,fileId) DO UPDATE
-SET uniqueId = excluded.uniqueId,globalTransitId = excluded.globalTransitId,
+SET uniqueId = excluded.uniqueId,
+    globalTransitId = excluded.globalTransitId,
     groupId = excluded.groupId,
     senderId = excluded.senderId,
     fileType = excluded.fileType,dataType = excluded.dataType,
@@ -51,9 +53,26 @@ SET uniqueId = excluded.uniqueId,globalTransitId = excluded.globalTransitId,
     userDate = excluded.userDate,created = excluded.created,modified = excluded.modified,
     fileSystemType = excluded.fileSystemType,
     jsonHeader = excluded.jsonHeader
--- ON CONFLICT (identityId,driveId,uniqueId)
---   SET ... <-- This is how we can exploit updating the fileId on new optimistically inserted items
---
+ON CONFLICT (identityId,driveId,uniqueId) DO UPDATE
+SET fileId = COALESCE(fileId, excluded.fileId), -- only update if current is NULL - I'm not even sure I want this
+    globalTransitId = excluded.globalTransitId,
+    groupId = excluded.groupId,
+    senderId = excluded.senderId,
+    fileType = excluded.fileType,dataType = excluded.dataType,
+    archivalStatus = excluded.archivalStatus,historyStatus = excluded.historyStatus,
+    userDate = excluded.userDate,created = excluded.created,modified = excluded.modified,
+    fileSystemType = excluded.fileSystemType,
+    jsonHeader = excluded.jsonHeader
+ON CONFLICT (identityId,driveId,globalTransitId) DO UPDATE
+SET fileId = COALESCE(fileId, excluded.fileId), -- only update if current is NULL - I'm not even sure I want this
+    uniqueId = uniqueId,
+    groupId = excluded.groupId,
+    senderId = excluded.senderId,
+    fileType = excluded.fileType,dataType = excluded.dataType,
+    archivalStatus = excluded.archivalStatus,historyStatus = excluded.historyStatus,
+    userDate = excluded.userDate,created = excluded.created,modified = excluded.modified,
+    fileSystemType = excluded.fileSystemType,
+    jsonHeader = excluded.jsonHeader
 WHERE excluded.modified > DriveMainIndex.modified; -- Only update if the row is newer. Host guarantees it.
 
 -- Select by identity and drive and file (get single row)
