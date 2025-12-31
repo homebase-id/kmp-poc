@@ -51,6 +51,9 @@ SET uniqueId = excluded.uniqueId,globalTransitId = excluded.globalTransitId,
     userDate = excluded.userDate,created = excluded.created,modified = excluded.modified,
     fileSystemType = excluded.fileSystemType,
     jsonHeader = excluded.jsonHeader
+-- ON CONFLICT (identityId,driveId,uniqueId)
+--   SET ... <-- This is how we can exploit updating the fileId on new optimistically inserted items
+--
 WHERE excluded.modified > DriveMainIndex.modified; -- Only update if the row is newer. Host guarantees it.
 
 -- Select by identity and drive and file (get single row)
