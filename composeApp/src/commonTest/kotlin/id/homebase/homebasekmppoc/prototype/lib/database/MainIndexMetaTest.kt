@@ -53,10 +53,7 @@ fun testUpsertDriveMainIndexHelper() = runTest {
         // Create JSON header with all required fields for SharedSecretEncryptedFileHeader
         val jsonHeader = """{
                 "fileId": "${fileId}",
-                "targetDrive": {
-                    "alias": "${driveId}",
-                    "type": "8f448716e34cedf9014145e043ca6612"
-                },
+                "driveId": "${driveId}",
                 "fileState": "active",
                 "fileSystemType": "standard",
                 "sharedSecretEncryptedKeyHeader": {
@@ -145,10 +142,7 @@ assertEquals(driveId, retrievedRecord.driveId)
         // Create JSON header with all required fields for SharedSecretEncryptedFileHeader
         val jsonHeader = """{
                 "fileId": "${fileId}",
-                "targetDrive": {
-                    "alias": "${driveId}",
-                    "type": "8f448716e34cedf9014145e043ca6612"
-                },
+                "driveId": "${driveId}",
                 "fileState": "active",
                 "fileSystemType": "standard",
                 "sharedSecretEncryptedKeyHeader": {
@@ -345,10 +339,7 @@ assertEquals(driveId, retrievedRecord.driveId)
         // Create JSON header with all required fields for SharedSecretEncryptedFileHeader
         val jsonHeader = """{
                 "fileId": "${fileId}",
-                "targetDrive": {
-                    "alias": "${driveId}",
-                    "type": "8f448716e34cedf9014145e043ca6612"
-                },
+                "driveId": "${driveId}",
                 "fileState": "active",
                 "fileSystemType": "standard",
                 "sharedSecretEncryptedKeyHeader": {
@@ -465,10 +456,7 @@ assertEquals(driveId, retrievedRecord.driveId)
         // Create JSON header with all required fields for SharedSecretEncryptedFileHeader
         val jsonHeader = """{
                 "fileId": "${fileId}",
-                "targetDrive": {
-                    "alias": "${driveId}",
-                    "type": "8f448716e34cedf9014145e043ca6612"
-                },
+                "driveId": "${driveId}",
                 "fileState": "active",
                 "fileSystemType": "standard",
                 "sharedSecretEncryptedKeyHeader": {
@@ -572,10 +560,7 @@ assertEquals(driveId, retrievedRecord.driveId)
         // Create JSON header with all required fields for SharedSecretEncryptedFileHeader
         val jsonHeader = """{
                 "fileId": "${fileId}",
-                "targetDrive": {
-                    "alias": "${driveId}",
-                    "type": "8f448716e34cedf9014145e043ca6612"
-                },
+                "driveId": "${driveId}",
                 "fileState": "active",
                 "fileSystemType": "standard",
                 "sharedSecretEncryptedKeyHeader": {
