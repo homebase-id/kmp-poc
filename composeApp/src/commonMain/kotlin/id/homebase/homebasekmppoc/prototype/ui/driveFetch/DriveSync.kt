@@ -60,87 +60,91 @@ class DriveSync(private val identityId : Uuid,
         }
         scope.launch {
             try {
-                var totalCount = 0
-                var queryBatchResponse: QueryBatchResponse? = null
-                var keepGoing = true
-
-                EventBusFlow.emit(BackendEvent.SyncUpdate.SyncStarted(targetDrive.alias));
-
-                while (keepGoing) {
-                    val request = QueryBatchRequest(
-                        queryParams = FileQueryParams(
-                            targetDrive = targetDrive,
-                            fileState = listOf(FileState.Active)
-                        ),
-                        resultOptionsRequest = QueryBatchResultOptionsRequest(
-                            maxRecords = batchSize,
-                            includeMetadataHeader = true,
-                            cursorState = cursor?.toJson()
-                        )
-                    )
-
-                    val durationMs = measureTimedValue {
-                        try {
-                            queryBatchResponse = driveQueryProvider.queryBatch(request)
-
-                            if (queryBatchResponse.cursorState != null)
-                                cursor = QueryBatchCursor.fromJson(queryBatchResponse.cursorState)
-
-                            val searchResults = queryBatchResponse.searchResults
-                            if (searchResults.isNotEmpty()) {
-                                val batchCount = searchResults.size
-                                totalCount += batchCount
-
-                                // Run DB operation in background without waiting - fire and forget
-                                CoroutineScope(Dispatchers.Default).launch {
-                                    try {
-                                        val dbMs = measureTimedValue {
-                                            fileHeaderProcessor.baseUpsertEntryZapZap(
-                                                identityId = identityId,
-                                                driveId = targetDrive.alias,
-                                                fileHeaders = searchResults,
-                                                cursor = cursor
-                                            )
-                                        }
-                                        Logger.i("DB insert time ${dbMs} for ${searchResults.size} rows")
-                                    } catch (e: Exception) {
-                                        Logger.e("DB upsert failed for batch: ${e.message}")
-                                    }
-                                }
-
-                                val latestModified = searchResults.last().fileMetadata.updated
-
-                                EventBusFlow.emit(BackendEvent.SyncUpdate.BatchReceived(
-                                    driveId = targetDrive.alias,
-                                    totalCount = totalCount,
-                                    batchCount = batchCount,
-                                    latestModified = latestModified,
-                                    batchData = searchResults
-                                ))
-                            }
-
-                            keepGoing = searchResults?.let { it.size >= batchSize } ?: false
-                        } catch (e: Exception) {
-                            EventBusFlow.emit(BackendEvent.SyncUpdate.Failed(targetDrive.alias, "Sync failed: ${e.message}"))
-                            keepGoing = false
-                        }
-                    }
-
-                    val batchWas = batchSize
-                    val targetMs = 700L
-                    if (durationMs.duration.inWholeMilliseconds > 0) {
-                        batchSize = (batchSize.toLong() * targetMs / durationMs.duration.inWholeMilliseconds)
-                            .toInt()
-                            .coerceIn(50, 1000)
-                    }
-                    Logger.d("Batch size: $batchWas, took ${durationMs.duration.inWholeMilliseconds}ms, now adjusted to: $batchSize")
-                }
-
-                EventBusFlow.emit(BackendEvent.SyncUpdate.Completed(targetDrive.alias, totalCount))
+                performSync()
             } finally {
                 mutex.unlock()
             }
         }
         return true
+    }
+
+    private suspend fun performSync() {
+        var totalCount = 0
+        var queryBatchResponse: QueryBatchResponse? = null
+        var keepGoing = true
+
+        EventBusFlow.emit(BackendEvent.SyncUpdate.SyncStarted(targetDrive.alias));
+
+        while (keepGoing) {
+            val request = QueryBatchRequest(
+                queryParams = FileQueryParams(
+                    targetDrive = targetDrive,
+                    fileState = listOf(FileState.Active)
+                ),
+                resultOptionsRequest = QueryBatchResultOptionsRequest(
+                    maxRecords = batchSize,
+                    includeMetadataHeader = true,
+                    cursorState = cursor?.toJson()
+                )
+            )
+
+            val durationMs = measureTimedValue {
+                try {
+                    queryBatchResponse = driveQueryProvider.queryBatch(request)
+
+                    if (queryBatchResponse.cursorState != null)
+                        cursor = QueryBatchCursor.fromJson(queryBatchResponse.cursorState)
+
+                    val searchResults = queryBatchResponse.searchResults
+                    if (searchResults.isNotEmpty()) {
+                        val batchCount = searchResults.size
+                        totalCount += batchCount
+
+                        // Run DB operation in background without waiting - fire and forget
+                        CoroutineScope(Dispatchers.Default).launch {
+                            try {
+                                val dbMs = measureTimedValue {
+                                    fileHeaderProcessor.baseUpsertEntryZapZap(
+                                        identityId = identityId,
+                                        driveId = targetDrive.alias,
+                                        fileHeaders = searchResults,
+                                        cursor = cursor
+                                    )
+                                }
+                                Logger.i("DB insert time ${dbMs} for ${searchResults.size} rows")
+                            } catch (e: Exception) {
+                                Logger.e("DB upsert failed for batch: ${e.message}")
+                            }
+                        }
+
+                        val latestModified = searchResults.last().fileMetadata.updated
+
+                        EventBusFlow.emit(BackendEvent.SyncUpdate.BatchReceived(
+                            driveId = targetDrive.alias,
+                            totalCount = totalCount,
+                            batchCount = batchCount,
+                            latestModified = latestModified,
+                            batchData = searchResults
+                        ))
+                    }
+
+                    keepGoing = searchResults?.let { it.size >= batchSize } ?: false
+                } catch (e: Exception) {
+                    EventBusFlow.emit(BackendEvent.SyncUpdate.Failed(targetDrive.alias, "Sync failed: ${e.message}"))
+                    keepGoing = false
+                }
+            }
+
+            val batchWas = batchSize
+            val targetMs = 700L
+            if (durationMs.duration.inWholeMilliseconds > 0) {
+                batchSize = (batchSize.toLong() * targetMs / durationMs.duration.inWholeMilliseconds)
+                    .toInt()
+                    .coerceIn(50, 1000)
+            }
+            Logger.d("Batch size: $batchWas, took ${durationMs.duration.inWholeMilliseconds}ms, now adjusted to: $batchSize")
+        }
+
+        EventBusFlow.emit(BackendEvent.SyncUpdate.Completed(targetDrive.alias, totalCount))
     }
 }
