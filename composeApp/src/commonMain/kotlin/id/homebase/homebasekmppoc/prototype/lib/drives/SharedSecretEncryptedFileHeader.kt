@@ -14,7 +14,6 @@ import kotlin.uuid.Uuid
 data class SharedSecretEncryptedFileHeader(
     @Serializable(with = UuidSerializer::class)
     val fileId: Uuid,
-    val targetDrive: TargetDrive,
     val driveId: Uuid,
     val fileState: FileState,
     val fileSystemType: FileSystemType,
@@ -24,6 +23,7 @@ data class SharedSecretEncryptedFileHeader(
     val priority: Int = 0,
     val fileByteCount: Long = 0
 ) {
+
 
     fun assertFileIsActive() {
         if (fileState == FileState.Deleted) {

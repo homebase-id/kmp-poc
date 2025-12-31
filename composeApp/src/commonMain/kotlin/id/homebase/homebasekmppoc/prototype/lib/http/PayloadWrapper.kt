@@ -9,6 +9,7 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadDescriptor
 import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import id.homebase.homebasekmppoc.prototype.lib.video.VideoMetaData
+import id.homebase.homebasekmppoc.ui.screens.login.feedTargetDrive
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.headers
@@ -50,8 +51,10 @@ class PayloadWrapper(
 
     fun getPayloadUri(appOrOwner: AppOrOwner): String {
         val fileId = header.fileId
-        val alias = header.targetDrive.alias
-        val type = header.targetDrive.type
+
+        // TODO: Seb - we need to get you converted to API v2
+        val alias = header.driveId
+        val type = feedTargetDrive.type; // header.targetDrive.type
         val payloadKey = payloadDescriptor.key
 
         // calls backend DriveStorageControllerBase.GetPayloadStream
