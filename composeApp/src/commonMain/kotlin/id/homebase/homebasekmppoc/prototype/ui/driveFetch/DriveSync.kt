@@ -144,6 +144,6 @@ class DriveSync(
             Logger.d("Batch size: $batchWas, took ${durationMs.duration.inWholeMilliseconds}ms, now adjusted to: $batchSize")
         }
 
-        EventBusFlow.emit(BackendEvent.SyncUpdate.Completed(targetDrive.alias, totalCount))
+        EventBusFlow.emit(BackendEvent.SyncUpdate.Completed(driveId, totalCount))
     }
 }
