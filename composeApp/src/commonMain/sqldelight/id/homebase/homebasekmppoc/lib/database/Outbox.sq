@@ -5,8 +5,11 @@ CREATE TABLE IF NOT EXISTS Outbox(
    driveId BLOB AS Uuid NOT NULL,
    fileId BLOB AS Uuid NOT NULL,
    dependencyFileId BLOB AS Uuid,
-   lastAttempt INTEGER NOT NULL,
-   attemptCount INTEGER NOT NULL,
+   priority INTEGER NOT NULL,
+   lastAttempt INTEGER NOT NULL, -- UnixTimeUtc
+   nextRunTime INTEGER NOT NULL, -- UnixTimeUtc
+   checkOutCount INTEGER NOT NULL,
+   checkOutStamp INTEGER, -- Allow NULL, type ?
    data BLOB NOT NULL,
    files BLOB,
 
@@ -15,22 +18,73 @@ CREATE TABLE IF NOT EXISTS Outbox(
 
 -- Insert into outbox
 insert:
-INSERT INTO Outbox(driveId, fileId, dependencyFileId, lastAttempt, attemptCount, data, files)
-VALUES (?,?, ?, ?, ?, ?, ?);
+INSERT INTO Outbox(driveId, fileId, dependencyFileId, lastAttempt, nextRunTime, checkOutCount, checkOutStamp, priority, data, files)
+VALUES (?,?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 
--- Get next item to send (must be sent sequentially)
-selectNext:
-SELECT * FROM Outbox
-ORDER BY rowId ASC
+-- Checkout for sending
+checkout:
+UPDATE Outbox
+SET checkOutStamp=:checkOutStamp
+WHERE checkOutStamp IS NULL AND
+    rowId = (
+    SELECT rowId
+    FROM Outbox AS o
+    WHERE o.checkOutStamp IS NULL
+        AND o.nextRunTime <= :now
+        AND ((o.dependencyFileId IS NULL)
+            OR (NOT EXISTS (
+                  SELECT 1
+                  FROM Outbox AS ib
+                  WHERE ib.fileId = o.dependencyFileId)
+        )
+    )
+    ORDER BY o.priority ASC, o.nextRunTime ASC
+    LIMIT 1
+);
+SELECT rowId,driveId,fileId,dependencyFileId,lastAttempt,nextRunTime,checkOutCount,checkOutStamp,priority,data,files
+FROM Outbox
+WHERE checkOutStamp=:checkOutStamp;
+
+-- What's the lowest timestamp of the next item to process in the outbox?
+nextScheduled:
+SELECT nextRunTime
+FROM Outbox AS o
+WHERE o.checkOutStamp IS NULL
+    AND (
+        (o.dependencyFileId IS NULL)
+        OR (NOT EXISTS (
+              SELECT 1
+              FROM Outbox AS ib
+              WHERE ib.fileId = o.dependencyFileId
+        ))
+    )
+ORDER BY o.priority ASC, o.nextRunTime ASC
 LIMIT 1;
 
--- Delete a value
+
+-- Checkin as failed (when sending didn't work)
+checkInFailed:
+UPDATE Outbox
+SET checkOutStamp=NULL,
+    checkOutCount=checkOutCount+1,
+    nextRunTime=:nextRunTime
+WHERE checkOutStamp=:checkOutStamp;
+
+-- When the app starts, clear all checked out items
+clearCheckedOut:
+UPDATE Outbox
+SET checkOutStamp=NULL,
+    checkOutCount=checkOutCount+1,
+    nextRunTime=42 -- re-run as soon as possible
+WHERE checkOutStamp IS NOT NULL;
+
+-- Delete a row by rowId
 deleteByRowid:
 DELETE FROM Outbox
 WHERE rowId = ?;
 
--- Delete a value
+-- Delete a row by driveId,fileId
 deleteBy:
 DELETE FROM Outbox
 WHERE driveId = ? AND fileId = ?;
