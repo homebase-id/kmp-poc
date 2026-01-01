@@ -38,14 +38,18 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortField
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortOrder
 import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
-import id.homebase.homebasekmppoc.ui.screens.login.feedTargetDrive
+import id.homebase.homebasekmppoc.ui.screens.login.publicPostsDriveId
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.compose.koinInject
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () -> Unit) {
+fun DriveFetchPage(
+    youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () -> Unit,
+    onNavigateToFileDetail: (String, String) -> Unit,
+    viewModel: DriveFetchViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+) {
     val authState by youAuthFlowManager.authState.collectAsState()
     var localQueryResults by remember { mutableStateOf<List<SharedSecretEncryptedFileHeader>?>(null) }
     var isLoading by remember { mutableStateOf(false) }
@@ -53,15 +57,28 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var syncProgress by remember { mutableStateOf<BackendEvent?>(null) }
     var isOnline by remember { mutableStateOf(true) } // Assume online by default
-    val identityId = Uuid.parse("7b1be23b-48bb-4304-bc7b-db5910c09a92") // TODO: <- get the real identityId
-    val driveId = feedTargetDrive.alias // For filtering events from EventBusFlow
+    val identityId =
+        Uuid.parse("7b1be23b-48bb-4304-bc7b-db5910c09a92") // TODO: <- get the real identityId
+    val driveId = publicPostsDriveId;
 
     // Inject DriveQueryProvider from Koin
     val driveQueryProvider: DriveQueryProvider? = koinInject()
 
+    LaunchedEffect(Unit) {
+        viewModel.uiEvent.collect { event ->
+            when (event) {
+                is DriveFetchUiEvent.NavigateToFileDetail ->
+                    onNavigateToFileDetail(event.driveId, event.fileId)
+
+                DriveFetchUiEvent.NavigateBack ->
+                    onNavigateBack()
+            }
+        }
+    }
+
     // Create driveSynchronizer once
     val driveSynchronizer = remember(driveQueryProvider) {
-        driveQueryProvider?.let { DriveSync(identityId, feedTargetDrive, it) }
+        driveQueryProvider?.let { DriveSync(identityId, driveId, it) }
     }
 
     fun triggerFetch(withProgress: Boolean) {
@@ -72,11 +89,9 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
         errorMessage = null
 
         // TODO: Where does the identityId live? Need to get it instead of random.
-        if (driveSynchronizer.sync())
-        {
+        if (driveSynchronizer.sync()) {
             isLoading = true
-            if (withProgress)
-            {
+            if (withProgress) {
                 syncProgress = null
             }
         } else {
@@ -115,12 +130,13 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
                         syncProgress = event
                     }
                 }
+
                 is BackendEvent.SyncUpdate.Completed -> {
                     if (event.driveId == driveId) {
                         syncProgress = event
                         // Fetch local results as before
                         val localResult = QueryBatch(DatabaseManager, identityId).queryBatchAsync(
-                            feedTargetDrive.alias,
+                            driveId,
                             1000,
                             null,
                             QueryBatchSortOrder.OldestFirst,
@@ -132,6 +148,7 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
                         isRefreshing = false
                     }
                 }
+
                 is BackendEvent.SyncUpdate.Failed -> {
                     if (event.driveId == driveId) {
                         errorMessage = event.errorMessage
@@ -139,15 +156,18 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
                         isRefreshing = false
                     }
                 }
+
                 is BackendEvent.SyncUpdate.SyncStarted -> {
                     if (event.driveId == driveId) {
                         isLoading = true
                         syncProgress = null
                     }
                 }
+
                 is BackendEvent.GoingOnline -> {
                     isOnline = true
                 }
+
                 is BackendEvent.GoingOffline -> {
                     isOnline = false
                 }
@@ -156,83 +176,90 @@ fun DriveFetchPage(youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () ->
     }
 
     Scaffold(
-            topBar = {
-                TopAppBar(
-                        title = { Text("Drive Fetch") },
-                        navigationIcon = {
-                            IconButton(onClick = onNavigateBack) {
-                                Text("←", style = MaterialTheme.typography.headlineMedium)
-                            }
-                        },
-                        actions = {
-                            // Spinner when loading
-                            if (isLoading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.padding(end = 8.dp),
-                                    strokeWidth = 2.dp
-                                )
-                            }
-                            // Numerical progress
-                            if (syncProgress is BackendEvent.SyncUpdate.BatchReceived) {
-                                val progress = syncProgress as BackendEvent.SyncUpdate.BatchReceived
-                                Text(
-                                    text = "${progress.totalCount}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.padding(end = 8.dp)
-                                )
-                            }
-                            // Online/offline indicator
-                            Text(
-                                text = if (isOnline) "🟢" else "🔴",
-                                style = MaterialTheme.typography.headlineSmall
-                            )
-                        }
-                 )
-            }
+        topBar = {
+            TopAppBar(
+                title = { Text("Drive Fetch") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Text("←", style = MaterialTheme.typography.headlineMedium)
+                    }
+                },
+                actions = {
+                    // Spinner when loading
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.padding(end = 8.dp),
+                            strokeWidth = 2.dp
+                        )
+                    }
+                    // Numerical progress
+                    if (syncProgress is BackendEvent.SyncUpdate.BatchReceived) {
+                        val progress = syncProgress as BackendEvent.SyncUpdate.BatchReceived
+                        Text(
+                            text = "${progress.totalCount}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                    }
+                    // Online/offline indicator
+                    Text(
+                        text = if (isOnline) "🟢" else "🔴",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                }
+            )
+        }
     ) { paddingValues ->
         Box(
-                modifier =
-                        Modifier.fillMaxSize().padding(paddingValues).pullRefresh(pullRefreshState)
+            modifier =
+                Modifier.fillMaxSize().padding(paddingValues).pullRefresh(pullRefreshState)
         ) {
             Column(
-                    modifier = Modifier.fillMaxSize().padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                modifier = Modifier.fillMaxSize().padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 when (authState) {
                     is YouAuthState.Authenticated -> {
                         Button(
-                                onClick = { triggerFetch(true) },
-                                enabled = !isLoading
+                            onClick = { triggerFetch(true) },
+                            enabled = !isLoading
                         ) {
                             Text(if (isLoading) "Fetching..." else "Fetch Files")
                         }
 
-                         Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                         if (errorMessage != null) {
+                        if (errorMessage != null) {
                             Text(
-                                    text = "Error: $errorMessage",
-                                    color = MaterialTheme.colorScheme.error
+                                text = "Error: $errorMessage",
+                                color = MaterialTheme.colorScheme.error
                             )
                         } else {
                             localQueryResults?.let { items ->
-                                DriveFetchList(items = items)
+                                DriveFetchList(
+                                    items = items,
+                                    onFileClicked = { driveId, fileId ->
+                                        viewModel.onAction(
+                                            DriveFetchUiAction.FileClicked(driveId, fileId)
+                                        )
+                                    })
                             }
                         }
                     }
+
                     else -> {
                         Text(
-                                text = "Please authenticate in the App tab first.",
-                                style = MaterialTheme.typography.bodyLarge,
-                                textAlign = TextAlign.Center
+                            text = "Please authenticate in the App tab first.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
             }
             PullRefreshIndicator(
-                    refreshing = isRefreshing,
-                    state = pullRefreshState,
-                    modifier = Modifier.align(Alignment.TopCenter)
+                refreshing = isRefreshing,
+                state = pullRefreshState,
+                modifier = Modifier.align(Alignment.TopCenter)
             )
         }
     }

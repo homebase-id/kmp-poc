@@ -17,10 +17,7 @@ class SharedSecretEncryptedFileHeaderTest {
         val json = """
 {
     "fileId": "1355aa19-2030-8200-00ef-563eed96bebf",
-    "targetDrive": {
-        "alias": "e8475dc46cb4b6651c2d0dbd0f3aad5f",
-        "type": "8f448716e34cedf9014145e043ca6612"
-    },
+    "driveId": "e8475dc4-6cb4-b665-1c2d-0dbd0f3aad5f",
     "fileState": "active",
     "fileSystemType": "standard",
     "sharedSecretEncryptedKeyHeader": {
@@ -89,7 +86,7 @@ class SharedSecretEncryptedFileHeaderTest {
 
         assertNotNull(fileHeader)
         assertEquals("1355aa19-2030-8200-00ef-563eed96bebf", fileHeader.fileId.toString())
-        assertEquals("e8475dc4-6cb4-b665-1c2d-0dbd0f3aad5f", fileHeader.targetDrive.alias.toString())
+        assertEquals("e8475dc4-6cb4-b665-1c2d-0dbd0f3aad5f", fileHeader.driveId.toString())
         assertEquals(300, fileHeader.priority)
         assertEquals(5402950L, fileHeader.fileByteCount)
 

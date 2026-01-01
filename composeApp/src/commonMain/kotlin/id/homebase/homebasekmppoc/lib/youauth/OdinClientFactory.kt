@@ -1,7 +1,6 @@
 package id.homebase.homebasekmppoc.lib.youauth
 
 import id.homebase.homebasekmppoc.lib.storage.SecureStorage
-import id.homebase.homebasekmppoc.prototype.lib.http.ApiType
 import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
 import id.homebase.homebasekmppoc.prototype.lib.http.ProviderOptions
 import kotlin.io.encoding.Base64
@@ -22,16 +21,16 @@ object OdinClientFactory {
         val clientAuthToken = SecureStorage.get(YouAuthStorageKeys.CLIENT_AUTH_TOKEN) ?: return null
 
         val sharedSecret =
-                try {
-                    Base64.decode(sharedSecretBase64)
-                } catch (e: Exception) {
-                    return null
-                }
+            try {
+                Base64.decode(sharedSecretBase64)
+            } catch (e: Exception) {
+                return null
+            }
 
         return create(
-                identity = identity,
-                sharedSecret = sharedSecret,
-                clientAuthToken = clientAuthToken
+            identity = identity,
+            sharedSecret = sharedSecret,
+            clientAuthToken = clientAuthToken
         )
     }
 
@@ -41,22 +40,19 @@ object OdinClientFactory {
      * @param identity The user's identity (e.g., "user.homebase.id")
      * @param sharedSecret The shared secret for request encryption
      * @param clientAuthToken The client auth token for authentication headers
-     * @param apiType The API type (default: App)
      */
     fun create(
-            identity: String,
-            sharedSecret: ByteArray,
-            clientAuthToken: String,
-            apiType: ApiType = ApiType.App
+        identity: String,
+        sharedSecret: ByteArray,
+        clientAuthToken: String
     ): OdinClient {
         return OdinClient(
-                ProviderOptions(
-                        api = apiType,
-                        sharedSecret = sharedSecret,
-                        hostIdentity = identity,
-                        loggedInIdentity = identity,
-                        headers = buildAuthHeaders(clientAuthToken)
-                )
+            ProviderOptions(
+                sharedSecret = sharedSecret,
+                hostIdentity = identity,
+                loggedInIdentity = identity,
+                headers = buildAuthHeaders(clientAuthToken)
+            )
         )
     }
 
@@ -64,17 +60,15 @@ object OdinClientFactory {
      * Create an unauthenticated OdinClient for use during auth flow.
      *
      * @param identity The host identity for API requests
-     * @param apiType The API type (default: Owner for auth endpoints)
      */
-    fun createUnauthenticated(identity: String, apiType: ApiType = ApiType.Owner): OdinClient {
+    fun createUnauthenticated(identity: String): OdinClient {
         return OdinClient(
-                ProviderOptions(
-                        api = apiType,
-                        sharedSecret = null,
-                        hostIdentity = identity,
-                        loggedInIdentity = null,
-                        headers = null
-                )
+            ProviderOptions(
+                sharedSecret = null,
+                hostIdentity = identity,
+                loggedInIdentity = null,
+                headers = null
+            )
         )
     }
 
@@ -100,6 +94,6 @@ object OdinClientFactory {
     }
 
     private fun buildAuthHeaders(clientAuthToken: String): Map<String, String> {
-        return mapOf("bx0900" to clientAuthToken)
+        return mapOf("Authorization" to "Bearer $clientAuthToken")
     }
 }

@@ -46,7 +46,7 @@ class YouAuthProvider(private val odinClient: OdinClient) {
     suspend fun hasValidToken(): Boolean? {
         return try {
             val client =
-                    odinClient.createHttpClient(CreateHttpClientOptions(overrideEncryption = true))
+                odinClient.createHttpClient(CreateHttpClientOptions(overrideEncryption = true))
             val response = client.get("/auth/verifytoken")
             when (response.status.value) {
                 200 -> true
@@ -74,46 +74,46 @@ class YouAuthProvider(private val odinClient: OdinClient) {
      * @param circlePermissions Optional circle permission keys
      */
     suspend fun getRegistrationParams(
-            returnUrl: String,
-            appName: String,
-            appId: String,
-            drives: List<TargetDriveAccessRequest> = emptyList(),
-            publicKey: EccKeyPair,
-            password: SecureByteArray,
-            host: String? = null,
-            clientFriendlyName: String? = null,
-            state: String? = null,
-            permissions: List<Int>? = null,
-            circlePermissions: List<Int>? = null,
-            circleDrives: List<TargetDriveAccessRequest>? = null,
-            circles: List<String>? = null
+        returnUrl: String,
+        appName: String,
+        appId: String,
+        drives: List<TargetDriveAccessRequest> = emptyList(),
+        publicKey: EccKeyPair,
+        password: SecureByteArray,
+        host: String? = null,
+        clientFriendlyName: String? = null,
+        state: String? = null,
+        permissions: List<Int>? = null,
+        circlePermissions: List<Int>? = null,
+        circleDrives: List<TargetDriveAccessRequest>? = null,
+        circles: List<String>? = null
     ): YouAuthorizationParams {
         val clientFriendly = clientFriendlyName ?: "Homebase KMP App"
 
         val permissionRequest =
-                AppAuthorizationParams.create(
-                        appName = appName,
-                        appId = appId,
-                        friendlyName = clientFriendly,
-                        drives = drives,
-                        circleDrives = circleDrives,
-                        circles = circles,
-                        permissions = permissions,
-                        circlePermissions = circlePermissions,
-                        returnUrl = returnUrl,
-                        origin = host
-                )
+            AppAuthorizationParams.create(
+                appName = appName,
+                appId = appId,
+                friendlyName = clientFriendly,
+                drives = drives,
+                circleDrives = circleDrives,
+                circles = circles,
+                permissions = permissions,
+                circlePermissions = circlePermissions,
+                returnUrl = returnUrl,
+                origin = host
+            )
 
         val publicEccKey = publicKeyToJwkBase64Url(publicKey.publicKey)
 
         return YouAuthorizationParams(
-                clientId = appId,
-                clientType = ClientType.app,
-                clientInfo = clientFriendly,
-                publicKey = publicEccKey,
-                permissionRequest = permissionRequest.toJson(),
-                state = state ?: "",
-                redirectUri = returnUrl
+            clientId = appId,
+            clientType = ClientType.app,
+            clientInfo = clientFriendly,
+            publicKey = publicEccKey,
+            permissionRequest = permissionRequest.toJson(),
+            state = state ?: "",
+            redirectUri = returnUrl
         )
     }
 
@@ -129,10 +129,10 @@ class YouAuthProvider(private val odinClient: OdinClient) {
         // Token endpoint is on owner API
         val baseUrl = odinClient.getRoot() + "/api/owner/v1"
         val response =
-                client.post("$baseUrl/youauth/token") {
-                    contentType(ContentType.Application.Json)
-                    setBody(mapOf("secret_digest" to base64ExchangedSecretDigest))
-                }
+            client.post("$baseUrl/youauth/token") {
+                contentType(ContentType.Application.Json)
+                setBody(mapOf("secret_digest" to base64ExchangedSecretDigest))
+            }
 
         if (response.status.value != 200) {
             throw Exception("Token exchange failed with status ${response.status.value}")
@@ -152,11 +152,11 @@ class YouAuthProvider(private val odinClient: OdinClient) {
      * @return Authentication result with clientAuthToken and sharedSecret
      */
     suspend fun finalizeAuthentication(
-            identity: String,
-            keyPair: EccKeyPair,
-            password: SecureByteArray,
-            publicKey: String,
-            salt: String
+        identity: String,
+        keyPair: EccKeyPair,
+        password: SecureByteArray,
+        publicKey: String,
+        salt: String
     ): AuthResult {
         // Import the remote public key
         val remotePublicKey = publicKeyFromJwkBase64Url(publicKey)
@@ -178,22 +178,22 @@ class YouAuthProvider(private val odinClient: OdinClient) {
         val sharedSecretCipher = Base64.decode(token.base64SharedSecretCipher)
         val sharedSecretIv = Base64.decode(token.base64SharedSecretIv)
         val sharedSecret =
-                AesCbc.decrypt(sharedSecretCipher, exchangedSecret.unsafeBytes, sharedSecretIv)
+            AesCbc.decrypt(sharedSecretCipher, exchangedSecret.unsafeBytes, sharedSecretIv)
 
         // Decrypt client auth token
         val clientAuthTokenCipher = Base64.decode(token.base64ClientAuthTokenCipher)
         val clientAuthTokenIv = Base64.decode(token.base64ClientAuthTokenIv)
         val clientAuthToken =
-                AesCbc.decrypt(
-                        clientAuthTokenCipher,
-                        exchangedSecret.unsafeBytes,
-                        clientAuthTokenIv
-                )
+            AesCbc.decrypt(
+                clientAuthTokenCipher,
+                exchangedSecret.unsafeBytes,
+                clientAuthTokenIv
+            )
 
         return AuthResult(
-                clientAuthToken = Base64.encode(clientAuthToken),
-                sharedSecret = Base64.encode(sharedSecret),
-                identity = identity
+            clientAuthToken = Base64.encode(clientAuthToken),
+            sharedSecret = Base64.encode(sharedSecret),
+            identity = identity
         )
     }
 
@@ -204,9 +204,10 @@ class YouAuthProvider(private val odinClient: OdinClient) {
      */
     suspend fun logout(): Boolean {
         return try {
-            val client =
-                    odinClient.createHttpClient(CreateHttpClientOptions(overrideEncryption = true))
+            val client = odinClient.createHttpClient(
+                CreateHttpClientOptions(overrideEncryption = true))
             client.post("/auth/logout")
+            odinClient.close()
             true
         } catch (e: Exception) {
             Logger.e(TAG, e) { "Error during logout" }
@@ -222,7 +223,7 @@ class YouAuthProvider(private val odinClient: OdinClient) {
     suspend fun preAuth(): Boolean {
         return try {
             val client =
-                    odinClient.createHttpClient(CreateHttpClientOptions(overrideEncryption = true))
+                odinClient.createHttpClient(CreateHttpClientOptions(overrideEncryption = true))
             client.post("/notify/preauth")
             true
         } catch (e: Exception) {

@@ -31,10 +31,10 @@ object DriveFileHelpers {
      * - Calculates the offset to skip in decrypted content
      *
      * @param chunkStart Optional start byte of the requested range
-     * @param chunkEnd Optional end byte of the requested range
+     * @param chunkLength Optional end byte of the requested range
      * @return RangeHeaderResult containing adjusted range and offset information
      */
-    fun getRangeHeader(chunkStart: Long? = null, chunkEnd: Long? = null): RangeHeaderResult {
+    fun getRangeHeader(chunkStart: Long? = null, chunkLength: Long? = null): RangeHeaderResult {
         if (chunkStart == null) {
             return RangeHeaderResult(
                     startOffset = 0,
@@ -55,8 +55,8 @@ object DriveFileHelpers {
 
         // End of range is inclusive, so we need to subtract 1
         val updatedChunkEnd =
-                if (chunkEnd != null) {
-                    roundToLargerMultipleOf16(chunkEnd) - 1
+                if (chunkLength != null) {
+                    roundToLargerMultipleOf16(chunkLength) - 1
                 } else {
                     null
                 }

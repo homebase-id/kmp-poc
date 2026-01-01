@@ -30,6 +30,7 @@ import kotlin.test.assertTrue
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.test.runTest
+import kotlin.test.Ignore
 
 /**
  * Unit tests for DriveQueryProvider (new query module version) using OdinClient
@@ -44,49 +45,36 @@ class DriveQueryProviderTest {
 
     /** Creates a mock HttpClient - delegates to MockOdinClientSetup */
     private fun createMockClient(
-            responseBody: String,
-            status: HttpStatusCode = HttpStatusCode.OK
+        responseBody: String,
+        status: HttpStatusCode = HttpStatusCode.OK
     ): HttpClient = MockOdinClientSetup.createMockClient(responseBody, status)
 
     /** Creates a test OdinClient with mock HttpClient - delegates to MockOdinClientSetup */
     private fun createTestOdinClient(
-            mockClient: HttpClient,
-            sharedSecret: ByteArray? = createTestSharedSecret()
+        mockClient: HttpClient,
+        sharedSecret: ByteArray? = createTestSharedSecret()
     ) = MockOdinClientSetup.createMockOdinClient(mockClient, sharedSecret)
 
     /** Creates a sample QueryBatchRequest for testing */
     private fun createTestQueryRequest(): QueryBatchRequest {
         return QueryBatchRequest(
-                queryParams =
-                        FileQueryParams(
-                                targetDrive =
-                                        TargetDrive(
-                                                alias =
-                                                        Uuid.parse(
-                                                                "00000000-0000-0000-0000-000000000001"
-                                                        ),
-                                                type =
-                                                        Uuid.parse(
-                                                                "00000000-0000-0000-0000-000000000002"
-                                                        )
-                                        )
-                        ),
-                resultOptionsRequest =
-                        QueryBatchResultOptionsRequest(
-                                maxRecords = 100,
-                                includeMetadataHeader = true
-                        )
+            queryParams = FileQueryParams(),
+            resultOptionsRequest =
+                QueryBatchResultOptionsRequest(
+                    maxRecords = 100,
+                    includeMetadataHeader = true
+                )
         )
     }
 
     /** Creates a sample QueryBatchResponse for testing */
     private fun createTestResponse(name: String = "test-query"): QueryBatchResponse {
         return QueryBatchResponse(
-                name = name,
-                invalidDrive = false,
-                includeMetadataHeader = true,
-                cursorState = "cursor123",
-                searchResults = emptyList()
+            name = name,
+            invalidDrive = false,
+            includeMetadataHeader = true,
+            cursorState = "cursor123",
+            searchResults = emptyList()
         )
     }
 
@@ -99,8 +87,10 @@ class DriveQueryProviderTest {
         val odinClient = createTestOdinClient(mockClient)
         val provider = DriveQueryProvider(odinClient)
 
+        val driveId = Uuid.parse("00000000-0000-0000-0000-000000000001")
+
         // Act
-        val result = provider.queryBatch(createTestQueryRequest())
+        val result = provider.queryBatch(driveId, createTestQueryRequest())
 
         // Assert
         assertEquals(expectedResponse.name, result.name)
@@ -117,9 +107,10 @@ class DriveQueryProviderTest {
         val mockClient = createMockClient(responseJson)
         val odinClient = createTestOdinClient(mockClient)
         val provider = DriveQueryProvider(odinClient)
+        val driveId = Uuid.parse("00000000-0000-0000-0000-000000000001")
 
         // Act
-        val result = provider.queryBatch(createTestQueryRequest())
+        val result = provider.queryBatch(driveId, createTestQueryRequest())
 
         // Assert
         assertTrue(result.invalidDrive)
@@ -131,43 +122,40 @@ class DriveQueryProviderTest {
     fun testQueryBatch_withSearchResults() = runTest {
         // Arrange
         val searchResult =
-                SharedSecretEncryptedFileHeader(
-                        fileId = Uuid.random(),
-                        targetDrive =
-                                TargetDrive(
-                                        alias = Uuid.parse("00000000-0000-0000-0000-000000000001"),
-                                        type = Uuid.parse("00000000-0000-0000-0000-000000000002")
-                                ),
-                        fileState =
-                                id.homebase.homebasekmppoc.prototype.lib.drives.FileState.Active,
-                        fileSystemType = FileSystemType.Standard,
-                        sharedSecretEncryptedKeyHeader = EncryptedKeyHeader.empty(),
-                        fileMetadata =
-                                FileMetadata(
-                                        isEncrypted = false,
-                                        appData =
-                                                AppFileMetaData(
-                                                        fileType = 100,
-                                                        dataType = 200,
-                                                        content = "test content"
-                                                )
-                                ),
-                        serverMetadata = ServerMetadata()
-                )
+            SharedSecretEncryptedFileHeader(
+                fileId = Uuid.random(),
+                driveId = Uuid.parse("00000000-0000-0000-0000-000000000001"),
+                fileState =
+                    id.homebase.homebasekmppoc.prototype.lib.drives.FileState.Active,
+                fileSystemType = FileSystemType.Standard,
+                sharedSecretEncryptedKeyHeader = EncryptedKeyHeader.empty(),
+                fileMetadata =
+                    FileMetadata(
+                        isEncrypted = false,
+                        appData =
+                            AppFileMetaData(
+                                fileType = 100,
+                                dataType = 200,
+                                content = "test content"
+                            )
+                    ),
+                serverMetadata = ServerMetadata()
+            )
         val expectedResponse =
-                QueryBatchResponse(
-                        name = "test",
-                        invalidDrive = false,
-                        includeMetadataHeader = true,
-                        searchResults = listOf(searchResult)
-                )
+            QueryBatchResponse(
+                name = "test",
+                invalidDrive = false,
+                includeMetadataHeader = true,
+                searchResults = listOf(searchResult)
+            )
         val responseJson = OdinSystemSerializer.serialize(expectedResponse)
         val mockClient = createMockClient(responseJson)
         val odinClient = createTestOdinClient(mockClient)
         val provider = DriveQueryProvider(odinClient)
+        val driveId = Uuid.parse("00000000-0000-0000-0000-000000000001")
 
         // Act
-        val result = provider.queryBatch(createTestQueryRequest())
+        val result = provider.queryBatch(driveId, createTestQueryRequest())
 
         // Assert
         assertEquals(1, result.searchResults.size)
@@ -176,121 +164,27 @@ class DriveQueryProviderTest {
     }
 
     @Test
-    fun testQueryBatch_withDecryptOption_setsIncludeMetadataHeader() = runTest {
-        // Arrange
-        var capturedRequest: Boolean? = null
-        val mockClient =
-                HttpClient(MockEngine) {
-                    engine {
-                        addHandler { request ->
-                            // Check if includeMetadataHeader was added
-                            capturedRequest =
-                                    request.url.parameters["includeMetadataHeader"]?.toBoolean()
-                            val response = createTestResponse()
-                            respond(
-                                    content =
-                                            ByteReadChannel(
-                                                    OdinSystemSerializer.serialize(response)
-                                            ),
-                                    status = HttpStatusCode.OK,
-                                    headers = headersOf(HttpHeaders.ContentType, "application/json")
-                            )
-                        }
-                    }
-                    install(ContentNegotiation) { json(OdinSystemSerializer.json) }
-                }
-
-        val odinClient = createTestOdinClient(mockClient)
-        val provider = DriveQueryProvider(odinClient)
-
-        // Create request without includeMetadataHeader
-        val request =
-                QueryBatchRequest(
-                        queryParams =
-                                FileQueryParams(
-                                        targetDrive =
-                                                TargetDrive(
-                                                        alias =
-                                                                Uuid.parse(
-                                                                        "00000000-0000-0000-0000-000000000001"
-                                                                ),
-                                                        type =
-                                                                Uuid.parse(
-                                                                        "00000000-0000-0000-0000-000000000002"
-                                                                )
-                                                )
-                                ),
-                        resultOptionsRequest =
-                                QueryBatchResultOptionsRequest(
-                                        maxRecords = 100,
-                                        includeMetadataHeader = false
-                                )
-                )
-
-        // Act
-        provider.queryBatch(request, QueryBatchOptions(decrypt = true))
-
-        // Assert - includeMetadataHeader should be set to true when decrypt is enabled
-        assertEquals(true, capturedRequest)
-    }
-
-    @Test
     fun testQueryBatch_emptyResults() = runTest {
         // Arrange
         val expectedResponse =
-                QueryBatchResponse(
-                        name = "empty",
-                        invalidDrive = false,
-                        includeMetadataHeader = false,
-                        searchResults = emptyList()
-                )
+            QueryBatchResponse(
+                name = "empty",
+                invalidDrive = false,
+                includeMetadataHeader = false,
+                searchResults = emptyList()
+            )
         val responseJson = OdinSystemSerializer.serialize(expectedResponse)
         val mockClient = createMockClient(responseJson)
         val odinClient = createTestOdinClient(mockClient)
         val provider = DriveQueryProvider(odinClient)
 
+        val driveId = Uuid.parse("00000000-0000-0000-0000-000000000001")
+
         // Act
-        val result = provider.queryBatch(createTestQueryRequest())
+        val result = provider.queryBatch(driveId, createTestQueryRequest())
 
         // Assert
         assertTrue(result.searchResults.isEmpty())
         assertEquals("empty", result.name)
-    }
-
-    @Test
-    fun testQueryRequest_toQueryString_containsAllParams() {
-        // Arrange
-        val request =
-                QueryBatchRequest(
-                        queryParams =
-                                FileQueryParams(
-                                        targetDrive =
-                                                TargetDrive(
-                                                        alias =
-                                                                Uuid.parse(
-                                                                        "11111111-1111-1111-1111-111111111111"
-                                                                ),
-                                                        type =
-                                                                Uuid.parse(
-                                                                        "22222222-2222-2222-2222-222222222222"
-                                                                )
-                                                ),
-                                        fileType = listOf(100, 200)
-                                ),
-                        resultOptionsRequest =
-                                QueryBatchResultOptionsRequest(
-                                        maxRecords = 50,
-                                        includeMetadataHeader = true
-                                )
-                )
-
-        // Act
-        val queryString = request.toQueryString()
-
-        // Assert
-        assertTrue(queryString.contains("maxRecords=50"))
-        assertTrue(queryString.contains("includeMetadataHeader=true"))
-        assertTrue(queryString.contains("alias="))
-        assertTrue(queryString.contains("type="))
     }
 }

@@ -22,11 +22,11 @@ import kotlinx.coroutines.SupervisorJob
 
 // TODO: When we update main-index-meta we should PROBABLY ignore any item with incoming.modified < db.modified
 
-class DriveSync(private val identityId : Uuid,
-                private val targetDrive: TargetDrive, // TODO: <- change to driveId
-                private val driveQueryProvider: DriveQueryProvider, // TODO: <- can we get rid of this?)
-)
-{
+class DriveSync(
+    private val identityId: Uuid,
+    private val driveId: Uuid,
+    private val driveQueryProvider: DriveQueryProvider, // TODO: <- can we get rid of this?)
+) {
     private var cursor: QueryBatchCursor?
     private val mutex = Mutex()
     private var batchSize = 50 // We begin with the smallest batch
@@ -43,10 +43,10 @@ class DriveSync(private val identityId : Uuid,
         database.driveMainIndexQueries.deleteAll() // TODO: <-- don't delete all! :-)
         database.driveTagIndexQueries.deleteAll() // TODO: <-- don't delete all! :-)
         database.driveLocalTagIndexQueries.deleteAll() // TODO: <-- don't delete all! :-)
-        database.keyValueQueries.deleteByKey(targetDrive.alias) // TODO: <-- don't delete the cursor
+        database.keyValueQueries.deleteByKey(driveId) // TODO: <-- don't delete the cursor
 
         // Load cursor from database
-        val cursorStorage = CursorStorage(database, targetDrive.alias)
+        val cursorStorage = CursorStorage(database, driveId)
         cursor = cursorStorage.loadCursor()
     }
 
@@ -73,12 +73,11 @@ class DriveSync(private val identityId : Uuid,
         var queryBatchResponse: QueryBatchResponse? = null
         var keepGoing = true
 
-        EventBusFlow.emit(BackendEvent.SyncUpdate.SyncStarted(targetDrive.alias));
+        EventBusFlow.emit(BackendEvent.SyncUpdate.SyncStarted(driveId));
 
         while (keepGoing) {
             val request = QueryBatchRequest(
                 queryParams = FileQueryParams(
-                    targetDrive = targetDrive,
                     fileState = listOf(FileState.Active)
                 ),
                 resultOptionsRequest = QueryBatchResultOptionsRequest(
@@ -90,7 +89,7 @@ class DriveSync(private val identityId : Uuid,
 
             val durationMs = measureTimedValue {
                 try {
-                    queryBatchResponse = driveQueryProvider.queryBatch(request)
+                    queryBatchResponse = driveQueryProvider.queryBatch(driveId, request)
 
                     if (queryBatchResponse.cursorState != null)
                         cursor = QueryBatchCursor.fromJson(queryBatchResponse.cursorState)
@@ -106,7 +105,7 @@ class DriveSync(private val identityId : Uuid,
                                 val dbMs = measureTimedValue {
                                     fileHeaderProcessor.baseUpsertEntryZapZap(
                                         identityId = identityId,
-                                        driveId = targetDrive.alias,
+                                        driveId = driveId,
                                         fileHeaders = searchResults,
                                         cursor = cursor
                                     )
@@ -120,7 +119,7 @@ class DriveSync(private val identityId : Uuid,
                         val latestModified = searchResults.last().fileMetadata.updated
 
                         EventBusFlow.emit(BackendEvent.SyncUpdate.BatchReceived(
-                            driveId = targetDrive.alias,
+                            driveId = driveId,
                             totalCount = totalCount,
                             batchCount = batchCount,
                             latestModified = latestModified,
@@ -130,7 +129,7 @@ class DriveSync(private val identityId : Uuid,
 
                     keepGoing = searchResults?.let { it.size >= batchSize } ?: false
                 } catch (e: Exception) {
-                    EventBusFlow.emit(BackendEvent.SyncUpdate.Failed(targetDrive.alias, "Sync failed: ${e.message}"))
+                    EventBusFlow.emit(BackendEvent.SyncUpdate.Failed(driveId, "Sync failed: ${e.message}"))
                     keepGoing = false
                 }
             }
@@ -145,6 +144,6 @@ class DriveSync(private val identityId : Uuid,
             Logger.d("Batch size: $batchWas, took ${durationMs.duration.inWholeMilliseconds}ms, now adjusted to: $batchSize")
         }
 
-        EventBusFlow.emit(BackendEvent.SyncUpdate.Completed(targetDrive.alias, totalCount))
+        EventBusFlow.emit(BackendEvent.SyncUpdate.Completed(driveId, totalCount))
     }
 }

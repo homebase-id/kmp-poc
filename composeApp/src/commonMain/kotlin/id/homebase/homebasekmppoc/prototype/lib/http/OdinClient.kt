@@ -1,8 +1,5 @@
 package id.homebase.homebasekmppoc.prototype.lib.http
 
-import co.touchlab.kermit.Logger as KLogger
-import id.homebase.homebasekmppoc.prototype.lib.crypto.CryptoHelper
-import id.homebase.homebasekmppoc.prototype.lib.drives.FileSystemType
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import io.ktor.client.*
 import io.ktor.client.plugins.*
@@ -15,122 +12,132 @@ import io.ktor.serialization.kotlinx.*
 import io.ktor.serialization.kotlinx.json.*
 
 data class CreateHttpClientOptions(
-        val overrideEncryption: Boolean = false,
-        val headers: Map<String, String> = emptyMap(),
-        val fileSystemType: FileSystemType = FileSystemType.Standard
+    val overrideEncryption: Boolean = false
 )
 
 /**
  * HTTP client for making authenticated requests to Odin backend Handles query string encryption and
  * authentication headers
  */
-open class OdinClient(private val providerOptions: ProviderOptions) {
+open class OdinClient(
+    private val providerOptions: ProviderOptions
+) {
 
-    fun getSharedSecret(): ByteArray? {
-        return providerOptions.sharedSecret
-    }
+    // ─────────────────────────────────────────────
+    // EXISTING PUBLIC API — UNCHANGED
+    // ─────────────────────────────────────────────
 
-    fun getType(): ApiType {
-        return providerOptions.api
-    }
+    fun getSharedSecret(): ByteArray? =
+        providerOptions.sharedSecret
 
-    fun getHostIdentity(): String {
-        return providerOptions.hostIdentity
-    }
+    fun getHostIdentity(): String =
+        providerOptions.hostIdentity
 
-    fun getLoggedInIdentity(): String? {
-        return providerOptions.loggedInIdentity
-    }
+    fun getLoggedInIdentity(): String? =
+        providerOptions.loggedInIdentity
 
-    fun isAuthenticated(): Boolean {
-        return (this.getSharedSecret() != null)
-    }
+    fun isAuthenticated(): Boolean =
+        getSharedSecret() != null
 
-    fun getRoot(): String {
-        return "https://${this.getHostIdentity()}"
-    }
+    fun getRoot(): String =
+        "https://${getHostIdentity()}"
 
-    fun getEndpointUrl(): String {
-        if (providerOptions.v2Experimental) {
-            return this.getRoot() + "/api/v2/"
-        }
-        // TODO(biswa): RIP IT OUT NOWW!!
-        val endpoint =
-                when (this.getType()) {
-                    ApiType.Guest -> "/api/guest/v1/"
-                    ApiType.App -> "/api/apps/v1/"
-                    ApiType.Owner -> "/api/owner/v1/"
-                }
+    fun getEndpointUrl(): String =
+        "${getRoot()}/api/v2/"
 
-        return this.getRoot() + endpoint
-    }
+    fun getHeaders(): Map<String, String> =
+        providerOptions.headers ?: emptyMap()
 
-    fun getHeaders(): Map<String, String> {
-        return providerOptions.headers ?: emptyMap()
-    }
+    // ─────────────────────────────────────────────
+    // HTTP CLIENT MANAGEMENT (RESETTABLE)
+    // ─────────────────────────────────────────────
 
-    open fun createHttpClient(
-            createHttpClientOptions: CreateHttpClientOptions = CreateHttpClientOptions()
+    private var encryptedClient: HttpClient? = null
+
+    private var plainClient: HttpClient? = null
+
+    protected fun buildHttpClient(
+        encryptionEnabled: Boolean
     ): HttpClient {
-
         return HttpClient {
-            expectSuccess = false
+            expectSuccess = true
+
             defaultRequest {
                 url(getEndpointUrl())
-                header("X-ODIN-FILE-SYSTEM-TYPE", createHttpClientOptions.fileSystemType.name)
-                providerOptions.headers?.forEach { (key, value) -> header(key, value) }
-                createHttpClientOptions.headers.forEach { (key, value) -> header(key, value) }
+                providerOptions.headers?.forEach { (k, v) ->
+                    header(k, v)
+                }
             }
 
-            // OdinEncryptionPlugin must be installed BEFORE ContentNegotiation
-            // so that response decryption happens before JSON deserialization
-            install(OdinEncryptionPlugin)
+            // TODO: change for production code
+            install(HttpTimeout) {
+                requestTimeoutMillis = 120_000   // total request time
+                connectTimeoutMillis = 15_000    // TCP connect
+                socketTimeoutMillis = 120_000    // read/write stall
+            }
+
+            install(OdinErrorPlugin)
+
+            if (encryptionEnabled) {
+                install(OdinEncryptionPlugin)
+            }
 
             install(ContentNegotiation) {
                 register(
-                        ContentType.Application.OctetStream,
-                        KotlinxSerializationConverter(OdinSystemSerializer.json)
+                    ContentType.Application.OctetStream,
+                    KotlinxSerializationConverter(OdinSystemSerializer.json)
                 )
                 json(OdinSystemSerializer.json)
             }
-            install(HttpCookies) { storage = AcceptAllCookiesStorage() }
+
+            install(HttpCookies) {
+                storage = AcceptAllCookiesStorage()
+            }
+
             install(Logging) {
                 logger = Logger.DEFAULT
                 level = LogLevel.HEADERS
             }
+        }.apply {
+            attributes.put(
+                OdinEncryptionKeys.Secret,
+                getSharedSecret() ?: ByteArray(0)
+            )
         }
-                .apply {
-                    attributes.put(OdinEncryptionKeys.Secret, getSharedSecret() ?: ByteArray(0))
-                    if (createHttpClientOptions.overrideEncryption) {
-                        attributes.put(OdinEncryptionKeys.Override, true)
-                    }
-                }
     }
 
-    /**
-     * Builds a URI with encrypted query string
-     * @param uri The full URI including path and query string
-     * @return URI with query string encrypted and replaced with ss parameter
-     */
-    private suspend fun buildUriWithEncryptedQueryString(
-            uri: String,
-            sharedSecret: ByteArray
-    ): String {
-        return CryptoHelper.uriWithEncryptedQueryString(uri, sharedSecret)
+    // ─────────────────────────────────────────────
+    // SHARED CLIENT ACCESS
+    // ─────────────────────────────────────────────
+    fun client(encrypted: Boolean = true): HttpClient {
+        return if (encrypted) {
+            encryptedClient ?: buildHttpClient(true).also {
+                encryptedClient = it
+            }
+        } else {
+            plainClient ?: buildHttpClient(false).also {
+                plainClient = it
+            }
+        }
     }
 
-    suspend fun verifyToken(): Boolean {
-        val ss = getSharedSecret() ?: return false
 
-        val identity = getHostIdentity()
-        val uri = "https://$identity/api/apps/v1/auth/verifytoken"
-        val encryptedUri = buildUriWithEncryptedQueryString(uri, sharedSecret = ss)
+    // ─────────────────────────────────────────────
+    // LIFECYCLE
+    // ─────────────────────────────────────────────
 
-        KLogger.d("OdinHttpClient") { "Making GET request to: $encryptedUri" }
-
-        val client = createHttpClient()
-        val response = client.get(encryptedUri)
-
-        return response.status.value == 200
+    fun close() {
+        encryptedClient?.close()
+        plainClient?.close()
+        encryptedClient = null
+        plainClient = null
     }
+
+    open fun createHttpClient(): HttpClient = createHttpClient(CreateHttpClientOptions())
+
+    open fun createHttpClient(createHttpClientOptions: CreateHttpClientOptions
+    ): HttpClient =client(encrypted = !createHttpClientOptions.overrideEncryption)
 }
+
+
+

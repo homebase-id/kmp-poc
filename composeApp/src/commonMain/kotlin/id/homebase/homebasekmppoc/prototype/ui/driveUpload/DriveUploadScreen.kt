@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -35,60 +36,60 @@ import androidx.compose.ui.unit.dp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DriveUploadScreen(
-        state: DriveUploadUiState,
-        onAction: (DriveUploadUiAction) -> Unit,
-        onNavigateBack: () -> Unit
+    state: DriveUploadUiState,
+    onAction: (DriveUploadUiAction) -> Unit,
+    onNavigateBack: () -> Unit
 ) {
     val isAnyOperationInProgress =
-            state.isUploadingText || state.isUploadingImage || state.isPickingImage
+        state.isUploadingText || state.isUploadingImage || state.isPickingImage
 
     Scaffold(
-            topBar = {
-                TopAppBar(
-                        title = { Text("Drive Upload") },
-                        navigationIcon = {
-                            IconButton(onClick = onNavigateBack) {
-                                Text("←", style = MaterialTheme.typography.headlineMedium)
-                            }
-                        }
-                )
-            }
+        topBar = {
+            TopAppBar(
+                title = { Text("Drive Upload") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Text("←", style = MaterialTheme.typography.headlineMedium)
+                    }
+                }
+            )
+        }
     ) { paddingValues ->
         Column(
-                modifier =
-                        Modifier.fillMaxSize()
-                                .padding(paddingValues)
-                                .padding(16.dp)
-                                .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally
+            modifier =
+                Modifier.fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Text Post Upload Section
             Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
                 Column(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(text = "Text Post Upload", style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.height(8.dp))
                     state.postContent?.let { post ->
                         Text(
-                                text = "Caption: ${post.caption}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = "Caption: ${post.caption}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                     Button(
-                            onClick = { onAction(DriveUploadUiAction.UploadTextPostClicked) },
-                            enabled = !isAnyOperationInProgress
+                        onClick = { onAction(DriveUploadUiAction.UploadTextPostClicked) },
+                        enabled = !isAnyOperationInProgress
                     ) {
                         if (state.isUploadingText) {
                             CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    strokeWidth = 2.dp
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                         }
@@ -101,25 +102,25 @@ fun DriveUploadScreen(
 
             // Image Upload Section
             Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
                 Column(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(text = "Image Upload", style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.height(12.dp))
 
                     // Image picker button
                     Button(
-                            onClick = { onAction(DriveUploadUiAction.PickImageClicked) },
-                            enabled = !isAnyOperationInProgress
+                        onClick = { onAction(DriveUploadUiAction.PickImageClicked) },
+                        enabled = !isAnyOperationInProgress
                     ) {
                         if (state.isPickingImage) {
                             CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    strokeWidth = 2.dp
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                         }
@@ -130,10 +131,10 @@ fun DriveUploadScreen(
                     state.selectedImageName?.let { name ->
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                                text =
-                                        "Selected: $name (${state.selectedImageBytes?.size ?: 0} bytes)",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary
+                            text =
+                                "Selected: $name (${state.selectedImageBytes?.size ?: 0} bytes)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
 
@@ -141,13 +142,13 @@ fun DriveUploadScreen(
 
                     // Upload image button
                     Button(
-                            onClick = { onAction(DriveUploadUiAction.UploadImageClicked) },
-                            enabled = state.selectedImageBytes != null && !isAnyOperationInProgress
+                        onClick = { onAction(DriveUploadUiAction.UploadImageClicked) },
+                        enabled = state.selectedImageBytes != null && !isAnyOperationInProgress
                     ) {
                         if (state.isUploadingImage) {
                             CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    strokeWidth = 2.dp
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                         }
@@ -158,20 +159,58 @@ fun DriveUploadScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Encrypted Text Payload",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text = "This will upload 2 payloads with a random uniqueId each time you click upload",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = { onAction(DriveUploadUiAction.UploadEncryptedPayloadTextClicked) },
+                        enabled = !isAnyOperationInProgress
+                    ) {
+                        if (state.isUploadingEncryptedPayloadText) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+                        Text(if (state.isUploadingEncryptedPayloadText) "Uploading..." else "Upload Payloads")
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
             // Result display
             state.uploadResult?.let { result ->
                 Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors =
-                                CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                                )
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight(),
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        )
                 ) {
                     Text(
-                            text = result,
-                            modifier = Modifier.padding(16.dp),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        text = result,
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
             }
@@ -179,17 +218,21 @@ fun DriveUploadScreen(
             // Error display
             state.errorMessage?.let { error ->
                 Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors =
-                                CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.errorContainer
-                                )
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight(),
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        )
                 ) {
                     Text(
-                            text = error,
-                            modifier = Modifier.padding(16.dp),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onErrorContainer
+                        text = error,
+                        modifier = Modifier
+                            .padding(16.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        softWrap = true
                     )
                 }
             }

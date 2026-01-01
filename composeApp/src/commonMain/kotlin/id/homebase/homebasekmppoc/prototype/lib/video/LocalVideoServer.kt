@@ -202,7 +202,7 @@ class LocalVideoServer {
             server.stop(1000, 2000)
         }
         contentRegistry.clear()
-        httpClient.close()
+        // httpClient.close()
         Logger.i("LocalVideoServer") { "Video server stopped" }
     }
 

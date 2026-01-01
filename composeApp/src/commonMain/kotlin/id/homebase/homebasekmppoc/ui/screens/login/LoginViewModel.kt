@@ -3,13 +3,17 @@ package id.homebase.homebasekmppoc.ui.screens.login
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import id.homebase.homebasekmppoc.lib.youauth.DrivePermissionType
+import id.homebase.homebasekmppoc.lib.youauth.OdinClientFactory
 import id.homebase.homebasekmppoc.lib.youauth.TargetDriveAccessRequest
 import id.homebase.homebasekmppoc.lib.youauth.UsernameStorage
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthState
 import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
+import id.homebase.homebasekmppoc.prototype.lib.http.CreateHttpClientOptions
+import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
 import id.homebase.homebasekmppoc.prototype.lib.http.createHttpClient
 import id.homebase.homebasekmppoc.ui.extensions.cleanDomain
+import io.ktor.client.request.get
 import io.ktor.client.request.head
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.isSuccess
@@ -28,25 +32,41 @@ private object AppConfig {
 }
 
 val feedTargetDrive: TargetDrive =
-        TargetDrive(
-                alias = Uuid.parse("4db49422ebad02e99ab96e9c477d1e08"),
-                type = Uuid.parse("a3227ffba87608beeb24fee9b70d92a6")
-        )
+    TargetDrive(
+        alias = Uuid.parse("4db49422ebad02e99ab96e9c477d1e08"),
+        type = Uuid.parse("a3227ffba87608beeb24fee9b70d92a6")
+    )
+
+
+val publicPostsDriveId = Uuid.parse("e8475dc46cb4b6651c2d0dbd0f3aad5f")
+
+val channelDriveType = Uuid.parse("8f448716-e34c-edf9-0141-45e043ca6612")
 
 var targetDriveAccessRequest: List<TargetDriveAccessRequest> =
-        listOf(
-                TargetDriveAccessRequest(
-                        alias = feedTargetDrive.alias.toString(),
-                        type = feedTargetDrive.type.toString(),
-                        name = "Feed Drive",
-                        description = " ",
-                        permissions =
-                                listOf(
-                                        DrivePermissionType.Read,
-                                        DrivePermissionType.Write,
-                                )
+    listOf(
+        TargetDriveAccessRequest(
+            alias = feedTargetDrive.alias.toString(),
+            type = feedTargetDrive.type.toString(),
+            name = "Feed Drive",
+            description = " ",
+            permissions =
+                listOf(
+                    DrivePermissionType.Read,
+                    DrivePermissionType.Write,
+                )
+        ),
+        TargetDriveAccessRequest(
+            alias = publicPostsDriveId.toString(),
+            type = channelDriveType.toString(),
+            name = "Public Posts Drive",
+            description = " ",
+            permissions =
+                listOf(
+                    DrivePermissionType.Read,
+                    DrivePermissionType.Write,
                 )
         )
+    )
 
 /**
  * ViewModel for Login screen following strict MVI pattern.
@@ -55,9 +75,10 @@ var targetDriveAccessRequest: List<TargetDriveAccessRequest> =
  * - One-off events via Channel
  */
 class LoginViewModel(
-        private val youAuthFlowManager: YouAuthFlowManager,
-        private val usernameStorage: UsernameStorage = UsernameStorage()
-    ) : ViewModel() {
+    private val youAuthFlowManager: YouAuthFlowManager,
+    private val usernameStorage: UsernameStorage = UsernameStorage(),
+    private val odinClientFactory: OdinClientFactory
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
@@ -124,9 +145,9 @@ class LoginViewModel(
 
             // Verify the identity is reachable before starting auth flow
             try {
-                val httpClient = createHttpClient()
-                val pingUrl = "https://$homebaseId/api/v1/ping"
-                val response: HttpResponse = httpClient.head(pingUrl)
+                val odinClient = odinClientFactory.createUnauthenticated(homebaseId);
+                val httpClient = odinClient.createHttpClient()
+                val response: HttpResponse = httpClient.get("health/ping")
 
                 if (!response.status.isSuccess()) {
                     _uiState.update {

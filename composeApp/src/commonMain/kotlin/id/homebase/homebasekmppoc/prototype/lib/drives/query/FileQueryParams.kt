@@ -15,10 +15,9 @@ import kotlin.uuid.Uuid
  */
 @Serializable
 data class FileQueryParams(
-    val targetDrive: TargetDrive, // Todo: this should probably just be a driveId
-    val fileType: List<Int>? = null, // Todo: move fileType and dataType next to each other
-    val fileState: List<FileState>? = null,
+    val fileType: List<Int>? = null,
     val dataType: List<Int>? = null,
+    val fileState: List<FileState>? = null,
     val archivalStatus: List<Int>? = null,
     val sender: List<String>? = null, // Todo: senderId
     val groupId: List<@Serializable(with = UuidSerializer::class) Uuid>? = null,
@@ -33,16 +32,5 @@ data class FileQueryParams(
     val globalTransitId: List<@Serializable(with = UuidSerializer::class) Uuid>? = null,
     val fileSystemType: FileSystemType? = null,
 ) {
-    fun assertIsValid() {
-        require(targetDrive.isValid()) { "Invalid target drive" }
-    }
 
-    companion object {
-        fun fromFileType(drive: TargetDrive, vararg fileType: Int): FileQueryParams {
-            return FileQueryParams(
-                targetDrive = drive,
-                fileType = fileType.toList()
-            )
-        }
-    }
 }

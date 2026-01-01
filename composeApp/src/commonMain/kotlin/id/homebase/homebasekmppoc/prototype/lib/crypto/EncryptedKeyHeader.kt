@@ -108,8 +108,17 @@ class EncryptedKeyHeader(
             return EncryptedKeyHeader(
                 iv = iv,
                 encryptedAesKey = encryptedAesKey,
-                encryptionVersion = ByteArrayUtil.bytesToInt32(version)
+                encryptionVersion = ByteArrayUtil.bytesToInt32_little_endian(version)
             )
         }
+
+        fun bytesToInt32(bytes: ByteArray): Int {
+            require(bytes.size == 4)
+            return (bytes[0].toInt() and 0xFF) or
+                    ((bytes[1].toInt() and 0xFF) shl 8) or
+                    ((bytes[2].toInt() and 0xFF) shl 16) or
+                    ((bytes[3].toInt() and 0xFF) shl 24)
+        }
+
     }
 }

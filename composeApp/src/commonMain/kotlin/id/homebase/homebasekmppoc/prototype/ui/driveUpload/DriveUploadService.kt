@@ -17,11 +17,11 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.upload.SendContents
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.StorageOptions
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.TransitOptions
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UpdateLocalInstructionSet
-import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UpdateResult
+import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UpdateFileResult
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UploadAppFileMetaData
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UploadFileMetadata
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UploadInstructionSet
-import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UploadResult
+import id.homebase.homebasekmppoc.prototype.lib.drives.upload.CreateFileResult
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -69,55 +69,55 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
     /**
      * Uploads a text post to the drive.
      *
-     * @param targetDrive The target drive to upload to
+     * @param driveId The target drive to upload to
      * @param postContent The post content to upload
      * @param encrypt Whether to encrypt the file (default true)
      * @return The upload result containing file ID and version tag
      */
     suspend fun uploadTextPost(
-            targetDrive: TargetDrive,
-            postContent: PostContent,
-            encrypt: Boolean = false
+        driveId: Uuid,
+        postContent: PostContent,
+        encrypt: Boolean = false
     ): TextPostUploadResult {
         KLogger.d(TAG) { "Uploading text post with id: ${postContent.id}" }
 
         val contentJson = OdinSystemSerializer.serialize(postContent)
 
         val instructions =
-                UploadInstructionSet(storageOptions = StorageOptions(drive = targetDrive))
+            UploadInstructionSet(storageOptions = StorageOptions(driveId = driveId))
 
         val metadata =
-                UploadFileMetadata(
-                        allowDistribution = true,
-                        isEncrypted = encrypt,
-                        appData =
-                                UploadAppFileMetaData(
-                                        uniqueId = postContent.id,
-                                        fileType = FILE_TYPE_POST,
-                                        dataType = DATA_TYPE_POST,
-                                        content = contentJson
-                                )
-                )
+            UploadFileMetadata(
+                allowDistribution = true,
+                isEncrypted = encrypt,
+                appData =
+                    UploadAppFileMetaData(
+                        uniqueId = postContent.id,
+                        fileType = FILE_TYPE_POST,
+                        dataType = DATA_TYPE_POST,
+                        content = contentJson
+                    )
+            )
 
         val result =
-                driveUploadProvider.uploadFile(
-                        instructions = instructions,
-                        metadata = metadata,
-                        encrypt = encrypt
-                )
+            driveUploadProvider.uploadFile(
+                instructions = instructions,
+                metadata = metadata,
+                encrypt = encrypt
+            )
 
-        KLogger.i(TAG) { "Text post uploaded successfully: ${result?.file?.fileId}" }
+        KLogger.i(TAG) { "Text post uploaded successfully: ${result?.fileId}" }
 
         return TextPostUploadResult(
-                fileId = result?.file?.fileId,
-                versionTag = result?.newVersionTag
+            fileId = result?.fileId.toString(),
+            versionTag = result?.newVersionTag.toString()
         )
     }
 
     /**
      * Uploads an image to the drive.
      *
-     * @param targetDrive The target drive to upload to
+     * @param driveId The target drive to upload to
      * @param imageBytes The raw image bytes
      * @param payloadKey The key for the payload (default "pst_mdi")
      * @param uniqueId Optional unique ID for the file (auto-generated if not provided)
@@ -127,13 +127,13 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
      * @return The upload result containing file ID and version tag
      */
     suspend fun uploadImage(
-            targetDrive: TargetDrive,
-            imageBytes: ByteArray,
-            payloadKey: String = "pst_mdia",
-            uniqueId: String? = null,
-            fileType: Int = FILE_TYPE_MEDIA,
-            dataType: Int = DATA_TYPE_IMAGE,
-            encrypt: Boolean = false
+        driveId: Uuid,
+        imageBytes: ByteArray,
+        payloadKey: String = "pst_mdia",
+        uniqueId: String? = null,
+        fileType: Int = FILE_TYPE_MEDIA,
+        dataType: Int = DATA_TYPE_IMAGE,
+        encrypt: Boolean = false
     ): ImageUploadResult {
         val actualUniqueId = uniqueId ?: Uuid.random().toString()
         KLogger.d(TAG) {
@@ -141,54 +141,68 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
         }
 
         val instructions =
-                UploadInstructionSet(storageOptions = StorageOptions(drive = targetDrive),
-                        transitOptions = TransitOptions.withoutNotifications(
-                            recipients = emptyList(),
-                            isTransient = false,
-                            schedule = ScheduleOptions.SendNowAwaitResponse,
-                            priority = PriorityOptions.Medium,
-                            sendContents = SendContents.All,
-                        )
-                    )
+            UploadInstructionSet(
+                storageOptions = StorageOptions(driveId = driveId),
+                transitOptions = TransitOptions.withoutNotifications(
+                    recipients = emptyList(),
+                    isTransient = false,
+                    schedule = ScheduleOptions.SendNowAwaitResponse,
+                    priority = PriorityOptions.Medium,
+                    sendContents = SendContents.All,
+                )
+            )
 
 
         val post = createSamplePostContent();
         val contentJson = OdinSystemSerializer.serialize(post)
-        val (imageSize,previewThumb, thumbnails) = createThumbnails(imageBytes,payloadKey=payloadKey);
+        val (imageSize, previewThumb, thumbnails) = createThumbnails(
+            imageBytes,
+            payloadKey = payloadKey
+        );
 
         val metadata =
-                UploadFileMetadata(
-                        allowDistribution = true,
-                        isEncrypted = encrypt,
-                        appData =
-                                UploadAppFileMetaData(
-                                        uniqueId = actualUniqueId,
-                                        fileType = fileType,
-                                        dataType = dataType,
-                                    content = contentJson,
-                                    previewThumbnail = EmbeddedThumb(
-                                        content = previewThumb.content,
-                                        pixelWidth = imageSize.pixelWidth,
-                                        pixelHeight = imageSize.pixelHeight,
-                                        contentType = previewThumb.contentType
-                                    ),
+            UploadFileMetadata(
+                allowDistribution = true,
+                isEncrypted = encrypt,
+                appData =
+                    UploadAppFileMetaData(
+                        uniqueId = actualUniqueId,
+                        fileType = fileType,
+                        dataType = dataType,
+                        content = contentJson,
+                        previewThumbnail = EmbeddedThumb(
+                            content = previewThumb.content,
+                            pixelWidth = imageSize.pixelWidth,
+                            pixelHeight = imageSize.pixelHeight,
+                            contentType = previewThumb.contentType
+                        ),
 
-                                )
-                )
-        val payloads = listOf(PayloadFile(key = payloadKey, payload = imageBytes, previewThumbnail = previewThumb,))
+                        )
+            )
+        val payloads = listOf(
+            PayloadFile(
+                key = payloadKey,
+                payload = imageBytes,
+                previewThumbnail = previewThumb,
+//                contentType = "image/jpeg"
+            )
+        )
 
         val result =
-                driveUploadProvider.uploadFile(
-                        instructions = instructions,
-                        metadata = metadata,
-                        payloads = payloads,
-                        thumbnails ,
-                        encrypt = encrypt
-                )
+            driveUploadProvider.uploadFile(
+                instructions = instructions,
+                metadata = metadata,
+                payloads = payloads,
+                thumbnails,
+                encrypt = encrypt
+            )
 
-        KLogger.i(TAG) { "Image uploaded successfully: ${result?.file?.fileId}" }
+        KLogger.i(TAG) { "Image uploaded successfully: ${result?.fileId.toString()}" }
 
-        return ImageUploadResult(fileId = result?.file?.fileId, versionTag = result?.newVersionTag)
+        return ImageUploadResult(
+            fileId = result?.fileId.toString(),
+            versionTag = result?.newVersionTag.toString()
+        )
     }
 
     /**
@@ -205,23 +219,22 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
      * @return The upload result
      */
     suspend fun uploadFileWithPayloads(
-            targetDrive: TargetDrive,
-            metadata: UploadFileMetadata,
-            payloads: List<PayloadFile>? = null,
-            thumbnails: List<ThumbnailFile>? = null,
-            encrypt: Boolean = true,
-            onVersionConflict: (suspend () -> UploadResult?)? = null
-    ): UploadResult? {
-        val instructions =
-                UploadInstructionSet(storageOptions = StorageOptions(drive = targetDrive))
+        driveId: Uuid,
+        metadata: UploadFileMetadata,
+        payloads: List<PayloadFile>? = null,
+        thumbnails: List<ThumbnailFile>? = null,
+        encrypt: Boolean = true,
+        onVersionConflict: (suspend () -> CreateFileResult?)? = null
+    ): CreateFileResult? {
+        val instructions = UploadInstructionSet(storageOptions = StorageOptions(driveId = driveId))
 
         return driveUploadProvider.uploadFile(
-                instructions = instructions,
-                metadata = metadata,
-                payloads = payloads,
-                thumbnails = thumbnails,
-                encrypt = encrypt,
-                onVersionConflict = onVersionConflict
+            instructions = instructions,
+            metadata = metadata,
+            payloads = payloads,
+            thumbnails = thumbnails,
+            encrypt = encrypt,
+            onVersionConflict = onVersionConflict
         )
     }
 
@@ -240,28 +253,28 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
      * @return The update result
      */
     suspend fun updateFile(
-            targetDrive: TargetDrive,
-            fileId: String,
-            versionTag: String,
-            keyHeader: Any?,
-            metadata: UploadFileMetadata,
-            payloads: List<PayloadFile>? = null,
-            thumbnails: List<ThumbnailFile>? = null,
-            toDeletePayloads: List<PayloadDeleteKey>? = null,
-            onVersionConflict: (suspend () -> UpdateResult?)? = null
-    ): UpdateResult? {
+        targetDrive: TargetDrive,
+        fileId: String,
+        versionTag: String,
+        keyHeader: Any?,
+        metadata: UploadFileMetadata,
+        payloads: List<PayloadFile>? = null,
+        thumbnails: List<ThumbnailFile>? = null,
+        toDeletePayloads: List<PayloadDeleteKey>? = null,
+        onVersionConflict: (suspend () -> UpdateFileResult?)? = null
+    ): UpdateFileResult? {
         val fileIdentifier = FileIdFileIdentifier(fileId = fileId, targetDrive = targetDrive)
 
         val instructions = UpdateLocalInstructionSet(versionTag = versionTag, file = fileIdentifier)
 
         return driveUploadProvider.patchFile(
-                keyHeader = keyHeader,
-                instructions = instructions,
-                metadata = metadata,
-                payloads = payloads,
-                thumbnails = thumbnails,
-                toDeletePayloads = toDeletePayloads,
-                onVersionConflict = onVersionConflict
+            keyHeader = keyHeader,
+            instructions = instructions,
+            metadata = metadata,
+            payloads = payloads,
+            thumbnails = thumbnails,
+            toDeletePayloads = toDeletePayloads,
+            onVersionConflict = onVersionConflict
         )
     }
 
@@ -275,23 +288,23 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
      * @return A new PostContent instance
      */
     fun createPostContent(
-            channelId: String = Uuid.random().toString(),
-            caption: String,
-            slug: String,
-            type: PostType = PostType.Tweet
+        channelId: String = Uuid.random().toString(),
+        caption: String,
+        slug: String,
+        type: PostType = PostType.Tweet
     ): PostContent {
         return PostContent(
-                id = Uuid.random().toString(),
-                channelId = channelId,
-                caption = caption,
-                slug = slug,
-                type = type,
-                reactAccess = null,
-                isCollaborative = false,
-                captionAsRichText = null,
-                primaryMediaFile = null,
-                embeddedPost = null,
-                sourceUrl = null
+            id = Uuid.random().toString(),
+            channelId = channelId,
+            caption = caption,
+            slug = slug,
+            type = type,
+            reactAccess = null,
+            isCollaborative = false,
+            captionAsRichText = null,
+            primaryMediaFile = null,
+            embeddedPost = null,
+            sourceUrl = null
         )
     }
 
@@ -302,10 +315,10 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
      */
     fun createSamplePostContent(): PostContent {
         return createPostContent(
-                caption = "Test post from KMP POC",
-                type = PostType.Tweet,
-        slug= "1a1a22557a572da799bfabc7fa1c88c7",
-        channelId= "e8475dc4-6cb4-b665-1c2d-0dbd0f3aad5f",
+            caption = "Test post from KMP POC",
+            type = PostType.Tweet,
+            slug = "1a1a22557a572da799bfabc7fa1c88c7",
+            channelId = "e8475dc4-6cb4-b665-1c2d-0dbd0f3aad5f",
         )
     }
 }
