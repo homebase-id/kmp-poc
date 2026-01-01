@@ -38,7 +38,7 @@ class DriveUploadProviderTest {
             driveId = publicPostsDriveId,
             globalTransitId = Uuid.random(),
             recipientStatus = emptyMap(),
-            newVersionTag = Uuid.random()
+            newVersionTag = version1
         )
     }
 
@@ -48,7 +48,7 @@ class DriveUploadProviderTest {
             driveId = publicPostsDriveId,
             globalTransitId = Uuid.random(),
             recipientStatus = emptyMap(),
-            newVersionTag = Uuid.random()
+            newVersionTag = version2
         )
     }
 

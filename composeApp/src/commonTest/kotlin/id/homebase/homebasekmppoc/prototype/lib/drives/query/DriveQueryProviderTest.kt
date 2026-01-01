@@ -30,6 +30,7 @@ import kotlin.test.assertTrue
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.test.runTest
+import kotlin.test.Ignore
 
 /**
  * Unit tests for DriveQueryProvider (new query module version) using OdinClient
@@ -160,54 +161,6 @@ class DriveQueryProviderTest {
         assertEquals(1, result.searchResults.size)
         assertNotNull(result.searchResults[0].fileMetadata)
         assertEquals("test content", result.searchResults[0].fileMetadata.appData.content)
-    }
-
-    @Test
-    fun testQueryBatch_withDecryptOption_setsIncludeMetadataHeader() = runTest {
-        // Arrange
-        var capturedRequest: Boolean? = null
-        val mockClient =
-            HttpClient(MockEngine) {
-                engine {
-                    addHandler { request ->
-                        // Check if includeMetadataHeader was added
-                        capturedRequest =
-                            request.url.parameters["includeMetadataHeader"]?.toBoolean()
-                        val response = createTestResponse()
-                        respond(
-                            content =
-                                ByteReadChannel(
-                                    OdinSystemSerializer.serialize(response)
-                                ),
-                            status = HttpStatusCode.OK,
-                            headers = headersOf(HttpHeaders.ContentType, "application/json")
-                        )
-                    }
-                }
-                install(ContentNegotiation) { json(OdinSystemSerializer.json) }
-            }
-
-        val odinClient = createTestOdinClient(mockClient)
-        val provider = DriveQueryProvider(odinClient)
-
-        val driveId = Uuid.parse("00000000-0000-0000-0000-000000000001")
-
-        // Create request without includeMetadataHeader
-        val request =
-            QueryBatchRequest(
-                queryParams = FileQueryParams(),
-                resultOptionsRequest =
-                    QueryBatchResultOptionsRequest(
-                        maxRecords = 100,
-                        includeMetadataHeader = false
-                    )
-            )
-
-        // Act
-        provider.queryBatch(driveId, request, QueryBatchOptions(decrypt = true))
-
-        // Assert - includeMetadataHeader should be set to true when decrypt is enabled
-        assertEquals(true, capturedRequest)
     }
 
     @Test

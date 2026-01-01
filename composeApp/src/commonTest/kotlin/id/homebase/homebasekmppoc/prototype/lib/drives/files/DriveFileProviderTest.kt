@@ -93,7 +93,7 @@ class DriveFileProviderTest {
 
         // Assert
         assertTrue(result)
-        assertTrue(requestedEndpoint?.contains("harddelete") == true)
+        assertTrue(requestedEndpoint?.contains("hard-delete") == true)
     }
 
     @Test
@@ -137,7 +137,7 @@ class DriveFileProviderTest {
         // Assert
         assertTrue(result)
         assertTrue(requestedEndpoint?.contains("/delete") == true)
-        assertTrue(requestedEndpoint?.contains("harddelete") == false)
+        assertTrue(requestedEndpoint?.contains("hard-delete") == false)
     }
 
     @Test
@@ -271,7 +271,7 @@ class DriveFileProviderTest {
         )
 
         // Assert
-        assertTrue(requestedEndpoint?.contains("deletefileidbatch") == true)
+        assertTrue(requestedEndpoint?.contains("delete-batch/by-file-id") == true)
     }
 
     @Test
@@ -344,7 +344,7 @@ class DriveFileProviderTest {
         )
 
         // Assert
-        assertTrue(requestedEndpoint?.contains("deletegroupidbatch") == true)
+        assertTrue(requestedEndpoint?.contains("delete-batch/by-group-id") == true)
     }
 
     @Test

@@ -20,6 +20,7 @@ import io.ktor.http.*
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlinx.serialization.Serializable
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.uuid.Uuid
 
 /** Options for file operations. */
@@ -85,9 +86,12 @@ public class DriveFileProvider(private val odinClient: OdinClient) {
         val httpClient = odinClient.createHttpClient(CreateHttpClientOptions())
 
         return try {
-            httpClient
-                .get("drives/$driveId/files/$fileId/header")
-                .body<HomebaseFile>()
+            val response = httpClient.get("drives/$driveId/files/$fileId/header")
+            if (response.status == HttpStatusCode.NotFound) {
+                null
+            } else {
+                response.body<HomebaseFile>()
+            }
         } catch (e: ClientRequestException) {
             if (e.response.status == HttpStatusCode.NotFound) {
                 null
