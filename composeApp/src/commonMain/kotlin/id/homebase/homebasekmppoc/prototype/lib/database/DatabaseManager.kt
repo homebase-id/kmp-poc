@@ -16,6 +16,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
+import id.homebase.homebasekmppoc.lib.database.DriveTagIndexWrapper
+import id.homebase.homebasekmppoc.lib.database.DriveLocalTagIndexWrapper
+import id.homebase.homebasekmppoc.lib.database.OutboxWrapper
 
 object DatabaseManager {
     private var database: OdinDatabase? = null
@@ -29,11 +32,16 @@ object DatabaseManager {
     private var nestedTransactionCount = 0
     private var transactionRollbackRequested = false
 
+    // WRAPPED SQLDELIGHT CLASSES
+    private var driveTagIndexAdapter: DriveTagIndex.Adapter? = null
+    private var driveLocalTagIndexAdapter: DriveLocalTagIndex.Adapter? = null
+    private var outboxAdapter: Outbox.Adapter? = null
+
     fun initialize(driverFactory: DatabaseDriverFactory) {
         if (database == null) {
             logger.i { "Initializing thread-safe database..." }
             driver = driverFactory.createDriver()
-            
+
             // Create adapters for UUID columns
             val driveTagIndexAdapter = DriveTagIndex.Adapter(
                 identityIdAdapter = UuidAdapter,
@@ -41,14 +49,24 @@ object DatabaseManager {
                 fileIdAdapter = UuidAdapter,
                 tagIdAdapter = UuidAdapter
             )
-            
+            this.driveTagIndexAdapter = driveTagIndexAdapter
+
             val driveLocalTagIndexAdapter = DriveLocalTagIndex.Adapter(
                 identityIdAdapter = UuidAdapter,
                 driveIdAdapter = UuidAdapter,
                 fileIdAdapter = UuidAdapter,
                 tagIdAdapter = UuidAdapter
             )
-            
+
+            this.driveLocalTagIndexAdapter = driveLocalTagIndexAdapter
+
+            val outboxAdapter = Outbox.Adapter(
+                driveIdAdapter = UuidAdapter,
+                fileIdAdapter = UuidAdapter,
+                dependencyFileIdAdapter = UuidAdapter
+            )
+            this.outboxAdapter = outboxAdapter
+
             val driveMainIndexAdapter = DriveMainIndex.Adapter(
                 identityIdAdapter = UuidAdapter,
                 driveIdAdapter = UuidAdapter,
@@ -57,22 +75,16 @@ object DatabaseManager {
                 groupIdAdapter = UuidAdapter,
                 uniqueIdAdapter = UuidAdapter
             )
-            
+
             val keyValueAdapter = KeyValue.Adapter(
                 keyAdapter = UuidAdapter
-            )
-
-            val outboxAdapter = Outbox.Adapter(
-                driveIdAdapter = UuidAdapter,
-                fileIdAdapter = UuidAdapter,
-                dependencyFileIdAdapter = UuidAdapter
             )
 
             val appNotificationsAdapter = AppNotifications.Adapter(
                 identityIdAdapter = UuidAdapter,
                 notificationIdAdapter = UuidAdapter
             )
-            
+
             database = OdinDatabase(driver!!, appNotificationsAdapter, driveLocalTagIndexAdapter, driveMainIndexAdapter, driveTagIndexAdapter, keyValueAdapter, outboxAdapter)
             logger.i { "Database initialized successfully" }
         } else {
@@ -117,6 +129,18 @@ object DatabaseManager {
 
     fun isInitialized(): Boolean = database != null
 
+    val driveTagIndex: DriveTagIndexWrapper by lazy {
+        DriveTagIndexWrapper(getDriver(), driveTagIndexAdapter!!)
+    }
+
+    val driveLocalTagIndex: DriveLocalTagIndexWrapper by lazy {
+        DriveLocalTagIndexWrapper(getDriver(), driveLocalTagIndexAdapter!!)
+    }
+
+    val outbox: OutboxWrapper by lazy {
+        OutboxWrapper(getDriver(), outboxAdapter!!)
+    }
+
     /**
      * Close database and reset the manager.
      * Primarily intended for test cleanup to ensure test isolation.
@@ -138,7 +162,7 @@ object DatabaseManager {
         if (database == null) {
             logger.i { "Initializing thread-safe database with custom driver..." }
             driver = driverCreator()
-            
+
             // Create adapters for UUID columns
             val driveTagIndexAdapter = DriveTagIndex.Adapter(
                 identityIdAdapter = UuidAdapter,
@@ -146,14 +170,15 @@ object DatabaseManager {
                 fileIdAdapter = UuidAdapter,
                 tagIdAdapter = UuidAdapter
             )
-            
+            this.driveTagIndexAdapter = driveTagIndexAdapter
+
             val driveLocalTagIndexAdapter = DriveLocalTagIndex.Adapter(
                 identityIdAdapter = UuidAdapter,
                 driveIdAdapter = UuidAdapter,
                 fileIdAdapter = UuidAdapter,
                 tagIdAdapter = UuidAdapter
             )
-            
+
             val driveMainIndexAdapter = DriveMainIndex.Adapter(
                 identityIdAdapter = UuidAdapter,
                 driveIdAdapter = UuidAdapter,
@@ -162,7 +187,7 @@ object DatabaseManager {
                 groupIdAdapter = UuidAdapter,
                 uniqueIdAdapter = UuidAdapter
             )
-            
+
             val keyValueAdapter = KeyValue.Adapter(
                 keyAdapter = UuidAdapter
             )
@@ -172,6 +197,7 @@ object DatabaseManager {
                 fileIdAdapter = UuidAdapter,
                 dependencyFileIdAdapter = UuidAdapter
             )
+            this.outboxAdapter = outboxAdapter
 
             val appNotificationsAdapter = AppNotifications.Adapter(
                 identityIdAdapter = UuidAdapter,
