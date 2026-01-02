@@ -3,6 +3,7 @@ package id.homebase.homebasekmppoc.lib.database
 import app.cash.sqldelight.Query
 import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.db.SqlDriver
+import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
 import kotlin.Any
 import kotlin.Long
 import kotlin.uuid.Uuid
@@ -34,18 +35,25 @@ class DriveLocalTagIndexWrapper(
 
     fun countAll(): Query<Long> = delegate.countAll()
 
-    fun insertLocalTag(
+    suspend fun insertLocalTag(
         identityId: Uuid,
         driveId: Uuid,
         fileId: Uuid,
         tagId: Uuid,
-    ): QueryResult<Long> = delegate.insertLocalTag(identityId, driveId, fileId, tagId)
+    ): Long {
+        return DatabaseManager.withWriteValue { delegate.insertLocalTag(identityId, driveId, fileId, tagId).value }
+    }
 
-    fun deleteByFile(
+    suspend fun deleteByFile(
         identityId: Uuid,
         driveId: Uuid,
         fileId: Uuid,
-    ): QueryResult<Long> = delegate.deleteByFile(identityId, driveId, fileId)
+    ): Long
+    {
+        return DatabaseManager.withWriteValue { delegate.deleteByFile(identityId, driveId, fileId).value }
+    }
 
-    fun deleteAll(): QueryResult<Long> = delegate.deleteAll()
+    suspend fun deleteAll(): Long {
+        return DatabaseManager.withWriteValue { delegate.deleteAll().value }
+    }
 }
