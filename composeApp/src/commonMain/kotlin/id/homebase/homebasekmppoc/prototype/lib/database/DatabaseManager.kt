@@ -16,8 +16,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
+import id.homebase.homebasekmppoc.lib.database.AppNotificationsWrapper
 import id.homebase.homebasekmppoc.lib.database.DriveTagIndexWrapper
 import id.homebase.homebasekmppoc.lib.database.DriveLocalTagIndexWrapper
+import id.homebase.homebasekmppoc.lib.database.KeyValueWrapper
 import id.homebase.homebasekmppoc.lib.database.OutboxWrapper
 
 object DatabaseManager {
@@ -33,8 +35,10 @@ object DatabaseManager {
     private var transactionRollbackRequested = false
 
     // WRAPPED SQLDELIGHT CLASSES
+    private var appNotificationsAdapter: AppNotifications.Adapter? = null
     private var driveTagIndexAdapter: DriveTagIndex.Adapter? = null
     private var driveLocalTagIndexAdapter: DriveLocalTagIndex.Adapter? = null
+    private var keyValueAdapter: KeyValue.Adapter? = null
     private var outboxAdapter: Outbox.Adapter? = null
 
     fun initialize(driverFactory: DatabaseDriverFactory) {
@@ -79,11 +83,13 @@ object DatabaseManager {
             val keyValueAdapter = KeyValue.Adapter(
                 keyAdapter = UuidAdapter
             )
+            this.keyValueAdapter = keyValueAdapter
 
             val appNotificationsAdapter = AppNotifications.Adapter(
                 identityIdAdapter = UuidAdapter,
                 notificationIdAdapter = UuidAdapter
             )
+            this.appNotificationsAdapter = appNotificationsAdapter
 
             database = OdinDatabase(driver!!, appNotificationsAdapter, driveLocalTagIndexAdapter, driveMainIndexAdapter, driveTagIndexAdapter, keyValueAdapter, outboxAdapter)
             logger.i { "Database initialized successfully" }
@@ -141,6 +147,15 @@ object DatabaseManager {
         OutboxWrapper(getDriver(), outboxAdapter!!)
     }
 
+    val keyValue: KeyValueWrapper by lazy {
+        KeyValueWrapper(getDriver(), keyValueAdapter!!)
+    }
+
+    val appNotifications: AppNotificationsWrapper by lazy {
+        AppNotificationsWrapper(getDriver(), appNotificationsAdapter!!)
+    }
+
+
     /**
      * Close database and reset the manager.
      * Primarily intended for test cleanup to ensure test isolation.
@@ -191,6 +206,7 @@ object DatabaseManager {
             val keyValueAdapter = KeyValue.Adapter(
                 keyAdapter = UuidAdapter
             )
+            this.keyValueAdapter = keyValueAdapter
 
             val outboxAdapter = Outbox.Adapter(
                 driveIdAdapter = UuidAdapter,
@@ -203,6 +219,7 @@ object DatabaseManager {
                 identityIdAdapter = UuidAdapter,
                 notificationIdAdapter = UuidAdapter
             )
+            this.appNotificationsAdapter = appNotificationsAdapter
 
             database = OdinDatabase(driver!!, appNotificationsAdapter, driveLocalTagIndexAdapter, driveMainIndexAdapter, driveTagIndexAdapter, keyValueAdapter, outboxAdapter)
             logger.i { "Database initialized successfully with custom driver" }
