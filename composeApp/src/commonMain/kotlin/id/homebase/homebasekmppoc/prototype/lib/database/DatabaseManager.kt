@@ -17,6 +17,7 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import id.homebase.homebasekmppoc.lib.database.AppNotificationsWrapper
+import id.homebase.homebasekmppoc.lib.database.DriveMainIndexWrapper
 import id.homebase.homebasekmppoc.lib.database.DriveTagIndexWrapper
 import id.homebase.homebasekmppoc.lib.database.DriveLocalTagIndexWrapper
 import id.homebase.homebasekmppoc.lib.database.KeyValueWrapper
@@ -36,6 +37,7 @@ object DatabaseManager {
 
     // WRAPPED SQLDELIGHT CLASSES
     private var appNotificationsAdapter: AppNotifications.Adapter? = null
+    private var driveMainIndexAdapter: DriveMainIndex.Adapter? = null
     private var driveTagIndexAdapter: DriveTagIndex.Adapter? = null
     private var driveLocalTagIndexAdapter: DriveLocalTagIndex.Adapter? = null
     private var keyValueAdapter: KeyValue.Adapter? = null
@@ -155,6 +157,10 @@ object DatabaseManager {
         AppNotificationsWrapper(getDriver(), appNotificationsAdapter!!)
     }
 
+    val driveMainIndex: DriveMainIndexWrapper by lazy {
+        DriveMainIndexWrapper(getDriver(), driveMainIndexAdapter!!)
+    }
+
 
     /**
      * Close database and reset the manager.
@@ -202,6 +208,7 @@ object DatabaseManager {
                 groupIdAdapter = UuidAdapter,
                 uniqueIdAdapter = UuidAdapter
             )
+            this.driveMainIndexAdapter = driveMainIndexAdapter
 
             val keyValueAdapter = KeyValue.Adapter(
                 keyAdapter = UuidAdapter
