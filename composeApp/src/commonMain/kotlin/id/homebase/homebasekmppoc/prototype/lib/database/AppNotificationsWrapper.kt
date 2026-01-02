@@ -3,6 +3,7 @@ package id.homebase.homebasekmppoc.lib.database
 import app.cash.sqldelight.Query
 import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.db.SqlDriver
+import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
 import kotlin.Any
 import kotlin.Long
 import kotlin.uuid.Uuid
@@ -89,12 +90,18 @@ class AppNotificationsWrapper(
         modified: Long,
     ): QueryResult<Long> = delegate.insertNotification(identityId, notificationId, unread, senderId, timestamp, data, created, modified)
 
-    fun deleteAll(
+    suspend fun deleteAll(
         identityId: Uuid,
-    ): QueryResult<Long> = delegate.deleteAll(identityId)
+    ): Long {
+        return DatabaseManager.withWriteValue { db -> delegate.deleteAll(identityId).value }
+    }
 
-    fun deleteByNotificationId(
+    suspend fun deleteByNotificationId(
         identityId: Uuid,
         notificationId: Uuid,
-    ): QueryResult<Long> = delegate.deleteByNotificationId(identityId, notificationId)
+    ): Long {
+        return DatabaseManager.withWriteValue { db ->
+            delegate.deleteByNotificationId(identityId, notificationId).value
+        }
+    }
 }

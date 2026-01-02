@@ -127,6 +127,10 @@ object DatabaseManager {
         }
     }
 
+    suspend fun <R> withWriteValue(block: (OdinDatabase) -> R): R = withContext(dbDispatcher) {
+        block(getDatabase())
+    }
+
     fun getDatabase(): OdinDatabase {
         return database ?: throw IllegalStateException("Database not initialized. Call initialize() first.")
     }
