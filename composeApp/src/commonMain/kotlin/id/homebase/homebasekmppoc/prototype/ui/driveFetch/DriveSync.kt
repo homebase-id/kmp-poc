@@ -46,7 +46,7 @@ class DriveSync(
         database.keyValueQueries.deleteByKey(driveId) // TODO: <-- don't delete the cursor
 
         // Load cursor from database
-        val cursorStorage = CursorStorage(database, driveId)
+        val cursorStorage = CursorStorage(driveId)
         cursor = cursorStorage.loadCursor()
     }
 

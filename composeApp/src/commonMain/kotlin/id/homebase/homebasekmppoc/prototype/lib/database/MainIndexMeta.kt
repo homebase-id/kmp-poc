@@ -180,7 +180,7 @@ object MainIndexMetaHelpers {
                     }
 
                     if (cursor != null) {
-                        val cursorStorage = CursorStorage(db, driveId)
+                        val cursorStorage = CursorStorage(driveId)
                         cursorStorage.saveCursor(cursor)
                     }
                 }

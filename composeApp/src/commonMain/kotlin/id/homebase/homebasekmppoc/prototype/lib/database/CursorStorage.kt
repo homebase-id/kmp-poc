@@ -1,6 +1,5 @@
 package id.homebase.homebasekmppoc.prototype.lib.database
 
-import id.homebase.homebasekmppoc.lib.database.OdinDatabase
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.QueryBatchCursor
 import kotlin.uuid.Uuid
 
@@ -10,7 +9,6 @@ import kotlin.uuid.Uuid
  * between app open / close.
  */
 class CursorStorage(
-    private val database: OdinDatabase,
     private val driveId: Uuid
 ) {
     // TODO: We should XOR the driveId with some constant GUID to create a KV key that
@@ -22,7 +20,7 @@ class CursorStorage(
      * Returns null if no cursor is found in the database
      */
     fun loadCursor(): QueryBatchCursor? {
-        return database.keyValueQueries.selectByKey(driveId)
+        return DatabaseManager.keyValue.selectByKey(driveId)
             .executeAsOneOrNull()
             ?.let { QueryBatchCursor.fromJson(it.data_.decodeToString()) }
     }
@@ -31,9 +29,9 @@ class CursorStorage(
      * Save QueryBatchCursor for the predefined cursor Guid
      */
     fun saveCursor(cursor: QueryBatchCursor) {
-        database.keyValueQueries.upsertValue(
+        DatabaseManager.keyValue.upsertValue(
             key = driveId,
-            data_ = cursor.toJson().encodeToByteArray()
+            data = cursor.toJson().encodeToByteArray()
         )
     }
     
@@ -41,6 +39,6 @@ class CursorStorage(
      * Delete cursor position for the predefined cursor Guid
      */
     fun deleteCursor() {
-        database.keyValueQueries.deleteByKey(driveId)
+        DatabaseManager.keyValue.deleteByKey(driveId)
     }
 }

@@ -14,20 +14,18 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.uuid.Uuid
 
-class CursorSyncTest {
-    private var driver: SqlDriver? = null
-    private lateinit var db: OdinDatabase
-
-@BeforeTest
+class CursorSyncTest
+{
+    @BeforeTest
     fun setup() {
-        driver = createInMemoryDatabase()
-        db = TestDatabaseFactory.createTestDatabase(driver)
+        val driver = createInMemoryDatabase()
+        DatabaseManager.initialize { driver }
     }
 
     @AfterTest
     fun tearDown() {
-        driver?.close()
     }
+
 
     @Test
     fun testSaveAndLoadQueryBatchCursor_withAllFields() = runTest {
@@ -46,7 +44,7 @@ class CursorSyncTest {
                 row = 11111L
             )
         )
-        val cursorStorage = CursorStorage(  db, Uuid.random())
+        val cursorStorage = CursorStorage(Uuid.random())
 
         // Save the cursor
         cursorStorage.saveCursor(originalCursor)
@@ -101,7 +99,7 @@ class CursorSyncTest {
 
     @Test
     fun testLoadCursor_whenNoCursorExists_returnsNull() = runTest {
-        val cursorStorage = CursorStorage(  db, Uuid.random())
+        val cursorStorage = CursorStorage(Uuid.random())
 
         // Try to load cursor when none exists
         val loadedCursor = cursorStorage.loadCursor()
@@ -123,7 +121,7 @@ class CursorSyncTest {
         )
 
         // Save the cursor
-        val cursorStorage = CursorStorage(  db, Uuid.random())
+        val cursorStorage = CursorStorage(Uuid.random())
         cursorStorage.saveCursor(originalCursor)
 
         // Load the cursor back
@@ -161,7 +159,7 @@ class CursorSyncTest {
             stop = null,
             next = null
         )
-        val cursorStorage = CursorStorage(  db, Uuid.random())
+        val cursorStorage = CursorStorage(Uuid.random())
         cursorStorage.saveCursor(originalCursor)
 
         // Verify cursor exists
@@ -185,7 +183,7 @@ class CursorSyncTest {
             stop = null,
             next = null
         )
-        val cursorStorage = CursorStorage(  db, Uuid.random())
+        val cursorStorage = CursorStorage(Uuid.random())
         cursorStorage.saveCursor(initialCursor)
 
         // Verify initial cursor

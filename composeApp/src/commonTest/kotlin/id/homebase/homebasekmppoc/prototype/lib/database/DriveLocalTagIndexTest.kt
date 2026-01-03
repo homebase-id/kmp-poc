@@ -1,7 +1,5 @@
 package id.homebase.homebasekmppoc.prototype.lib.database
 
-import app.cash.sqldelight.db.SqlDriver
-import id.homebase.homebasekmppoc.lib.database.OdinDatabase
 import  kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
