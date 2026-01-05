@@ -158,6 +158,16 @@ fun FileDetailPage(
                                 viewModel.onAction(
                                     FileDetailUiAction.GetPayloadRangeClicked(key, start, length)
                                 )
+                            },
+                            onSaveLocalAppContent = { content ->
+                                viewModel.onAction(
+                                    FileDetailUiAction.LocalAppContentSaved(content)
+                                )
+                            },
+                            onSaveLocalAppTags = { tags ->
+                                viewModel.onAction(
+                                    FileDetailUiAction.LocalAppTagsSaved(tags)
+                                )
                             }
                         )
                     }
@@ -315,39 +325,4 @@ fun DeleteDropdownButton(
             )
         }
     }
-}
-
-@Composable
-fun DeleteConfirmationDialog(
-    title: String,
-    message: String,
-    confirmLabel: String,
-    isDestructive: Boolean,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = { Text(message) },
-        confirmButton = {
-            TextButton(
-                onClick = onConfirm,
-                colors =
-                    if (isDestructive)
-                        ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
-                        )
-                    else
-                        ButtonDefaults.textButtonColors()
-            ) {
-                Text(confirmLabel)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
-    )
 }

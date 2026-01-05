@@ -6,12 +6,13 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.GlobalTransitIdFileIdentifier
 import id.homebase.homebasekmppoc.prototype.lib.serialization.Base64ByteArraySerializer
 import kotlinx.serialization.Serializable
+import kotlin.uuid.Uuid
 
 /** File identifier using fileId for local operations. */
 @Serializable
 data class FileIdFileIdentifier(
-        val fileId: String,
-        val targetDrive: TargetDrive
+        val fileId: Uuid,
+        val driveId: Uuid
 )
 
 /** Represents the locale of an update operation. */
