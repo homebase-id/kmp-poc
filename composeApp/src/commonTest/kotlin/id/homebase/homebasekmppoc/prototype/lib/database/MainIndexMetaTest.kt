@@ -20,11 +20,6 @@ import kotlin.test.AfterTest
 import kotlin.time.Clock
 import kotlin.uuid.Uuid
 
-expect object TestLock {
-    fun acquire()
-    fun release()
-}
-
 class MainIndexMetaTest {
     @BeforeTest
     fun setup() {
