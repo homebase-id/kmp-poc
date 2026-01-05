@@ -19,6 +19,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.runBlocking
 
 // TODO: When we update main-index-meta we should PROBABLY ignore any item with incoming.modified < db.modified
 
@@ -30,24 +31,28 @@ class DriveSync(
     private var cursor: QueryBatchCursor?
     private val mutex = Mutex()
     private var batchSize = 50 // We begin with the smallest batch
-    private lateinit var fileHeaderProcessor: MainIndexMetaHelpers.HomebaseFileProcessor
+    private var fileHeaderProcessor = MainIndexMetaHelpers.HomebaseFileProcessor()
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     //TODO: Consider having a (readable) "last modified" which holds the largest timestamp of last-modified
 
     init {
-        fileHeaderProcessor = MainIndexMetaHelpers.HomebaseFileProcessor(DatabaseManager)
-
         // Temp hack, remove soon.
-        val database = DatabaseManager.getDatabase()
-        database.driveMainIndexQueries.deleteAll() // TODO: <-- don't delete all! :-)
-        database.driveTagIndexQueries.deleteAll() // TODO: <-- don't delete all! :-)
-        database.driveLocalTagIndexQueries.deleteAll() // TODO: <-- don't delete all! :-)
-        database.keyValueQueries.deleteByKey(driveId) // TODO: <-- don't delete the cursor
-
         // Load cursor from database
+        runBlocking { initialize() }
         val cursorStorage = CursorStorage(driveId)
         cursor = cursorStorage.loadCursor()
+    }
+
+    suspend fun initialize()
+    {
+        // Temp hack, remove soon.
+        // Load cursor from database
+
+        DatabaseManager.driveMainIndex.deleteAll() // TODO: <-- don't delete all! :-)
+        DatabaseManager.driveTagIndex.deleteAll() // TODO: <-- don't delete all! :-)
+        DatabaseManager.driveLocalTagIndex.deleteAll() // TODO: <-- don't delete all! :-)
+        DatabaseManager.keyValue.deleteByKey(driveId) // TODO: <-- don't delete the cursor
     }
 
     // I remain tempted to let the sync() function spawn a thread

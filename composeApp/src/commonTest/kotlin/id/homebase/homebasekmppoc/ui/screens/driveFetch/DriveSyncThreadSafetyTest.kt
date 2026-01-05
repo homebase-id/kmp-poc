@@ -34,30 +34,21 @@ import kotlin.uuid.Uuid
  */
 open class DriveSyncThreadSafetyTest {
 
-    private lateinit var database: OdinDatabase
-    private lateinit var fileHeaderProcessor: MainIndexMetaHelpers.HomebaseFileProcessor
+    private var fileHeaderProcessor = MainIndexMetaHelpers.HomebaseFileProcessor()
     private val identityId = Uuid.random()
 
     private val driveId = Uuid.random()
 
     @BeforeTest
     fun setup() {
-        // Ensure DatabaseManager is clean before test
-        if (DatabaseManager.isInitialized()) {
-            DatabaseManager.close()
-        }
-        
-        // Initialize DatabaseManager with in-memory database for test isolation
-        DatabaseManager.initialize { createInMemoryDatabase() }
-        database = DatabaseManager.getDatabase()
-        fileHeaderProcessor = MainIndexMetaHelpers.HomebaseFileProcessor(DatabaseManager)
+        val driver = createInMemoryDatabase()
+        DatabaseManager.initialize { driver }
     }
 
     @AfterTest
     fun tearDown() {
-        // Clean up DatabaseManager to ensure test isolation
-        DatabaseManager.close()
     }
+
 
     @Test
     fun testConcurrentDatabaseWrites_threadSafety() = runTest {
@@ -118,12 +109,12 @@ open class DriveSyncThreadSafetyTest {
         assertEquals(threadCount, completedThreads, "All threads should have completed")
         
         // Verify database integrity
-        val actualRowCount = database.driveMainIndexQueries.countAll().executeAsOne()
+        val actualRowCount = DatabaseManager.driveMainIndex.countAll().executeAsOne()
         assertEquals(totalExpectedRows.toLong(), actualRowCount, 
             "Database should contain exactly $totalExpectedRows rows, but has $actualRowCount")
         
         // Verify no duplicate rows (should be unique file IDs)
-        val allDbRecords = database.driveMainIndexQueries.selectAll().executeAsList()
+        val allDbRecords = DatabaseManager.driveMainIndex.selectAll().executeAsList()
         val duplicateFileIds = allDbRecords
             .groupBy { it.fileId }
             .filter { it.value.size > 1 }

@@ -135,7 +135,7 @@ fun DriveFetchPage(
                     if (event.driveId == driveId) {
                         syncProgress = event
                         // Fetch local results as before
-                        val localResult = QueryBatch(DatabaseManager, identityId).queryBatchAsync(
+                        val localResult = QueryBatch(identityId).queryBatchAsync(
                             driveId,
                             1000,
                             null,

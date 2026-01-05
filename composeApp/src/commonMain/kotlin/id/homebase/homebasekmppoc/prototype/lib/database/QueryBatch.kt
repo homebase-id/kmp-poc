@@ -23,7 +23,6 @@ import kotlin.uuid.Uuid
  * This provides the structure and logic for porting to your KMP database solution.
  */
 class QueryBatch(
-    private val database: DatabaseManager,
     private val odinIdentity: Uuid
 ) {
     
@@ -216,7 +215,7 @@ class QueryBatch(
         } ORDER BY $orderString LIMIT ${actualNoOfItems + 1}"
 
         // Execute custom SQL using SQLDelight driver
-        val result = database.executeReadQuery(
+        val result = DatabaseManager.executeReadQuery(
             identifier = null,
             sql = sqlStatement,
             mapper = { sqlCursor ->

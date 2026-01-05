@@ -1,8 +1,7 @@
 package id.homebase.homebasekmppoc.prototype.lib.database
 
-import app.cash.sqldelight.db.SqlDriver
 import id.homebase.homebasekmppoc.lib.database.DriveMainIndex
-import id.homebase.homebasekmppoc.lib.database.DriveTagIndex
+import id.homebase.homebasekmppoc.lib.database.OdinDatabase
 import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.QueryBatchCursor
@@ -16,11 +15,34 @@ object MainIndexMetaHelpers {
      * Helper upsert function that takes a DriveMainIndex record and calls
      * database.upsertDriveMainIndex() with all the members.
      */
-    fun upsertDriveMainIndex(
-        database: DatabaseManager,
+    suspend fun upsertDriveMainIndex(
         driveMainIndexRecord: DriveMainIndex
     ) {
-        database.getDatabase().driveMainIndexQueries.upsertDriveMainIndex(
+        DatabaseManager.driveMainIndex.upsertDriveMainIndex(
+            identityId = driveMainIndexRecord.identityId,
+            driveId = driveMainIndexRecord.driveId,
+            fileId = driveMainIndexRecord.fileId,
+            globalTransitId = driveMainIndexRecord.globalTransitId,
+            uniqueId = driveMainIndexRecord.uniqueId,
+            groupId = driveMainIndexRecord.groupId,
+            senderId = driveMainIndexRecord.senderId,
+            fileType = driveMainIndexRecord.fileType,
+            dataType = driveMainIndexRecord.dataType,
+            archivalStatus = driveMainIndexRecord.archivalStatus,
+            historyStatus = driveMainIndexRecord.historyStatus,
+            userDate = driveMainIndexRecord.userDate,
+            created = driveMainIndexRecord.created,
+            modified = driveMainIndexRecord.modified,
+            fileSystemType = driveMainIndexRecord.fileSystemType,
+            jsonHeader = driveMainIndexRecord.jsonHeader,
+        )
+    }
+
+    fun upsertDriveMainIndex(
+        db : OdinDatabase,
+        driveMainIndexRecord: DriveMainIndex
+    ) {
+        db.driveMainIndexQueries.upsertDriveMainIndex(
             identityId = driveMainIndexRecord.identityId,
             driveId = driveMainIndexRecord.driveId,
             fileId = driveMainIndexRecord.fileId,
@@ -44,16 +66,14 @@ object MainIndexMetaHelpers {
      * Processes file metadata with associated tags from different index tables.
      * Takes a DriveMainIndex record and lists of DriveTagIndex and DriveLocalTagIndex records.
      */
-    class HomebaseFileProcessor(
-        private val database: DatabaseManager
-    ) {
-
+    class HomebaseFileProcessor
+    {
         suspend fun deleteEntryDriveMainIndex(
             identityId: Uuid,
             driveId: Uuid,
             fileId: Uuid
         ) {
-            database.withWriteTransaction { db ->
+            DatabaseManager.withWriteTransaction { db ->
                 db.driveMainIndexQueries.deleteBy(identityId, driveId, fileId)
                 db.driveTagIndexQueries.deleteByFile(identityId, driveId, fileId)
                 db.driveLocalTagIndexQueries.deleteByFile(identityId, driveId, fileId)
@@ -144,12 +164,13 @@ object MainIndexMetaHelpers {
             fileHeaders: List<SharedSecretEncryptedFileHeader>,
             cursor: QueryBatchCursor?
         ) {
-            database.withWriteTransaction { db ->
+            DatabaseManager.withWriteTransaction { db ->
                 fileHeaders.forEach { fileHeader ->
-                // Convert SharedSecretEncryptedFileHeader to extract DriveMainIndex fields and tag records
-                val driveMainIndexRecord = convertFileHeaderToDriveMainIndexRecord(identityId, driveId, fileHeader)
+                    // Convert SharedSecretEncryptedFileHeader to extract DriveMainIndex fields and tag records
+                    val driveMainIndexRecord = convertFileHeaderToDriveMainIndexRecord(identityId, driveId, fileHeader)
 
-                    MainIndexMetaHelpers.upsertDriveMainIndex(database, driveMainIndexRecord)
+                    upsertDriveMainIndex(db, driveMainIndexRecord)
+
                     db.driveTagIndexQueries.deleteByFile(
                         identityId = identityId,
                         driveId = driveId,
@@ -181,7 +202,7 @@ object MainIndexMetaHelpers {
 
                     if (cursor != null) {
                         val cursorStorage = CursorStorage(driveId)
-                        cursorStorage.saveCursor(cursor)
+                        cursorStorage.saveCursor(db, cursor)
                     }
                 }
             }

@@ -1,5 +1,6 @@
 package id.homebase.homebasekmppoc.prototype.lib.database
 
+import id.homebase.homebasekmppoc.lib.database.OdinDatabase
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.QueryBatchCursor
 import kotlin.uuid.Uuid
 
@@ -28,17 +29,27 @@ class CursorStorage(
     /**
      * Save QueryBatchCursor for the predefined cursor Guid
      */
-    fun saveCursor(cursor: QueryBatchCursor) {
+    suspend fun saveCursor(cursor: QueryBatchCursor) {
         DatabaseManager.keyValue.upsertValue(
             key = driveId,
             data = cursor.toJson().encodeToByteArray()
         )
     }
-    
+
+    /**
+     * Save QueryBatchCursor for the predefined cursor Guid
+     */
+    fun saveCursor(db : OdinDatabase, cursor: QueryBatchCursor) {
+        db.keyValueQueries.upsertValue(
+            key = driveId,
+            data_ = cursor.toJson().encodeToByteArray()
+        )
+    }
+
     /**
      * Delete cursor position for the predefined cursor Guid
      */
-    fun deleteCursor() {
+    suspend fun deleteCursor() {
         DatabaseManager.keyValue.deleteByKey(driveId)
     }
 }

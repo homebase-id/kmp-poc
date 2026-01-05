@@ -150,7 +150,8 @@ object DatabaseManager {
         block(getDatabase())
     }
 
-    fun getDatabase(): OdinDatabase {
+    // Any function wanting to write should use withWrite... to get to the database
+    private fun getDatabase(): OdinDatabase {
         return database ?: throw IllegalStateException("Database not initialized. Call initialize() first.")
     }
 

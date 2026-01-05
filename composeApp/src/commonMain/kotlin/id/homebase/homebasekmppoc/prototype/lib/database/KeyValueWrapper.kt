@@ -3,6 +3,7 @@ package id.homebase.homebasekmppoc.lib.database
 import app.cash.sqldelight.Query
 import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.db.SqlDriver
+import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
 import kotlin.Any
 import kotlin.Long
 import kotlin.uuid.Uuid
@@ -25,12 +26,18 @@ class KeyValueWrapper(
         key: Uuid,
     ): Query<KeyValue> = delegate.selectByKey(key)
 
-    fun upsertValue(
+    suspend fun upsertValue(
         key: Uuid,
         data: ByteArray,
-    ): QueryResult<Long> = delegate.upsertValue(key, data)
+    ): Long
+    {
+        return DatabaseManager.withWriteValue { delegate.upsertValue(key, data).value }
+    }
 
-    fun deleteByKey(
+    suspend fun deleteByKey(
         key: Uuid,
-    ): QueryResult<Long> = delegate.deleteByKey(key)
+    ): Long
+    {
+        return DatabaseManager.withWriteValue { delegate.deleteByKey(key).value }
+    }
 }
