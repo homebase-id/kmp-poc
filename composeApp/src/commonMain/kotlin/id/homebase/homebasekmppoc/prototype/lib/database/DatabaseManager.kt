@@ -43,6 +43,7 @@ object DatabaseManager {
     private var driveLocalTagIndexAdapter: DriveLocalTagIndex.Adapter? = null
     private var keyValueAdapter: KeyValue.Adapter? = null
     private var outboxAdapter: Outbox.Adapter? = null
+    private var level = 0
 
     private fun myInitialize(driver : SqlDriver)
     {
@@ -134,7 +135,11 @@ object DatabaseManager {
         withContext(dbDispatcher) {
             val db = getDatabase()
             db.transaction {
+                level++;
+                println("Entering transaction: $level")
                 block(db)
+                println("exiting transaction $level")
+                level--;
             }
         }
     }

@@ -165,6 +165,7 @@ object MainIndexMetaHelpers {
             cursor: QueryBatchCursor?
         ) {
             DatabaseManager.withWriteTransaction { db ->
+
                 fileHeaders.forEach { fileHeader ->
                     // Convert SharedSecretEncryptedFileHeader to extract DriveMainIndex fields and tag records
                     val driveMainIndexRecord = convertFileHeaderToDriveMainIndexRecord(identityId, driveId, fileHeader)
@@ -183,6 +184,7 @@ object MainIndexMetaHelpers {
                     )
 
                     fileHeader.fileMetadata.appData.tags?.forEach { tagRecord ->
+                        println("Insert Tag ${driveMainIndexRecord.fileId}: $tagRecord")
                         db.driveTagIndexQueries.insertTag(
                             identityId = identityId,
                             driveId = driveId,
@@ -192,6 +194,7 @@ object MainIndexMetaHelpers {
                     }
 
                     fileHeader.fileMetadata.localAppData?.tags?.forEach { tagRecord ->
+                        println("Insert Local Tag ${driveMainIndexRecord.fileId}: $tagRecord")
                         db.driveLocalTagIndexQueries.insertLocalTag(
                             identityId = identityId,
                             driveId = driveId,

@@ -14,18 +14,18 @@ class DriveTagIndexWrapper(
 ) {
     private val delegate = DriveTagIndexQueries(driver, driveTagIndexAdapter)
 
-    fun <T : Any> selectByFile(
-        identityId: Uuid,
-        driveId: Uuid,
-        fileId: Uuid,
-        mapper: (
-            rowId: Long,
-            identityId: Uuid,
-            driveId: Uuid,
-            fileId: Uuid,
-            tagId: Uuid,
-        ) -> T,
-    ): Query<T> = delegate.selectByFile(identityId, driveId, fileId, mapper)
+//    fun <T : Any> selectByFile(
+//        identityId: Uuid,
+//        driveId: Uuid,
+//        fileId: Uuid,
+//        mapper: (
+//            rowId: Long,
+//            identityId: Uuid,
+//            driveId: Uuid,
+//            fileId: Uuid,
+//            tagId: Uuid,
+//        ) -> T,
+//    ): Query<T> = delegate.selectByFile(identityId, driveId, fileId, mapper)
 
     fun selectByFile(
         identityId: Uuid,
