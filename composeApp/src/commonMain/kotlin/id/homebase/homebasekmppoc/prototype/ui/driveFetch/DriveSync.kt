@@ -27,11 +27,12 @@ class DriveSync(
     private val identityId: Uuid,
     private val driveId: Uuid,
     private val driveQueryProvider: DriveQueryProvider, // TODO: <- can we get rid of this?)
+    private val databaseManager: DatabaseManager
 ) {
     private var cursor: QueryBatchCursor?
     private val mutex = Mutex()
     private var batchSize = 50 // We begin with the smallest batch
-    private var fileHeaderProcessor = MainIndexMetaHelpers.HomebaseFileProcessor()
+    private var fileHeaderProcessor = MainIndexMetaHelpers.HomebaseFileProcessor(databaseManager)
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     //TODO: Consider having a (readable) "last modified" which holds the largest timestamp of last-modified
@@ -40,7 +41,7 @@ class DriveSync(
         // Temp hack, remove soon.
         // Load cursor from database
         runBlocking { initialize() }
-        val cursorStorage = CursorStorage(driveId)
+        val cursorStorage = CursorStorage(databaseManager, driveId)
         cursor = cursorStorage.loadCursor()
     }
 
@@ -49,10 +50,10 @@ class DriveSync(
         // Temp hack, remove soon.
         // Load cursor from database
 
-        DatabaseManager.driveMainIndex.deleteAll() // TODO: <-- don't delete all! :-)
-        DatabaseManager.driveTagIndex.deleteAll() // TODO: <-- don't delete all! :-)
-        DatabaseManager.driveLocalTagIndex.deleteAll() // TODO: <-- don't delete all! :-)
-        DatabaseManager.keyValue.deleteByKey(driveId) // TODO: <-- don't delete the cursor
+        DatabaseManager.appDb.driveMainIndex.deleteAll() // TODO: <-- don't delete all! :-)
+        DatabaseManager.appDb.driveTagIndex.deleteAll() // TODO: <-- don't delete all! :-)
+        DatabaseManager.appDb.driveLocalTagIndex.deleteAll() // TODO: <-- don't delete all! :-)
+        DatabaseManager.appDb.keyValue.deleteByKey(driveId) // TODO: <-- don't delete the cursor
     }
 
     // I remain tempted to let the sync() function spawn a thread

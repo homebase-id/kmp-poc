@@ -78,7 +78,7 @@ fun DriveFetchPage(
 
     // Create driveSynchronizer once
     val driveSynchronizer = remember(driveQueryProvider) {
-        driveQueryProvider?.let { DriveSync(identityId, driveId, it) }
+        driveQueryProvider?.let { DriveSync(identityId, driveId, it, DatabaseManager.appDb) }
     }
 
     fun triggerFetch(withProgress: Boolean) {
@@ -136,6 +136,7 @@ fun DriveFetchPage(
                         syncProgress = event
                         // Fetch local results as before
                         val localResult = QueryBatch(identityId).queryBatchAsync(
+                            DatabaseManager.appDb,
                             driveId,
                             1000,
                             null,

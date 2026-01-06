@@ -11,6 +11,7 @@ import kotlin.uuid.Uuid
 class AppNotificationsWrapper(
     driver: SqlDriver,
     appNotificationsAdapter: AppNotifications.Adapter,
+    private val databaseManager: DatabaseManager,
 ) {
     private val delegate = AppNotificationsQueries(driver, appNotificationsAdapter)
 
@@ -93,14 +94,14 @@ class AppNotificationsWrapper(
     suspend fun deleteAll(
         identityId: Uuid,
     ): Long {
-        return DatabaseManager.withWriteValue { db -> delegate.deleteAll(identityId).value }
+        return databaseManager.withWriteValue { db -> delegate.deleteAll(identityId).value }
     }
 
     suspend fun deleteByNotificationId(
         identityId: Uuid,
         notificationId: Uuid,
     ): Long {
-        return DatabaseManager.withWriteValue { db ->
+        return databaseManager.withWriteValue { db ->
             delegate.deleteByNotificationId(identityId, notificationId).value
         }
     }

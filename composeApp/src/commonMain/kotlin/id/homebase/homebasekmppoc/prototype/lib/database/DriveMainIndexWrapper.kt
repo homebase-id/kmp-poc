@@ -11,6 +11,7 @@ import kotlin.uuid.Uuid
 class DriveMainIndexWrapper(
     driver: SqlDriver,
     driveMainIndexAdapter: DriveMainIndex.Adapter,
+    private val databaseManager: DatabaseManager,
 ) {
     private val delegate = DriveMainIndexQueries(driver, driveMainIndexAdapter)
 
@@ -90,14 +91,14 @@ class DriveMainIndexWrapper(
         jsonHeader: String,
     ): Long
     {
-        return DatabaseManager.withWriteValue {
+        return databaseManager.withWriteValue {
             delegate.upsertDriveMainIndex(identityId, driveId, fileId, uniqueId, globalTransitId, groupId, senderId, fileType, dataType, archivalStatus, historyStatus, userDate, created, modified, fileSystemType, jsonHeader).value
         }
     }
 
     suspend fun deleteAll(): Long
     {
-        return DatabaseManager.withWriteValue { delegate.deleteAll().value }
+        return databaseManager.withWriteValue { delegate.deleteAll().value }
     }
 
     suspend fun deleteBy(
@@ -106,6 +107,6 @@ class DriveMainIndexWrapper(
         fileId: Uuid,
     ): Long
     {
-        return DatabaseManager.withWriteValue { delegate.deleteBy(identityId, driveId, fileId).value }
+        return databaseManager.withWriteValue { delegate.deleteBy(identityId, driveId, fileId).value }
     }
 }

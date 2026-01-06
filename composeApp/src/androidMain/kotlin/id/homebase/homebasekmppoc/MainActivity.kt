@@ -17,6 +17,7 @@ import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.init
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 class MainActivity : ComponentActivity() {
 
@@ -31,8 +32,9 @@ class MainActivity : ComponentActivity() {
         SecureStorage.initialize(applicationContext)
         SharedPreferences.initialize(applicationContext)
         FileKit.init(this)
-        // Initialize database
-        DatabaseManager.initialize(DatabaseDriverFactory(applicationContext))
+        // Initialize App database singleton (a companion (static) object in the DatabaseManager class
+        val driver = DatabaseDriverFactory(applicationContext)
+        DatabaseManager.initialize { driver.createDriver() }
 
         handleIntent(intent)
 

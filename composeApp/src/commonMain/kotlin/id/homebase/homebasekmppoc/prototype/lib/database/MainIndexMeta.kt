@@ -16,9 +16,10 @@ object MainIndexMetaHelpers {
      * database.upsertDriveMainIndex() with all the members.
      */
     suspend fun upsertDriveMainIndex(
+        databaseManager: DatabaseManager,
         driveMainIndexRecord: DriveMainIndex
     ) {
-        DatabaseManager.driveMainIndex.upsertDriveMainIndex(
+        databaseManager.driveMainIndex.upsertDriveMainIndex(
             identityId = driveMainIndexRecord.identityId,
             driveId = driveMainIndexRecord.driveId,
             fileId = driveMainIndexRecord.fileId,
@@ -41,8 +42,8 @@ object MainIndexMetaHelpers {
     fun upsertDriveMainIndex(
         db : OdinDatabase,
         driveMainIndexRecord: DriveMainIndex
-    ) {
-        db.driveMainIndexQueries.upsertDriveMainIndex(
+    ) : Long {
+        return db.driveMainIndexQueries.upsertDriveMainIndex(
             identityId = driveMainIndexRecord.identityId,
             driveId = driveMainIndexRecord.driveId,
             fileId = driveMainIndexRecord.fileId,
@@ -59,21 +60,22 @@ object MainIndexMetaHelpers {
             modified = driveMainIndexRecord.modified,
             fileSystemType = driveMainIndexRecord.fileSystemType,
             jsonHeader = driveMainIndexRecord.jsonHeader,
-        )
+        ).value
     }
 
     /**
      * Processes file metadata with associated tags from different index tables.
      * Takes a DriveMainIndex record and lists of DriveTagIndex and DriveLocalTagIndex records.
      */
-    class HomebaseFileProcessor
-    {
+    class HomebaseFileProcessor(
+        private val databaseManager: DatabaseManager
+    ) {
         suspend fun deleteEntryDriveMainIndex(
             identityId: Uuid,
             driveId: Uuid,
             fileId: Uuid
         ) {
-            DatabaseManager.withWriteTransaction { db ->
+            databaseManager.withWriteTransaction { db ->
                 db.driveMainIndexQueries.deleteBy(identityId, driveId, fileId)
                 db.driveTagIndexQueries.deleteByFile(identityId, driveId, fileId)
                 db.driveLocalTagIndexQueries.deleteByFile(identityId, driveId, fileId)
@@ -164,13 +166,16 @@ object MainIndexMetaHelpers {
             fileHeaders: List<SharedSecretEncryptedFileHeader>,
             cursor: QueryBatchCursor?
         ) {
-            DatabaseManager.withWriteTransaction { db ->
+            databaseManager.withWriteTransaction { db ->
 
                 fileHeaders.forEach { fileHeader ->
                     // Convert SharedSecretEncryptedFileHeader to extract DriveMainIndex fields and tag records
                     val driveMainIndexRecord = convertFileHeaderToDriveMainIndexRecord(identityId, driveId, fileHeader)
 
-                    upsertDriveMainIndex(db, driveMainIndexRecord)
+                    var n = upsertDriveMainIndex(db, driveMainIndexRecord)
+
+                    if (n != 1L)
+                        throw IllegalStateException("Unable to write row")
 
                     db.driveTagIndexQueries.deleteByFile(
                         identityId = identityId,
@@ -183,28 +188,39 @@ object MainIndexMetaHelpers {
                         fileId = driveMainIndexRecord.fileId
                     )
 
+                    n = 0L
+                    var l = 0L
                     fileHeader.fileMetadata.appData.tags?.forEach { tagRecord ->
                         println("Insert Tag ${driveMainIndexRecord.fileId}: $tagRecord")
-                        db.driveTagIndexQueries.insertTag(
+                        n += db.driveTagIndexQueries.insertTag(
                             identityId = identityId,
                             driveId = driveId,
                             fileId = driveMainIndexRecord.fileId,
                             tagId = tagRecord
-                        )
+                        ).value
+                        l++;
                     }
+                    if (n != l)
+                        throw IllegalStateException("Unable to write TAGs")
 
+                    n = 0L
+                    l = 0L
                     fileHeader.fileMetadata.localAppData?.tags?.forEach { tagRecord ->
                         println("Insert Local Tag ${driveMainIndexRecord.fileId}: $tagRecord")
-                        db.driveLocalTagIndexQueries.insertLocalTag(
+                        n += db.driveLocalTagIndexQueries.insertLocalTag(
                             identityId = identityId,
                             driveId = driveId,
                             fileId = driveMainIndexRecord.fileId,
                             tagId = tagRecord
-                        )
+                        ).value
+                        l++;
                     }
 
+                    if (n != l)
+                        throw IllegalStateException("Unable to write TAGs")
+
                     if (cursor != null) {
-                        val cursorStorage = CursorStorage(driveId)
+                        val cursorStorage = CursorStorage(databaseManager, driveId)
                         cursorStorage.saveCursor(db, cursor)
                     }
                 }

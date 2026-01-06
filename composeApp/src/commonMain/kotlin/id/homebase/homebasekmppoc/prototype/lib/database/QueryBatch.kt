@@ -10,6 +10,7 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.QueryBatchCursor
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.TimeRowCursor
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
+import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
 import kotlin.uuid.Uuid
 
 
@@ -122,6 +123,7 @@ class QueryBatch(
      * Asynchronously retrieves a batch of records from the drive main index
      */
     suspend fun queryBatchAsync(
+        dbm : DatabaseManager,
         driveId: Uuid,
         noOfItems: Int,
         cursor: QueryBatchCursor? = null,
@@ -215,7 +217,7 @@ class QueryBatch(
         } ORDER BY $orderString LIMIT ${actualNoOfItems + 1}"
 
         // Execute custom SQL using SQLDelight driver
-        val result = DatabaseManager.executeReadQuery(
+        val result = dbm.executeReadQuery(
             identifier = null,
             sql = sqlStatement,
             mapper = { sqlCursor ->
@@ -256,6 +258,7 @@ class QueryBatch(
      * Smart cursor variant with automatic boundary management for NewestFirst queries
      */
     suspend fun queryBatchSmartCursorAsync(
+        dbm : DatabaseManager,
         driveId: Uuid,
         noOfItems: Int,
         cursor: QueryBatchCursor? = null,
@@ -281,7 +284,7 @@ class QueryBatch(
         
         val pagingCursorWasNull = cursor?.paging == null
 
-        val (result, moreRows, refCursor) = queryBatchAsync(
+        val (result, moreRows, refCursor) = queryBatchAsync(dbm,
             driveId, noOfItems, cursor, sortOrder, sortField,
             fileSystemType, fileStateAnyOf,
             globalTransitIdAnyOf, filetypesAnyOf, datatypesAnyOf,
@@ -324,7 +327,7 @@ class QueryBatch(
                     }
 
                     // Recursive call to check for more items
-                    val (r2, moreRows2, refCursor2) = queryBatchSmartCursorAsync(
+                    val (r2, moreRows2, refCursor2) = queryBatchSmartCursorAsync(dbm,
                         driveId, noOfItems - result.size, updatedCursor,
                         sortOrder, sortField, fileSystemType, fileStateAnyOf,
                         requiredSecurityGroup, globalTransitIdAnyOf, filetypesAnyOf,
@@ -347,7 +350,7 @@ class QueryBatch(
                     next = null,
                     paging = null
                 )
-                return queryBatchSmartCursorAsync(
+                return queryBatchSmartCursorAsync(dbm,
                     driveId, noOfItems, updatedCursor, sortOrder, sortField,
                     fileSystemType, fileStateAnyOf, requiredSecurityGroup,
                     globalTransitIdAnyOf, filetypesAnyOf, datatypesAnyOf,
@@ -366,6 +369,7 @@ class QueryBatch(
      * Legacy query for modified items - should be removed eventually
      */
     suspend fun queryModifiedAsync(
+        dbm : DatabaseManager,
         driveId: Uuid,
         noOfItems: Int,
         cursorString: String? = null,
@@ -398,7 +402,7 @@ class QueryBatch(
             stop = stopAtModifiedUnixTimeSeconds
         )
 
-        val (records, hasMoreRows, updatedCursor) = queryBatchAsync(
+        val (records, hasMoreRows, updatedCursor) = queryBatchAsync(dbm,
             driveId, noOfItems, queryCursor, QueryBatchSortOrder.OldestFirst,
             QueryBatchSortField.OnlyModifiedDate, fileSystemType, null,
             globalTransitIdAnyOf, filetypesAnyOf,

@@ -62,7 +62,7 @@ fun DbPage() {
                         val driveType = "type".encodeToByteArray()
 
                         // Write a record to DriveMainIndex
-                        DatabaseManager.driveMainIndex.upsertDriveMainIndex(
+                        DatabaseManager.appDb.driveMainIndex.upsertDriveMainIndex(
                             identityId = identityId,
                             driveId = driveId,
                             fileId = fileId,
@@ -82,8 +82,8 @@ fun DbPage() {
                         )
 
                         // Read back all records
-                        val records = DatabaseManager.driveMainIndex.selectAll().executeAsList()
-                        val count = DatabaseManager.driveMainIndex.countAll().executeAsOne()
+                        val records = DatabaseManager.appDb.driveMainIndex.selectAll().executeAsList()
+                        val count = DatabaseManager.appDb.driveMainIndex.countAll().executeAsOne()
 
                         dbTestResult = "Success!\nWrote 1 record\nTotal records: $count\nLast record fileId: ${records.lastOrNull()?.fileId}"
                     } catch (e: Exception) {

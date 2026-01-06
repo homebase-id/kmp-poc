@@ -11,6 +11,7 @@ import kotlin.uuid.Uuid
 class DriveLocalTagIndexWrapper(
     driver: SqlDriver,
     driveLocalTagIndexAdapter: DriveLocalTagIndex.Adapter,
+    private val databaseManager: DatabaseManager,
 ) {
     private val delegate = DriveLocalTagIndexQueries(driver, driveLocalTagIndexAdapter)
 
@@ -41,7 +42,7 @@ class DriveLocalTagIndexWrapper(
         fileId: Uuid,
         tagId: Uuid,
     ): Long {
-        return DatabaseManager.withWriteValue { delegate.insertLocalTag(identityId, driveId, fileId, tagId).value }
+        return databaseManager.withWriteValue { delegate.insertLocalTag(identityId, driveId, fileId, tagId).value }
     }
 
     suspend fun deleteByFile(
@@ -50,10 +51,10 @@ class DriveLocalTagIndexWrapper(
         fileId: Uuid,
     ): Long
     {
-        return DatabaseManager.withWriteValue { delegate.deleteByFile(identityId, driveId, fileId).value }
+        return databaseManager.withWriteValue { delegate.deleteByFile(identityId, driveId, fileId).value }
     }
 
     suspend fun deleteAll(): Long {
-        return DatabaseManager.withWriteValue { delegate.deleteAll().value }
+        return databaseManager.withWriteValue { delegate.deleteAll().value }
     }
 }

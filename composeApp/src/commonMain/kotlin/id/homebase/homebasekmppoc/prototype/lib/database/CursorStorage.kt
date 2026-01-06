@@ -10,6 +10,7 @@ import kotlin.uuid.Uuid
  * between app open / close.
  */
 class CursorStorage(
+    private val databaseManager: DatabaseManager,
     private val driveId: Uuid
 ) {
     // TODO: We should XOR the driveId with some constant GUID to create a KV key that
@@ -21,7 +22,7 @@ class CursorStorage(
      * Returns null if no cursor is found in the database
      */
     fun loadCursor(): QueryBatchCursor? {
-        return DatabaseManager.keyValue.selectByKey(driveId)
+        return databaseManager.keyValue.selectByKey(driveId)
             .executeAsOneOrNull()
             ?.let { QueryBatchCursor.fromJson(it.data_.decodeToString()) }
     }
@@ -30,7 +31,7 @@ class CursorStorage(
      * Save QueryBatchCursor for the predefined cursor Guid
      */
     suspend fun saveCursor(cursor: QueryBatchCursor) {
-        DatabaseManager.keyValue.upsertValue(
+        databaseManager.keyValue.upsertValue(
             key = driveId,
             data = cursor.toJson().encodeToByteArray()
         )
@@ -50,6 +51,6 @@ class CursorStorage(
      * Delete cursor position for the predefined cursor Guid
      */
     suspend fun deleteCursor() {
-        DatabaseManager.keyValue.deleteByKey(driveId)
+        databaseManager.keyValue.deleteByKey(driveId)
     }
 }

@@ -11,6 +11,7 @@ import kotlin.uuid.Uuid
 class KeyValueWrapper(
     driver: SqlDriver,
     keyValueAdapter: KeyValue.Adapter,
+    private val databaseManager: DatabaseManager,
 ) {
     private val delegate = KeyValueQueries(driver, keyValueAdapter)
 
@@ -31,13 +32,13 @@ class KeyValueWrapper(
         data: ByteArray,
     ): Long
     {
-        return DatabaseManager.withWriteValue { delegate.upsertValue(key, data).value }
+        return databaseManager.withWriteValue { delegate.upsertValue(key, data).value }
     }
 
     suspend fun deleteByKey(
         key: Uuid,
     ): Long
     {
-        return DatabaseManager.withWriteValue { delegate.deleteByKey(key).value }
+        return databaseManager.withWriteValue { delegate.deleteByKey(key).value }
     }
 }
