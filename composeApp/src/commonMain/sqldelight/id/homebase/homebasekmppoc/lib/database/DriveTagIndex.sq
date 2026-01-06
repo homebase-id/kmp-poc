@@ -26,7 +26,7 @@ WHERE identityId = ? AND driveId = ? AND fileId = ?;
 
 -- Delete all records (for testing)
 deleteAll:
-DELETE FROM DriveMainIndex;
+DELETE FROM DriveTagIndex;
 
 -- countALl
 countAll:

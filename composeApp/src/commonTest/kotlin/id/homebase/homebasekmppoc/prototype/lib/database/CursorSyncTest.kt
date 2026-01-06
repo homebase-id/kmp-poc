@@ -5,6 +5,7 @@ import id.homebase.homebasekmppoc.lib.database.OdinDatabase
 import id.homebase.homebasekmppoc.prototype.lib.core.time.UnixTimeUtc
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.QueryBatchCursor
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.TimeRowCursor
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.AfterTest
@@ -14,213 +15,229 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.uuid.Uuid
 
-class CursorSyncTest {
-    private var driver: SqlDriver? = null
-    private lateinit var db: OdinDatabase
-
-@BeforeTest
-    fun setup() {
-        driver = createInMemoryDatabase()
-        db = TestDatabaseFactory.createTestDatabase(driver)
-    }
-
-    @AfterTest
-    fun tearDown() {
-        driver?.close()
-    }
-
+class CursorSyncTest
+{
     @Test
     fun testSaveAndLoadQueryBatchCursor_withAllFields() = runTest {
-        // Create a QueryBatchCursor with all fields populated
-        val originalCursor = QueryBatchCursor(
-            paging = TimeRowCursor(
-                time = UnixTimeUtc(1704067200000L), // 2024-01-01 00:00:00 UTC
-                row = 12345L
-            ),
-            stop = TimeRowCursor(
-                time = UnixTimeUtc(1704153600000L), // 2024-01-02 00:00:00 UTC
-                row = 67890L
-            ),
-            next = TimeRowCursor(
-                time = UnixTimeUtc(1704240000000L), // 2024-01-03 00:00:00 UTC
-                row = 11111L
+        DatabaseManager { createInMemoryDatabase() }.use { dbm ->        // Create a QueryBatchCursor with all fields populated
+            val originalCursor = QueryBatchCursor(
+                paging = TimeRowCursor(
+                    time = UnixTimeUtc(1704067200000L), // 2024-01-01 00:00:00 UTC
+                    row = 12345L
+                ),
+                stop = TimeRowCursor(
+                    time = UnixTimeUtc(1704153600000L), // 2024-01-02 00:00:00 UTC
+                    row = 67890L
+                ),
+                next = TimeRowCursor(
+                    time = UnixTimeUtc(1704240000000L), // 2024-01-03 00:00:00 UTC
+                    row = 11111L
+                )
             )
-        )
-        val cursorStorage = CursorStorage(  db, Uuid.random())
+            val cursorStorage = CursorStorage(dbm, Uuid.random())
 
-        // Save the cursor
-        cursorStorage.saveCursor(originalCursor)
+            // Save the cursor
+            cursorStorage.saveCursor(originalCursor)
 
-        // Load the cursor back
-        val loadedCursor = cursorStorage.loadCursor()
+            // Load the cursor back
+            val loadedCursor = cursorStorage.loadCursor()
 
-        // Verify that cursor was loaded successfully
-        assertNotNull(loadedCursor, "Cursor should be loaded after saving")
+            // Verify that cursor was loaded successfully
+            assertNotNull(loadedCursor, "Cursor should be loaded after saving")
 
-        // Verify all fields are loaded correctly
-        assertNotNull(loadedCursor!!.paging, "Paging cursor should not be null")
-        assertNotNull(loadedCursor.stop, "Stop at boundary cursor should not be null")
-        assertNotNull(loadedCursor.next, "Next boundary cursor should not be null")
+            // Verify all fields are loaded correctly
+            assertNotNull(loadedCursor.paging, "Paging cursor should not be null")
+            assertNotNull(loadedCursor.stop, "Stop at boundary cursor should not be null")
+            assertNotNull(loadedCursor.next, "Next boundary cursor should not be null")
 
-        // Verify paging cursor fields
-        assertEquals(
-            originalCursor.paging!!.time,
-            loadedCursor.paging!!.time,
-            "Paging cursor time should match"
-        )
-        assertEquals(
-            originalCursor.paging!!.row,
-            loadedCursor.paging!!.row,
-            "Paging cursor row ID should match"
-        )
+            // Verify paging cursor fields
+            assertEquals(
+                originalCursor.paging!!.time,
+                loadedCursor.paging!!.time,
+                "Paging cursor time should match"
+            )
+            assertEquals(
+                originalCursor.paging!!.row,
+                loadedCursor.paging!!.row,
+                "Paging cursor row ID should match"
+            )
 
-        // Verify stop at boundary cursor fields
-        assertEquals(
-            originalCursor.stop!!.time,
-            loadedCursor.stop!!.time,
-            "Stop at boundary cursor time should match"
-        )
-        assertEquals(
-            originalCursor.stop!!.row,
-            loadedCursor.stop!!.row,
-            "Stop at boundary cursor row ID should match"
-        )
+            // Verify stop at boundary cursor fields
+            assertEquals(
+                originalCursor.stop!!.time,
+                loadedCursor.stop!!.time,
+                "Stop at boundary cursor time should match"
+            )
+            assertEquals(
+                originalCursor.stop!!.row,
+                loadedCursor.stop!!.row,
+                "Stop at boundary cursor row ID should match"
+            )
 
-        // Verify next boundary cursor fields
-        assertEquals(
-            originalCursor.next!!.time,
-            loadedCursor.next!!.time,
-            "Next boundary cursor time should match"
-        )
-        assertEquals(
-            originalCursor.next!!.row,
-            loadedCursor.next!!.row,
-            "Next boundary cursor row ID should match"
-        )
+            // Verify next boundary cursor fields
+            assertEquals(
+                originalCursor.next!!.time,
+                loadedCursor.next!!.time,
+                "Next boundary cursor time should match"
+            )
+            assertEquals(
+                originalCursor.next!!.row,
+                loadedCursor.next!!.row,
+                "Next boundary cursor row ID should match"
+            )
+        }
     }
 
     @Test
     fun testLoadCursor_whenNoCursorExists_returnsNull() = runTest {
-        val cursorStorage = CursorStorage(  db, Uuid.random())
+        DatabaseManager { createInMemoryDatabase() }.use { dbm ->        // Create a QueryBatchCursor with all fields populated
+            val cursorStorage = CursorStorage(dbm, Uuid.random())
 
-        // Try to load cursor when none exists
-        val loadedCursor = cursorStorage.loadCursor()
+            // Try to load cursor when none exists
+            val loadedCursor = cursorStorage.loadCursor()
 
-        // Verify that null is returned
-        assertNull(loadedCursor, "Should return null when no cursor exists")
+            // Verify that null is returned
+            assertNull(loadedCursor, "Should return null when no cursor exists")
+        }
     }
 
     @Test
     fun testSaveAndLoadQueryBatchCursor_withNullFields() = runTest {
-        // Create a QueryBatchCursor with some null fields
-        val originalCursor = QueryBatchCursor(
-            paging = TimeRowCursor(
-                time = UnixTimeUtc(1704067200000L),
-                row = null
-            ),
-            stop = null,
-            next = null
-        )
+        DatabaseManager { createInMemoryDatabase() }.use { dbm ->        // Create a QueryBatchCursor with all fields populated
+            // Create a QueryBatchCursor with some null fields
+            val originalCursor = QueryBatchCursor(
+                paging = TimeRowCursor(
+                    time = UnixTimeUtc(1704067200000L),
+                    row = null
+                ),
+                stop = null,
+                next = null
+            )
 
-        // Save the cursor
-        val cursorStorage = CursorStorage(  db, Uuid.random())
-        cursorStorage.saveCursor(originalCursor)
+            // Save the cursor
+            val cursorStorage = CursorStorage(dbm, Uuid.random())
+            cursorStorage.saveCursor(originalCursor)
 
-        // Load the cursor back
-        val loadedCursor = cursorStorage.loadCursor()
+            // Load the cursor back
+            val loadedCursor = cursorStorage.loadCursor()
 
-        // Verify that cursor was loaded successfully
-        assertNotNull(loadedCursor, "Cursor should be loaded after saving")
+            // Verify that cursor was loaded successfully
+            assertNotNull(loadedCursor, "Cursor should be loaded after saving")
 
-        // Verify paging cursor fields
-        assertNotNull(loadedCursor!!.paging, "Paging cursor should not be null")
-        assertEquals(
-            originalCursor.paging!!.time,
-            loadedCursor.paging!!.time,
-            "Paging cursor time should match"
-        )
-        assertEquals(
-            originalCursor.paging!!.row,
-            loadedCursor.paging!!.row,
-            "Paging cursor row ID should match"
-        )
+            // Verify paging cursor fields
+            assertNotNull(loadedCursor!!.paging, "Paging cursor should not be null")
+            assertEquals(
+                originalCursor.paging!!.time,
+                loadedCursor.paging!!.time,
+                "Paging cursor time should match"
+            )
+            assertEquals(
+                originalCursor.paging!!.row,
+                loadedCursor.paging!!.row,
+                "Paging cursor row ID should match"
+            )
 
-        // Verify that null fields remain null
-        assertNull(loadedCursor.stop, "Stop at boundary cursor should remain null")
-        assertNull(loadedCursor.next, "Next boundary cursor should remain null")
+            // Verify that null fields remain null
+            assertNull(loadedCursor.stop, "Stop at boundary cursor should remain null")
+            assertNull(loadedCursor.next, "Next boundary cursor should remain null")
+        }
     }
 
     @Test
     fun testDeleteCursor() = runTest {
-        // Create and save a cursor
-        val originalCursor = QueryBatchCursor(
-            paging = TimeRowCursor(
-                time = UnixTimeUtc(1704067200000L),
-                row = 12345L
-            ),
-            stop = null,
-            next = null
-        )
-        val cursorStorage = CursorStorage(  db, Uuid.random())
-        cursorStorage.saveCursor(originalCursor)
+        DatabaseManager { createInMemoryDatabase() }.use { dbm ->        // Create a QueryBatchCursor with all fields populated
+            // Create and save a cursor
+            val originalCursor = QueryBatchCursor(
+                paging = TimeRowCursor(
+                    time = UnixTimeUtc(1704067200000L),
+                    row = 12345L
+                ),
+                stop = null,
+                next = null
+            )
+            val cursorStorage = CursorStorage(dbm, Uuid.random())
+            cursorStorage.saveCursor(originalCursor)
 
-        // Verify cursor exists
-        assertNotNull(cursorStorage.loadCursor(), "Cursor should exist after saving")
+            // Verify cursor exists
+            assertNotNull(cursorStorage.loadCursor(), "Cursor should exist after saving")
 
-        // Delete the cursor
-        cursorStorage.deleteCursor()
+            // Delete the cursor
+            cursorStorage.deleteCursor()
 
-        // Verify cursor is deleted
-        assertNull(cursorStorage.loadCursor(), "Cursor should be null after deletion")
+            // Verify cursor is deleted
+            assertNull(cursorStorage.loadCursor(), "Cursor should be null after deletion")
+        }
     }
+
 
     @Test
     fun testUpdateCursor() = runTest {
-        // Create and save initial cursor
-        val initialCursor = QueryBatchCursor(
-            paging = TimeRowCursor(
-                time = UnixTimeUtc(1704067200000L),
-                row = 12345L
-            ),
-            stop = null,
-            next = null
-        )
-        val cursorStorage = CursorStorage(  db, Uuid.random())
-        cursorStorage.saveCursor(initialCursor)
-
-        // Verify initial cursor
-        val loadedInitial = cursorStorage.loadCursor()
-        assertNotNull(loadedInitial)
-        assertEquals(1704067200000L, loadedInitial!!.paging!!.time.milliseconds)
-
-        // Update with new cursor
-        val updatedCursor = QueryBatchCursor(
-            paging = TimeRowCursor(
-                time = UnixTimeUtc(1704153600000L), // Different time
-                row = 54321L // Different row ID
-            ),
-            stop = TimeRowCursor(
-                time = UnixTimeUtc(1704240000000L),
-                row = 98765L
-            ),
-            next = TimeRowCursor(
-                time = UnixTimeUtc(1704326400000L),
-                row = 11111L
+        DatabaseManager { createInMemoryDatabase() }.use { dbm ->        // Create a QueryBatchCursor with all fields populated
+            // Create and save initial cursor
+            val initialCursor = QueryBatchCursor(
+                paging = TimeRowCursor(
+                    time = UnixTimeUtc(1704067200000L),
+                    row = 12345L
+                ),
+                stop = null,
+                next = null
             )
-        )
-        cursorStorage.saveCursor(updatedCursor)
+            val cursorStorage = CursorStorage(dbm, Uuid.random())
+            cursorStorage.saveCursor(initialCursor)
 
-        // Verify cursor was updated
-        val loadedUpdated = cursorStorage.loadCursor()
-        assertNotNull(loadedUpdated)
-        assertEquals(1704153600000L, loadedUpdated!!.paging!!.time.milliseconds, "Paging cursor should be updated")
-        assertEquals(54321L, loadedUpdated.paging!!.row, "Paging cursor row ID should be updated")
-        assertEquals(1704240000000L, loadedUpdated.stop!!.time.milliseconds, "Stop at boundary should be updated")
-        assertEquals(98765L, loadedUpdated.stop!!.row, "Stop at boundary row ID should be updated")
-        assertEquals(1704326400000L, loadedUpdated.next!!.time.milliseconds, "Next boundary should be updated")
-        assertEquals(11111L, loadedUpdated.next!!.row, "Next boundary row ID should be updated")
+            // Verify initial cursor
+            val loadedInitial = cursorStorage.loadCursor()
+            assertNotNull(loadedInitial)
+            assertEquals(1704067200000L, loadedInitial.paging!!.time.milliseconds)
+
+            // Update with new cursor
+            val updatedCursor = QueryBatchCursor(
+                paging = TimeRowCursor(
+                    time = UnixTimeUtc(1704153600000L), // Different time
+                    row = 54321L // Different row ID
+                ),
+                stop = TimeRowCursor(
+                    time = UnixTimeUtc(1704240000000L),
+                    row = 98765L
+                ),
+                next = TimeRowCursor(
+                    time = UnixTimeUtc(1704326400000L),
+                    row = 11111L
+                )
+            )
+            cursorStorage.saveCursor(updatedCursor)
+
+            // Verify cursor was updated
+            val loadedUpdated = cursorStorage.loadCursor()
+            assertNotNull(loadedUpdated)
+            assertEquals(
+                1704153600000L,
+                loadedUpdated!!.paging!!.time.milliseconds,
+                "Paging cursor should be updated"
+            )
+            assertEquals(
+                54321L,
+                loadedUpdated.paging!!.row,
+                "Paging cursor row ID should be updated"
+            )
+            assertEquals(
+                1704240000000L,
+                loadedUpdated.stop!!.time.milliseconds,
+                "Stop at boundary should be updated"
+            )
+            assertEquals(
+                98765L,
+                loadedUpdated.stop!!.row,
+                "Stop at boundary row ID should be updated"
+            )
+            assertEquals(
+                1704326400000L,
+                loadedUpdated.next!!.time.milliseconds,
+                "Next boundary should be updated"
+            )
+            assertEquals(11111L, loadedUpdated.next!!.row, "Next boundary row ID should be updated")
+        }
     }
-
     @Test
     fun testQueryBatchCursorFromJson_allFieldsPopulated() = runTest {
         // Test JSON string that matches the server response format
@@ -249,7 +266,11 @@ class CursorSyncTest {
 
         // Verify paging field
         assertNotNull(cursor!!.paging, "Paging cursor should not be null")
-        assertEquals(UnixTimeUtc(1752846588053L), cursor.paging!!.time, "Paging time should match")
+        assertEquals(
+            UnixTimeUtc(1752846588053L),
+            cursor.paging!!.time,
+            "Paging time should match"
+        )
         assertEquals(3729L, cursor.paging!!.row, "Paging row should match")
 
         // Verify stop field
@@ -378,7 +399,7 @@ class CursorSyncTest {
         assertNotNull(cursor, "Cursor should be parsed successfully")
 
         // Convert back to JSON
-        val serializedJson = cursor!!.toJson()
+        val serializedJson = cursor.toJson()
 
         // Parse the serialized JSON again
         val reparsedCursor = QueryBatchCursor.fromJson(serializedJson)

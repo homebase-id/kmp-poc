@@ -3,6 +3,7 @@ package id.homebase.homebasekmppoc
 import androidx.compose.ui.window.ComposeUIViewController
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseDriverFactory
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
+import kotlinx.coroutines.runBlocking
 import platform.UIKit.UIViewController
 import platform.darwin.NSObject
 
@@ -18,7 +19,7 @@ class AuthPresentationContextProvider : NSObject(), platform.AuthenticationServi
 
 fun MainViewController(): UIViewController {
     // Initialize database
-    DatabaseManager.initialize(DatabaseDriverFactory())
+    runBlocking { DatabaseManager.initialize { DatabaseDriverFactory().createDriver() }}
 
     val controller = ComposeUIViewController { App() }
     MainViewControllerRef.instance = controller

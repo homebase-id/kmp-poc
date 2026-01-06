@@ -8,6 +8,7 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.DriveUploadProvider
 import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
 import id.homebase.homebasekmppoc.prototype.ui.driveFetch.FileDetailViewModel
+import id.homebase.homebasekmppoc.prototype.ui.driveFetch.DriveFetchViewModel
 import id.homebase.homebasekmppoc.prototype.ui.driveUpload.DriveUploadService
 import id.homebase.homebasekmppoc.prototype.ui.driveUpload.DriveUploadViewModel
 import id.homebase.homebasekmppoc.ui.screens.home.HomeViewModel
@@ -81,6 +82,7 @@ val appModule = module {
             odinClientFactory = get()
         )
     }
+    viewModelOf(::DriveFetchViewModel)
     viewModelOf(::HomeViewModel)
 
     viewModel {

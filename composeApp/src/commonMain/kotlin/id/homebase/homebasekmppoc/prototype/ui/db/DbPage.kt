@@ -51,8 +51,6 @@ fun DbPage() {
             onClick = {
                 coroutineScope.launch {
                     try {
-                        val db = DatabaseManager.getDatabase()
-
                         // Test data - create sample UUIDs
                         val randomId = Random.nextLong()
                         val currentTime = randomId // Use random ID as timestamp for testing
@@ -64,7 +62,7 @@ fun DbPage() {
                         val driveType = "type".encodeToByteArray()
 
                         // Write a record to DriveMainIndex
-                        db.driveMainIndexQueries.upsertDriveMainIndex(
+                        DatabaseManager.appDb.driveMainIndex.upsertDriveMainIndex(
                             identityId = identityId,
                             driveId = driveId,
                             fileId = fileId,
@@ -84,8 +82,8 @@ fun DbPage() {
                         )
 
                         // Read back all records
-                        val records = db.driveMainIndexQueries.selectAll().executeAsList()
-                        val count = db.driveMainIndexQueries.countAll().executeAsOne()
+                        val records = DatabaseManager.appDb.driveMainIndex.selectAll().executeAsList()
+                        val count = DatabaseManager.appDb.driveMainIndex.countAll().executeAsOne()
 
                         dbTestResult = "Success!\nWrote 1 record\nTotal records: $count\nLast record fileId: ${records.lastOrNull()?.fileId}"
                     } catch (e: Exception) {
