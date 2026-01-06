@@ -41,6 +41,7 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.ui.screens.login.publicPostsDriveId
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
@@ -48,7 +49,7 @@ import kotlin.uuid.Uuid
 fun DriveFetchPage(
     youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () -> Unit,
     onNavigateToFileDetail: (String, String) -> Unit,
-    viewModel: DriveFetchViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel: DriveFetchViewModel = koinViewModel()
 ) {
     val authState by youAuthFlowManager.authState.collectAsState()
     var localQueryResults by remember { mutableStateOf<List<SharedSecretEncryptedFileHeader>?>(null) }
