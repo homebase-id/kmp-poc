@@ -46,6 +46,20 @@ class DriveMainIndexWrapper(
         fileId: Uuid,
     ): Query<DriveMainIndex> = delegate.selectByIdentityAndDriveAndFile(identityId, driveId, fileId)
 
+    fun selectByIdentityAndDriveAndUnique(
+        identityId: Uuid,
+        driveId: Uuid,
+        uniqueId: Uuid,
+    ): Query<DriveMainIndex> = delegate.selectByIdentityAndDriveAndUnique(identityId, driveId, uniqueId)
+
+
+    fun selectByIdentityAndDriveAndGlobal(
+        identityId: Uuid,
+        driveId: Uuid,
+        globalTransitId: Uuid,
+    ): Query<DriveMainIndex> = delegate.selectByIdentityAndDriveAndGlobal(identityId, driveId, globalTransitId)
+
+
     fun <T : Any> selectAll(
         mapper: (
             rowId: Long,
