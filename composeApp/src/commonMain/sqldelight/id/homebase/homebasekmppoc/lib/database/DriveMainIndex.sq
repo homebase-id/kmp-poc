@@ -60,6 +60,17 @@ selectByIdentityAndDriveAndFile:
 SELECT * FROM DriveMainIndex
 WHERE identityId = ? AND driveId = ? AND fileId = ?;
 
+-- Select by identity and drive and file (get single row)
+selectByIdentityAndDriveAndUnique:
+SELECT * FROM DriveMainIndex
+WHERE identityId = ? AND driveId = ? AND uniqueId = ?;
+
+-- Select by identity and drive and file (get single row)
+selectByIdentityAndDriveAndGlobal:
+SELECT * FROM DriveMainIndex
+WHERE identityId = ? AND driveId = ? AND globalTransitId = ?;
+
+
 -- Delete all records (for testing)
 deleteAll:
 DELETE FROM DriveMainIndex;

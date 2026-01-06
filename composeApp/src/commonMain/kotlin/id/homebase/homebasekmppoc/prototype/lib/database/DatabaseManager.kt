@@ -16,68 +16,85 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
+import id.homebase.homebasekmppoc.lib.database.AppNotificationsWrapper
+import id.homebase.homebasekmppoc.lib.database.DriveMainIndexWrapper
+import id.homebase.homebasekmppoc.lib.database.DriveTagIndexWrapper
+import id.homebase.homebasekmppoc.lib.database.DriveLocalTagIndexWrapper
+import id.homebase.homebasekmppoc.lib.database.KeyValueWrapper
+import id.homebase.homebasekmppoc.lib.database.OutboxWrapper
 
-object DatabaseManager {
-    private var database: OdinDatabase? = null
-    private var driver: SqlDriver? = null
+// Adapters as top-level constants (stateless, shared)
+private val appNotificationsAdapter = AppNotifications.Adapter(
+    identityIdAdapter = UuidAdapter,
+    notificationIdAdapter = UuidAdapter
+)
+private val driveMainIndexAdapter = DriveMainIndex.Adapter(
+    identityIdAdapter = UuidAdapter,
+    driveIdAdapter = UuidAdapter,
+    fileIdAdapter = UuidAdapter,
+    globalTransitIdAdapter = UuidAdapter,
+    groupIdAdapter = UuidAdapter,
+    uniqueIdAdapter = UuidAdapter
+)
+private val driveTagIndexAdapter = DriveTagIndex.Adapter(
+    identityIdAdapter = UuidAdapter,
+    driveIdAdapter = UuidAdapter,
+    fileIdAdapter = UuidAdapter,
+    tagIdAdapter = UuidAdapter
+)
+private val driveLocalTagIndexAdapter = DriveLocalTagIndex.Adapter(
+    identityIdAdapter = UuidAdapter,
+    driveIdAdapter = UuidAdapter,
+    fileIdAdapter = UuidAdapter,
+    tagIdAdapter = UuidAdapter
+)
+private val keyValueAdapter = KeyValue.Adapter(
+    keyAdapter = UuidAdapter
+)
+private val outboxAdapter = Outbox.Adapter(
+    driveIdAdapter = UuidAdapter,
+    fileIdAdapter = UuidAdapter,
+    dependencyFileIdAdapter = UuidAdapter
+)
+
+class DatabaseManager(driverProvider: () -> SqlDriver) : AutoCloseable
+{
     private val logger = Logger.withTag("DatabaseManager")
-    private val writeMutex = Mutex()
+    private var database: OdinDatabase
+    private var driver: SqlDriver
+    private val dbDispatcher = Dispatchers.IO.limitedParallelism(1)
 
-    val dbDispatcher = Dispatchers.IO.limitedParallelism(1)
+    companion object {
+        lateinit var instance: DatabaseManager
+        private set
 
-    // Nested transaction tracking
-    private var nestedTransactionCount = 0
-    private var transactionRollbackRequested = false
-
-    fun initialize(driverFactory: DatabaseDriverFactory) {
-        if (database == null) {
-            logger.i { "Initializing thread-safe database..." }
-            driver = driverFactory.createDriver()
-            
-            // Create adapters for UUID columns
-            val driveTagIndexAdapter = DriveTagIndex.Adapter(
-                identityIdAdapter = UuidAdapter,
-                driveIdAdapter = UuidAdapter,
-                fileIdAdapter = UuidAdapter,
-                tagIdAdapter = UuidAdapter
-            )
-            
-            val driveLocalTagIndexAdapter = DriveLocalTagIndex.Adapter(
-                identityIdAdapter = UuidAdapter,
-                driveIdAdapter = UuidAdapter,
-                fileIdAdapter = UuidAdapter,
-                tagIdAdapter = UuidAdapter
-            )
-            
-            val driveMainIndexAdapter = DriveMainIndex.Adapter(
-                identityIdAdapter = UuidAdapter,
-                driveIdAdapter = UuidAdapter,
-                fileIdAdapter = UuidAdapter,
-                globalTransitIdAdapter = UuidAdapter,
-                groupIdAdapter = UuidAdapter,
-                uniqueIdAdapter = UuidAdapter
-            )
-            
-            val keyValueAdapter = KeyValue.Adapter(
-                keyAdapter = UuidAdapter
-            )
-
-            val outboxAdapter = Outbox.Adapter(
-                driveIdAdapter = UuidAdapter,
-                fileIdAdapter = UuidAdapter,
-                dependencyFileIdAdapter = UuidAdapter
-            )
-
-            val appNotificationsAdapter = AppNotifications.Adapter(
-                identityIdAdapter = UuidAdapter,
-                notificationIdAdapter = UuidAdapter
-            )
-            
-            database = OdinDatabase(driver!!, appNotificationsAdapter, driveLocalTagIndexAdapter, driveMainIndexAdapter, driveTagIndexAdapter, keyValueAdapter, outboxAdapter)
-            logger.i { "Database initialized successfully" }
-        } else {
-            logger.w { "Database already initialized" }
+        fun initialize(driverProvider: () -> SqlDriver) {
+            if (::instance.isInitialized) throw IllegalStateException("Already initialized")
+            instance = DatabaseManager(driverProvider)
         }
+        val appDb: DatabaseManager get() = instance
+    }
+
+    // Lazy wrappers
+    public val keyValue: KeyValueWrapper by lazy { KeyValueWrapper(driver, keyValueAdapter, this) }
+    public val appNotifications: AppNotificationsWrapper by lazy { AppNotificationsWrapper(driver, appNotificationsAdapter, this) }
+    public val driveMainIndex: DriveMainIndexWrapper by lazy { DriveMainIndexWrapper(driver, driveMainIndexAdapter, this) }
+    public val driveTagIndex: DriveTagIndexWrapper by lazy { DriveTagIndexWrapper(driver, driveTagIndexAdapter, this) }
+    public val driveLocalTagIndex: DriveLocalTagIndexWrapper by lazy { DriveLocalTagIndexWrapper(driver, driveLocalTagIndexAdapter, this) }
+    public val outbox: OutboxWrapper by lazy { OutboxWrapper(driver, outboxAdapter) }
+
+    init {
+        driver = driverProvider()
+        database = OdinDatabase(
+            driver,
+            appNotificationsAdapter,
+            driveLocalTagIndexAdapter,
+            driveMainIndexAdapter,
+            driveTagIndexAdapter,
+            keyValueAdapter,
+            outboxAdapter
+        )
+        logger.i { "Database initialized" }
     }
 
     suspend fun <R> executeReadQuery(
@@ -86,102 +103,24 @@ object DatabaseManager {
         mapper: (SqlCursor) -> QueryResult<R>,
         parameters: Int,
         binders: (SqlPreparedStatement.() -> Unit)? = null
-    ): QueryResult<R>
-    {
-        return getDriver().executeQuery(identifier, sql, mapper, parameters, binders);
-    }
+    ): QueryResult<R> = driver.executeQuery(identifier, sql, mapper, parameters, binders)
 
     suspend fun withWriteTransaction(block: (OdinDatabase) -> Unit) {
         withContext(dbDispatcher) {
-            val db = getDatabase()
-            db.transaction {
-                block(db)
-            }
+            database.transaction { block(database) }
         }
     }
 
     suspend fun withWrite(block: (OdinDatabase) -> Unit) {
-        withContext(dbDispatcher) {
-            val db = getDatabase()
-            block(db)
-        }
+        withContext(dbDispatcher) { block(database) }
     }
 
-    fun getDatabase(): OdinDatabase {
-        return database ?: throw IllegalStateException("Database not initialized. Call initialize() first.")
+    suspend fun <R> withWriteValue(block: (OdinDatabase) -> R): R = withContext(dbDispatcher) {
+        block(database)
     }
 
-    private fun getDriver(): SqlDriver {
-        return driver ?: throw IllegalStateException("Database not initialized. Call initialize() first.")
-    }
-
-    fun isInitialized(): Boolean = database != null
-
-    /**
-     * Close database and reset the manager.
-     * Primarily intended for test cleanup to ensure test isolation.
-     */
-    fun close() {
-        driver?.close()
-        database = null
-        driver = null
-        nestedTransactionCount = 0
-        transactionRollbackRequested = false
-        logger.i { "Database closed and manager reset" }
-    }
-
-    /**
-     * Initialize DatabaseManager with a custom driver creation function.
-     * Primarily intended for tests that need in-memory databases.
-     */
-    fun initialize(driverCreator: () -> SqlDriver) {
-        if (database == null) {
-            logger.i { "Initializing thread-safe database with custom driver..." }
-            driver = driverCreator()
-            
-            // Create adapters for UUID columns
-            val driveTagIndexAdapter = DriveTagIndex.Adapter(
-                identityIdAdapter = UuidAdapter,
-                driveIdAdapter = UuidAdapter,
-                fileIdAdapter = UuidAdapter,
-                tagIdAdapter = UuidAdapter
-            )
-            
-            val driveLocalTagIndexAdapter = DriveLocalTagIndex.Adapter(
-                identityIdAdapter = UuidAdapter,
-                driveIdAdapter = UuidAdapter,
-                fileIdAdapter = UuidAdapter,
-                tagIdAdapter = UuidAdapter
-            )
-            
-            val driveMainIndexAdapter = DriveMainIndex.Adapter(
-                identityIdAdapter = UuidAdapter,
-                driveIdAdapter = UuidAdapter,
-                fileIdAdapter = UuidAdapter,
-                globalTransitIdAdapter = UuidAdapter,
-                groupIdAdapter = UuidAdapter,
-                uniqueIdAdapter = UuidAdapter
-            )
-            
-            val keyValueAdapter = KeyValue.Adapter(
-                keyAdapter = UuidAdapter
-            )
-
-            val outboxAdapter = Outbox.Adapter(
-                driveIdAdapter = UuidAdapter,
-                fileIdAdapter = UuidAdapter,
-                dependencyFileIdAdapter = UuidAdapter
-            )
-
-            val appNotificationsAdapter = AppNotifications.Adapter(
-                identityIdAdapter = UuidAdapter,
-                notificationIdAdapter = UuidAdapter
-            )
-
-            database = OdinDatabase(driver!!, appNotificationsAdapter, driveLocalTagIndexAdapter, driveMainIndexAdapter, driveTagIndexAdapter, keyValueAdapter, outboxAdapter)
-            logger.i { "Database initialized successfully with custom driver" }
-        } else {
-            logger.w { "Database already initialized" }
-        }
+    override fun close() {
+        driver.close()
+        logger.i { "Database closed" }
     }
 }

@@ -42,6 +42,7 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.ui.screens.login.publicPostsDriveId
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
@@ -49,7 +50,7 @@ import kotlin.uuid.Uuid
 fun DriveFetchPage(
     youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () -> Unit,
     onNavigateToFileDetail: (String, String) -> Unit,
-    viewModel: DriveFetchViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel: DriveFetchViewModel = koinViewModel()
 ) {
     val authState by youAuthFlowManager.authState.collectAsState()
     var localQueryResults by remember { mutableStateOf<List<SharedSecretEncryptedFileHeader>?>(null) }
@@ -79,7 +80,7 @@ fun DriveFetchPage(
 
     // Create driveSynchronizer once
     val driveSynchronizer = remember(driveQueryProvider) {
-        driveQueryProvider?.let { DriveSync(identityId, driveId, it) }
+        driveQueryProvider?.let { DriveSync(identityId, driveId, it, DatabaseManager.appDb) }
     }
 
     fun triggerFetch(withProgress: Boolean) {
@@ -136,7 +137,8 @@ fun DriveFetchPage(
                     if (event.driveId == driveId) {
                         syncProgress = event
                         // Fetch local results as before
-                        val localResult = QueryBatch(DatabaseManager, identityId).queryBatchAsync(
+                        val localResult = QueryBatch(identityId).queryBatchAsync(
+                            DatabaseManager.appDb,
                             driveId,
                             1000,
                             null,

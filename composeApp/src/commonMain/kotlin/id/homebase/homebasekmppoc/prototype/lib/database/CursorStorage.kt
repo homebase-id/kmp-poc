@@ -10,7 +10,7 @@ import kotlin.uuid.Uuid
  * between app open / close.
  */
 class CursorStorage(
-    private val database: OdinDatabase,
+    private val databaseManager: DatabaseManager,
     private val driveId: Uuid
 ) {
     // TODO: We should XOR the driveId with some constant GUID to create a KV key that
@@ -22,7 +22,7 @@ class CursorStorage(
      * Returns null if no cursor is found in the database
      */
     fun loadCursor(): QueryBatchCursor? {
-        return database.keyValueQueries.selectByKey(driveId)
+        return databaseManager.keyValue.selectByKey(driveId)
             .executeAsOneOrNull()
             ?.let { QueryBatchCursor.fromJson(it.data_.decodeToString()) }
     }
@@ -30,17 +30,27 @@ class CursorStorage(
     /**
      * Save QueryBatchCursor for the predefined cursor Guid
      */
-    fun saveCursor(cursor: QueryBatchCursor) {
-        database.keyValueQueries.upsertValue(
+    suspend fun saveCursor(cursor: QueryBatchCursor) {
+        databaseManager.keyValue.upsertValue(
+            key = driveId,
+            data = cursor.toJson().encodeToByteArray()
+        )
+    }
+
+    /**
+     * Save QueryBatchCursor for the predefined cursor Guid
+     */
+    fun saveCursor(db : OdinDatabase, cursor: QueryBatchCursor) {
+        db.keyValueQueries.upsertValue(
             key = driveId,
             data_ = cursor.toJson().encodeToByteArray()
         )
     }
-    
+
     /**
      * Delete cursor position for the predefined cursor Guid
      */
-    fun deleteCursor() {
-        database.keyValueQueries.deleteByKey(driveId)
+    suspend fun deleteCursor() {
+        databaseManager.keyValue.deleteByKey(driveId)
     }
 }

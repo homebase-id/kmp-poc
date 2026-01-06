@@ -8,10 +8,11 @@ import androidx.compose.ui.window.application
 import id.homebase.homebasekmppoc.prototype.MessageDialogHandler
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseDriverFactory
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
+import kotlinx.coroutines.runBlocking
 
 fun main() = application {
     // Initialize database
-    DatabaseManager.initialize(DatabaseDriverFactory())
+    runBlocking { DatabaseManager.initialize { DatabaseDriverFactory().createDriver() } }
 
     Window(
         onCloseRequest = ::exitApplication,

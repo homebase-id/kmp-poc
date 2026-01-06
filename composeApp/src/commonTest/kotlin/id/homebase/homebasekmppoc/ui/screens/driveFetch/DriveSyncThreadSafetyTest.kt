@@ -33,62 +33,40 @@ import kotlin.uuid.Uuid
  * writes are properly handled and maintain data integrity.
  */
 open class DriveSyncThreadSafetyTest {
-
-    private lateinit var database: OdinDatabase
-    private lateinit var fileHeaderProcessor: MainIndexMetaHelpers.HomebaseFileProcessor
-    private val identityId = Uuid.random()
-
-    private val driveId = Uuid.random()
-
-    @BeforeTest
-    fun setup() {
-        // Ensure DatabaseManager is clean before test
-        if (DatabaseManager.isInitialized()) {
-            DatabaseManager.close()
-        }
-        
-        // Initialize DatabaseManager with in-memory database for test isolation
-        DatabaseManager.initialize { createInMemoryDatabase() }
-        database = DatabaseManager.getDatabase()
-        fileHeaderProcessor = MainIndexMetaHelpers.HomebaseFileProcessor(DatabaseManager)
-    }
-
-    @AfterTest
-    fun tearDown() {
-        // Clean up DatabaseManager to ensure test isolation
-        DatabaseManager.close()
-    }
-
     @Test
     fun testConcurrentDatabaseWrites_threadSafety() = runTest {
-        // Test parameters
-        val threadCount = 100
-        val rowsPerThread = 10
-        val totalExpectedRows = threadCount * rowsPerThread
-        
-        Logger.i("Starting concurrent database test with $threadCount threads, $rowsPerThread rows each")
-        
-        // Generate all test data first
-        val allHeaders = mutableListOf<SharedSecretEncryptedFileHeader>()
-        repeat(threadCount) { threadIndex ->
-            repeat(rowsPerThread) { rowIndex ->
-                allHeaders.add(createTestFileHeader(threadIndex, rowIndex))
+        DatabaseManager { createInMemoryDatabase() }.use { dbm ->
+            val fileHeaderProcessor = MainIndexMetaHelpers.HomebaseFileProcessor(dbm)
+            val identityId = Uuid.random()
+            val driveId = Uuid.random()
+            // Test parameters
+            val threadCount = 100
+            val rowsPerThread = 10
+            val totalExpectedRows = threadCount * rowsPerThread
+
+            Logger.i("Starting concurrent database test with $threadCount threads, $rowsPerThread rows each")
+
+            // Generate all test data first
+            val allHeaders = mutableListOf<SharedSecretEncryptedFileHeader>()
+            repeat(threadCount) { threadIndex ->
+                repeat(rowsPerThread) { rowIndex ->
+                    allHeaders.add(createTestFileHeader(threadIndex, rowIndex))
+                }
             }
-        }
-        
-        // Track completion
-        val completionMutex = Mutex()
-        var completedThreads = 0
-        // Spawn multiple competing threads to process data concurrently
-        // Each thread will use DatabaseManager.withWriteTransaction independently
-        val jobs = List(threadCount) { threadIndex ->
+
+            // Track completion
+            val completionMutex = Mutex()
+            var completedThreads = 0
+            // Spawn multiple competing threads to process data concurrently
+            // Each thread will use DatabaseManager.withWriteTransaction independently
+            val jobs = List(threadCount) { threadIndex ->
                 CoroutineScope(Dispatchers.Default).async {
                     try {
                         // Each thread processes its portion of headers
                         val startIndex = threadIndex * rowsPerThread
                         val endIndex = (threadIndex + 1) * rowsPerThread
                         val threadHeaders = allHeaders.subList(startIndex, endIndex)
-                        
+
                         // Use direct database operations (no additional transaction)
                         fileHeaderProcessor.performBaseUpsert(
                             identityId = identityId,
@@ -96,54 +74,61 @@ open class DriveSyncThreadSafetyTest {
                             fileHeaders = threadHeaders,
                             cursor = null
                         )
-                        
+
                         completionMutex.withLock {
                             completedThreads++
                             Logger.d("Thread $threadIndex completed with ${threadHeaders.size} rows")
                         }
-                        
+
                     } catch (e: Exception) {
                         Logger.e("Thread $threadIndex failed: ${e.message}")
                         throw e
                     }
                 }
             }
-            
+
             // Wait for all threads to complete
             runBlocking {
                 jobs.awaitAll()
             }
-        
-        // Verify all threads completed successfully
-        assertEquals(threadCount, completedThreads, "All threads should have completed")
-        
-        // Verify database integrity
-        val actualRowCount = database.driveMainIndexQueries.countAll().executeAsOne()
-        assertEquals(totalExpectedRows.toLong(), actualRowCount, 
-            "Database should contain exactly $totalExpectedRows rows, but has $actualRowCount")
-        
-        // Verify no duplicate rows (should be unique file IDs)
-        val allDbRecords = database.driveMainIndexQueries.selectAll().executeAsList()
-        val duplicateFileIds = allDbRecords
-            .groupBy { it.fileId }
-            .filter { it.value.size > 1 }
-            .keys
-            
-        assertTrue(duplicateFileIds.isEmpty(), 
-            "No duplicate file IDs should exist. Duplicates: $duplicateFileIds")
-        
-        Logger.i("Thread safety test completed successfully:")
-        Logger.i("- Threads: $threadCount")
-        Logger.i("- Rows per thread: $rowsPerThread")
-        Logger.i("- Total expected rows: $totalExpectedRows")
-        Logger.i("- Actual database rows: $actualRowCount")
-        Logger.i("- Unique file IDs: ${allDbRecords.size}")
+
+            // Verify all threads completed successfully
+            assertEquals(threadCount, completedThreads, "All threads should have completed")
+
+            // Verify database integrity
+            val actualRowCount = dbm.driveMainIndex.countAll().executeAsOne()
+            assertEquals(
+                totalExpectedRows.toLong(), actualRowCount,
+                "Database should contain exactly $totalExpectedRows rows, but has $actualRowCount"
+            )
+
+            // Verify no duplicate rows (should be unique file IDs)
+            val allDbRecords = dbm.driveMainIndex.selectAll().executeAsList()
+            val duplicateFileIds = allDbRecords
+                .groupBy { it.fileId }
+                .filter { it.value.size > 1 }
+                .keys
+
+            assertTrue(
+                duplicateFileIds.isEmpty(),
+                "No duplicate file IDs should exist. Duplicates: $duplicateFileIds"
+            )
+
+            Logger.i("Thread safety test completed successfully:")
+            Logger.i("- Threads: $threadCount")
+            Logger.i("- Rows per thread: $rowsPerThread")
+            Logger.i("- Total expected rows: $totalExpectedRows")
+            Logger.i("- Actual database rows: $actualRowCount")
+            Logger.i("- Unique file IDs: ${allDbRecords.size}")
+        }
     }
+
 
     private fun createTestFileHeader(threadIndex: Int, rowIndex: Int): SharedSecretEncryptedFileHeader {
         val now = Clock.System.now()
         val uniqueId = Uuid.random()
-        
+        val driveId = Uuid.random()
+
         return SharedSecretEncryptedFileHeader(
             fileId = uniqueId,
             driveId = driveId,
