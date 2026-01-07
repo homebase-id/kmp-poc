@@ -141,6 +141,7 @@ fun FileDetailPage(
                     ) {
                         FileHeaderPanel(
                             header = state.header!!,
+                            error = state.error,
                             thumbnailBytes = state.thumbnails,
                             payloadBytes = state.payloads,
                             expandedPayloadKey = state.expandedPayloadKey,

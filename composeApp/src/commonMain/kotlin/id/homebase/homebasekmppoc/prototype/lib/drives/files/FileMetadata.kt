@@ -48,6 +48,7 @@ data class AppFileMetaData(
 
 @Serializable
 data class LocalAppMetadata(
+    val iv: ByteArray,
     val tags: List<@Serializable(with = UuidSerializer::class) Uuid>? = null,
     val content: String,
     val versionTag: Uuid? = null

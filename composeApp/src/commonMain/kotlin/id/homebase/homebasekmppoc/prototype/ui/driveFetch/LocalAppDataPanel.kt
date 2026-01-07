@@ -29,6 +29,7 @@ import androidx.compose.runtime.mutableStateListOf
 @Composable
 fun LocalAppDataPanel(
     localAppData: LocalAppMetadata?,
+    error: String?,
     onSaveContent: (String) -> Unit,
     onSaveTags: (List<Uuid>) -> Unit
 ) {
@@ -104,6 +105,16 @@ fun LocalAppDataPanel(
                 }
             }
         }
+
+        if (error != null) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = error,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+
 
     }
 
