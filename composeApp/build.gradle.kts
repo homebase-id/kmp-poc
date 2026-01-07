@@ -87,6 +87,8 @@ kotlin {
             implementation(libs.androidx.media3.ui)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.sqldelight.android.driver)
+            implementation(files("libs/ffmpeg-kit-lts-ndk-r25-16k.aar"))
+            implementation(libs.smart.exception.java)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
