@@ -109,23 +109,6 @@ fun DriveFetchItemCard(
 }
 
 
-@Composable
-private fun LabeledValue(
-    label: String,
-    value: String
-) {
-    Column {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium
-        )
-    }
-}
 
 @Composable
 private fun InfoChip(

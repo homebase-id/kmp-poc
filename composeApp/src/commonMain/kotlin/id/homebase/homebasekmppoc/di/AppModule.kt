@@ -18,6 +18,7 @@ import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
+import id.homebase.homebasekmppoc.prototype.lib.crypto.EncryptionProvider
 
 /**
  * Main application DI module. Register all dependencies here.
@@ -40,6 +41,16 @@ val appModule = module {
 
     // Main auth flow manager
     singleOf(::YouAuthFlowManager)
+
+    /* ───────────────────────────
+     * Crypto / Encryption
+     * ─────────────────────────── */
+
+    factory<EncryptionProvider?> {
+        val odinClient: OdinClient? = get()
+        odinClient?.let { EncryptionProvider(it) }
+    }
+
 
     /* ───────────────────────────
      * Drive Providers
@@ -96,9 +107,12 @@ val appModule = module {
         FileDetailViewModel(
             driveId = driveId,
             fileId = fileId,
-            driveFileProvider = getOrNull<DriveFileProvider>()
+            driveFileProvider = getOrNull<DriveFileProvider>(),
+            driveUploadProvider = getOrNull<DriveUploadProvider>(),
+            encryptionProvider = getOrNull<EncryptionProvider>()
         )
     }
+
 }
 
 /**

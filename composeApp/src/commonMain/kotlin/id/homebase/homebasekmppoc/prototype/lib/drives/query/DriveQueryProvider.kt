@@ -10,6 +10,8 @@ import io.ktor.client.call.body
 import io.ktor.client.request.accept
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
+import io.ktor.client.statement.readRawBytes
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import kotlin.uuid.Uuid
@@ -43,9 +45,9 @@ class DriveQueryProvider(private val odinClient: OdinClient) {
             }
 
         val url = "drives/${driveId}/files/query-batch"
-        val client = odinClient.createHttpClient(CreateHttpClientOptions())
+        val client = odinClient.createHttpClient()
 
-        val response: QueryBatchResponse =
+        val rawResponse =
             client
                 .post(url) {
                     contentType(ContentType.Application.Json)
@@ -54,7 +56,9 @@ class DriveQueryProvider(private val odinClient: OdinClient) {
                     // Apply custom HTTP configuration if provided
                     options?.httpConfig?.invoke(this)
                 }
-                .body<QueryBatchResponse>()
+
+        val text = rawResponse.bodyAsText()
+        val response: QueryBatchResponse = rawResponse.body<QueryBatchResponse>()
 
         return handleResponse(response, options)
     }

@@ -33,15 +33,20 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalDensity
 import id.homebase.homebasekmppoc.lib.image.toImageBitmap
+import id.homebase.homebasekmppoc.prototype.lib.crypto.EncryptionProvider
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.BytesResponse
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.FileOperationOptions
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadOperationOptions
+import id.homebase.homebasekmppoc.prototype.lib.drives.upload.DriveUploadProvider
+import kotlin.io.encoding.Base64
 
 
 class FileDetailViewModel(
     val driveId: Uuid,
     val fileId: Uuid,
-    private val driveFileProvider: DriveFileProvider?
+    private val driveFileProvider: DriveFileProvider?,
+    private val driveUploadProvider: DriveUploadProvider?,
+    private val encryptionProvider: EncryptionProvider?
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FileDetailUiState())
@@ -72,6 +77,97 @@ class FileDetailViewModel(
 
             is FileDetailUiAction.GetPayloadRangeClicked ->
                 loadPayloadRange(action)
+
+            is FileDetailUiAction.LocalAppContentSaved -> {
+                updateLocalAppContent(action)
+                loadHeader()
+            }
+
+            is FileDetailUiAction.LocalAppTagsSaved -> {
+                updateLocalAppTags(action)
+                loadHeader()
+            }
+        }
+    }
+
+    private fun updateLocalAppContent(action: FileDetailUiAction.LocalAppContentSaved) {
+        val header = _uiState.value.header ?: return
+        val local = header.fileMetadata.localAppData
+
+        val uploadProvider = driveUploadProvider ?: return
+        val encryptionProvider = encryptionProvider ?: return
+
+        viewModelScope.launch {
+            viewModelScope.launch {
+                try {
+                    val encryptedContent: String
+                    val iv: ByteArray?
+
+                    if (header.fileMetadata.isEncrypted) {
+                        val encryptedKeyHeader =
+                            header.sharedSecretEncryptedKeyHeader
+                                ?: throw IllegalStateException("Missing encrypted key header")
+
+                        val encrypted =
+                            encryptionProvider.encryptUsingEncryptedKeyHeader(
+                                plaintext = action.content.encodeToByteArray(),
+                                encryptedKeyHeader = encryptedKeyHeader,
+                                existingIv = local?.iv
+                            )
+
+                        encryptedContent = Base64.encode(encrypted.bytes)
+                        iv = encrypted.iv
+                    } else {
+                        encryptedContent = action.content
+                        iv = null
+                    }
+
+                    uploadProvider.uploadLocalMetadataContent(
+                        driveId = driveId,
+                        fileId = fileId,
+                        content = encryptedContent,
+                        iv = iv,
+                        localAppDataVersionTag = local?.versionTag,
+                        onVersionConflict = { null }
+                    )
+                } catch (t: Throwable) {
+                    // 1️⃣ log for developers
+                    t.printStackTrace()
+
+                    // 2️⃣ surface message to UI
+                    _uiState.update {
+                        it.copy(
+                            error = t.message ?: "Failed to save local content"
+                        )
+                    }
+                }
+            }
+
+        }
+    }
+
+
+    private fun updateLocalAppTags(action: FileDetailUiAction.LocalAppTagsSaved) {
+
+        val provider = driveUploadProvider ?: return
+        val header = _uiState.value.header ?: return
+        val existingLocal = header.fileMetadata.localAppData
+
+        viewModelScope.launch {
+            try {
+                provider.uploadLocalMetadataTags(
+                    fileId = fileId,
+                    driveId = driveId,
+                    tags = action.tags,
+                    localAppDataVersionTag = existingLocal?.versionTag,
+                    onVersionConflict = {
+                        // retry / reload / surface error
+                        null
+                    }
+                )
+
+            } catch (_: Throwable) {
+            }
         }
     }
 
@@ -314,13 +410,15 @@ class FileDetailViewModel(
 @Composable
 fun FileHeaderPanel(
     header: HomebaseFile,
+    error: String?,
     thumbnailBytes: Map<String, BytesResponse>,
     payloadBytes: Map<String, BytesResponse>,
     expandedPayloadKey: String?,
     onViewPayload: (key: String) -> Unit = {},
     onGetThumbnail: (payloadKey: String, width: Int, height: Int) -> Unit,
-    onGetPayloadRange: (key: String, start: Long, length: Long) -> Unit
-
+    onGetPayloadRange: (key: String, start: Long, length: Long) -> Unit,
+    onSaveLocalAppContent: (String) -> Unit,
+    onSaveLocalAppTags: (List<Uuid>) -> Unit
 ) {
     Column {
         Text(
@@ -340,6 +438,22 @@ fun FileHeaderPanel(
             "Sender",
             header.fileMetadata.senderOdinId ?: "—"
         )
+
+        Spacer(Modifier.height(16.dp))
+
+        LocalAppDataPanel(
+            localAppData = header.fileMetadata.localAppData,
+            error = error,
+            onSaveContent = { content ->
+                onSaveLocalAppContent(content)
+            },
+            onSaveTags = { tags ->
+                onSaveLocalAppTags(tags)
+            }
+        )
+
+        Spacer(Modifier.height(16.dp))
+
 
         Spacer(Modifier.height(16.dp))
 
@@ -513,24 +627,6 @@ private fun ThumbnailRow(
     Spacer(Modifier.height(8.dp))
 }
 
-
-@Composable
-private fun LabeledValue(label: String, value: String) {
-    Column {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium
-        )
-        Spacer(Modifier.height(8.dp))
-    }
-}
-
-
 @Composable
 fun ThumbnailImage(
     bytes: ByteArray,
@@ -615,6 +711,10 @@ sealed interface FileDetailUiAction {
         val start: Long,
         val length: Long
     ) : FileDetailUiAction
+
+
+    data class LocalAppContentSaved(val content: String) : FileDetailUiAction
+    data class LocalAppTagsSaved(val tags: List<Uuid>) : FileDetailUiAction
 
 }
 

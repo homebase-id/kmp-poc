@@ -253,8 +253,8 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
      * @return The update result
      */
     suspend fun updateFile(
-        targetDrive: TargetDrive,
-        fileId: String,
+        driveId: Uuid,
+        fileId: Uuid,
         versionTag: String,
         keyHeader: Any?,
         metadata: UploadFileMetadata,
@@ -263,7 +263,7 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
         toDeletePayloads: List<PayloadDeleteKey>? = null,
         onVersionConflict: (suspend () -> UpdateFileResult?)? = null
     ): UpdateFileResult? {
-        val fileIdentifier = FileIdFileIdentifier(fileId = fileId, targetDrive = targetDrive)
+        val fileIdentifier = FileIdFileIdentifier(fileId = fileId, driveId = driveId)
 
         val instructions = UpdateLocalInstructionSet(versionTag = versionTag, file = fileIdentifier)
 
