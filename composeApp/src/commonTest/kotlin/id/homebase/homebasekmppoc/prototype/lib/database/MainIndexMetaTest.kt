@@ -103,7 +103,7 @@ class MainIndexMetaTest {
                 identityId = identityId,
                 driveId = driveId,
                 fileId = fileId
-            ).executeAsOneOrNull()
+            )
 
             assertNotNull(retrievedRecord, "Record should exist after upsert")
             assertEquals(identityId, retrievedRecord.identityId)
@@ -260,7 +260,7 @@ class MainIndexMetaTest {
                 identityId = identityId,
                 driveId = driveId,
                 fileId = fileId
-            ).executeAsOneOrNull()
+            )
 
             assertNotNull(retrievedRecord, "Record should exist after BaseUpsertEntryZapZap")
             assertEquals(identityId, retrievedRecord.identityId)
@@ -311,9 +311,9 @@ class MainIndexMetaTest {
 
             processor.deleteEntryDriveMainIndex(identityId, driveId, fileId)
 
-            assertEquals(dbm.driveMainIndex.countAll().executeAsOne(), 0L)
-            assertEquals(dbm.driveTagIndex.countAll().executeAsOne(), 0L)
-            assertEquals(dbm.driveLocalTagIndex.countAll().executeAsOne(), 0L)
+            assertEquals(dbm.driveMainIndex.countAll(), 0L)
+            assertEquals(dbm.driveTagIndex.countAll(), 0L)
+            assertEquals(dbm.driveLocalTagIndex.countAll(), 0L)
         }
     }
 
@@ -408,7 +408,7 @@ class MainIndexMetaTest {
                 identityId = identityId,
                 driveId = driveId,
                 fileId = fileId
-            ).executeAsOneOrNull()
+            )
 
             assertNotNull(
                 retrievedRecord,
@@ -528,7 +528,7 @@ class MainIndexMetaTest {
                 identityId = identityId,
                 driveId = driveId,
                 fileId = fileId
-            ).executeAsOneOrNull()
+            )
 
             assertNotNull(retrievedRecord, "Record should exist after BaseUpsertEntryZapZap")
             assertEquals(identityId, retrievedRecord.identityId)
@@ -539,7 +539,7 @@ class MainIndexMetaTest {
                 identityId = identityId,
                 driveId = driveId,
                 fileId = fileId
-            ).executeAsList()
+            )
 
             println("fileId: $fileId")
             println("finalTags: $finalTags")
@@ -815,7 +815,8 @@ class MainIndexMetaTest {
             processor.baseUpsertEntryZapZap(identityId, driveId, initialHeader, null)
 
             // Verify initial record
-            val initialRecord = dbm.driveMainIndex.selectByIdentityAndDriveAndFile(identityId, driveId, fileId).executeAsOne()
+            val initialRecord = dbm.driveMainIndex.selectByIdentityAndDriveAndFile(identityId, driveId, fileId)
+            assertNotNull(initialRecord)
             assertEquals("initial-sender", initialRecord.senderId)
             assertEquals(uniqueId1, initialRecord.uniqueId)
             assertEquals(globalId1, initialRecord.globalTransitId)
@@ -880,14 +881,15 @@ class MainIndexMetaTest {
             processor.baseUpsertEntryZapZap(identityId, driveId, updatedHeader, null)
 
             // Verify fileId conflict updated the record
-            val updatedRecord = dbm.driveMainIndex.selectByIdentityAndDriveAndFile(identityId, driveId, fileId).executeAsOne()
+            val updatedRecord = dbm.driveMainIndex.selectByIdentityAndDriveAndFile(identityId, driveId, fileId)
+            assertNotNull(updatedRecord)
             assertEquals("updated-sender", updatedRecord.senderId, "ON CONFLICT fileId should update senderId")
             assertEquals(2L, updatedRecord.fileType, "ON CONFLICT fileId should update fileType")
             assertEquals(uniqueId1, updatedRecord.uniqueId, "uniqueId should remain unchanged")
             assertEquals(globalId1, updatedRecord.globalTransitId, "globalTransitId should remain unchanged")
 
             // Count should still be 1 (updated, not inserted)
-            val totalRecords = dbm.driveMainIndex.countAll().executeAsOne()
+            val totalRecords = dbm.driveMainIndex.countAll()
             assertEquals(1L, totalRecords, "Should still have 1 record after fileId conflict update")
         }
     }
@@ -966,7 +968,8 @@ class MainIndexMetaTest {
             processor.baseUpsertEntryZapZap(identityId, driveId, initialHeader, null)
 
             // Verify initial record
-            val initialRecord = dbm.driveMainIndex.selectByIdentityAndDriveAndUnique(identityId, driveId, sharedUniqueId).executeAsOne()
+            val initialRecord = dbm.driveMainIndex.selectByIdentityAndDriveAndUnique(identityId, driveId, sharedUniqueId)
+            assertNotNull(initialRecord)
             assertEquals("initial-sender", initialRecord.senderId)
             assertEquals(sharedUniqueId, initialRecord.uniqueId)
             assertEquals(globalId1, initialRecord.globalTransitId)
@@ -1033,8 +1036,9 @@ class MainIndexMetaTest {
             processor.baseUpsertEntryZapZap(identityId, driveId, conflictHeader, null)
 
             // Verify the existing record was updated (ON CONFLICT uniqueId updates existing record, doesn't create new one)
-            val updatedRecord = dbm.driveMainIndex.selectByIdentityAndDriveAndFile(identityId, driveId, fileId1).executeAsOne()
+            val updatedRecord = dbm.driveMainIndex.selectByIdentityAndDriveAndFile(identityId, driveId, fileId1)
 
+            assertNotNull(updatedRecord)
             // The existing record should have been updated with the new data (since excluded.modified > current.modified)
             assertEquals("conflict-sender", updatedRecord.senderId, "ON CONFLICT uniqueId should update senderId")
             assertEquals(2L, updatedRecord.fileType, "ON CONFLICT uniqueId should update fileType")
@@ -1042,7 +1046,7 @@ class MainIndexMetaTest {
             assertEquals(fileId1, updatedRecord.fileId, "fileId should remain unchanged")
 
             // Count should still be 1 (updated, not inserted)
-            val totalRecords = dbm.driveMainIndex.countAll().executeAsOne()
+            val totalRecords = dbm.driveMainIndex.countAll()
             assertEquals(1L, totalRecords, "Should still have 1 record after uniqueId conflict update")
         }
     }

@@ -207,7 +207,7 @@ class OutboxTest {
                     data = data,
                     files = null
                 )
-                assertTrue(insertSuccess, "Insert should succeed")
+                assertTrue(insertSuccess > 0, "Insert should succeed")
 
                 // Checkout and select the item
                 val checkoutStamp1 = UnixTimeUtc(9L)
@@ -240,7 +240,7 @@ class OutboxTest {
                     data = data,
                     files = null
                 )
-                assertTrue(insertSuccess2, "Second insert should succeed")
+                assertTrue(insertSuccess2 > 0, "Second insert should succeed")
 
                 // Checkout and verify the update
                 val checkoutStamp2 = UnixTimeUtc(10L)
@@ -289,7 +289,7 @@ class OutboxTest {
                         data = values[index],
                         files = null
                     )
-                    assertTrue(insertSuccess, "Insert should succeed")
+                    assertTrue(insertSuccess > 0, "Insert should succeed")
                 }
 
                 // Verify total count
@@ -342,7 +342,7 @@ class OutboxTest {
                         data = values[index],
                         files = null
                     )
-                    assertTrue(insertSuccess, "Insert should succeed")
+                    assertTrue(insertSuccess > 0, "Insert should succeed")
                 }
 
                 // Checkout items in priority order (lowest first)
@@ -398,7 +398,7 @@ class OutboxTest {
                         data = "$recipient-data".toByteArray(), // Use recipient in data for identification
                         files = null
                     )
-                    assertTrue(insertSuccess, "Insert should succeed")
+                    assertTrue(insertSuccess > 0, "Insert should succeed")
                 }
 
                 // Checkout items in nextRunTime order (earliest first)
@@ -445,7 +445,7 @@ class OutboxTest {
                         0L,
                         values[1],
                         null
-                    )
+                    ) > 0
                 )
                 assertTrue(
                     dbm.outbox.insert(
@@ -459,7 +459,7 @@ class OutboxTest {
                         0L,
                         values[2],
                         null
-                    )
+                    ) > 0
                 )
                 assertTrue(
                     dbm.outbox.insert(
@@ -473,7 +473,7 @@ class OutboxTest {
                         0L,
                         values[3],
                         null
-                    )
+                    ) > 0
                 )
                 assertTrue(
                     dbm.outbox.insert(
@@ -487,7 +487,7 @@ class OutboxTest {
                         0L,
                         values[4],
                         null
-                    )
+                    ) > 0
                 )
                 assertTrue(
                     dbm.outbox.insert(
@@ -501,7 +501,7 @@ class OutboxTest {
                         0L,
                         values[0],
                         null
-                    )
+                    ) > 0
                 )
 
                 // Should checkout f3 first (no dependency)
@@ -577,7 +577,7 @@ class OutboxTest {
                         0L,
                         values[1],
                         null
-                    )
+                    ) > 0
                 )
                 assertTrue(
                     dbm.outbox.insert(
@@ -591,7 +591,7 @@ class OutboxTest {
                         0L,
                         values[2],
                         null
-                    )
+                    ) > 0
                 )
                 assertTrue(
                     dbm.outbox.insert(
@@ -605,7 +605,7 @@ class OutboxTest {
                         0L,
                         values[3],
                         null
-                    )
+                    ) > 0
                 )
                 assertTrue(
                     dbm.outbox.insert(
@@ -619,7 +619,7 @@ class OutboxTest {
                         0L,
                         values[4],
                         null
-                    )
+                    ) > 0
                 )
                 assertTrue(
                     dbm.outbox.insert(
@@ -633,7 +633,7 @@ class OutboxTest {
                         0L,
                         values[0],
                         null
-                    )
+                    ) > 0
                 )
 
                 // Next scheduled should be t3 (f3, no dependency)
