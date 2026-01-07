@@ -40,6 +40,10 @@ sealed interface  BackendEvent {
         ) : SyncUpdate
     }
 
+    // Add sealed interface UploadUpdate for Outbox / upload status
+    // Add sealed interface VideoUpdate (or WorkUpdate) compression & segmentation & encryption
+
+
     // We go online / offline when the websocket listener is connected / disconnected
     data object GoingOnline : BackendEvent
     data object GoingOffline : BackendEvent
