@@ -32,9 +32,9 @@ class DriveTagIndexWrapper(
         identityId: Uuid,
         driveId: Uuid,
         fileId: Uuid,
-    ): Query<DriveTagIndex> = delegate.selectByFile(identityId, driveId, fileId)
+    ): List<DriveTagIndex> = delegate.selectByFile(identityId, driveId, fileId).executeAsList()
 
-    fun countAll(): Query<Long> = delegate.countAll()
+    fun countAll(): Long = delegate.countAll().executeAsOne()
 
     suspend fun insertTag(
         identityId: Uuid,
@@ -49,9 +49,9 @@ class DriveTagIndexWrapper(
         identityId: Uuid,
         driveId: Uuid,
         fileId: Uuid,
-    ): Long
+    ): Boolean
     {
-        return databaseManager.withWriteValue { delegate.deleteByFile(identityId, driveId, fileId).value }
+        return databaseManager.withWriteValue { delegate.deleteByFile(identityId, driveId, fileId).value > 0 }
     }
 
     suspend fun deleteAll(): Long {

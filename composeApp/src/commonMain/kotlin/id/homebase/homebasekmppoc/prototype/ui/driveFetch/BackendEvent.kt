@@ -40,6 +40,31 @@ sealed interface  BackendEvent {
         ) : SyncUpdate
     }
 
+    sealed interface OutboxUpdate : BackendEvent {
+        data object ProcessingStarted : OutboxUpdate
+
+        data class Sending(
+            val driveId : Uuid,
+            val fileId : Uuid
+        ) : OutboxUpdate  // Only raised by Drive.sync()
+
+        data class Sent(
+            val driveId : Uuid,
+            val fileId : Uuid
+        ) : OutboxUpdate  // Only raised by Drive.sync()
+
+        data class Completed(
+            val totalCount: Int
+        ) : OutboxUpdate  // Only raised by Drive.sync()
+
+        data class Failed(
+            val errorMessage: String?  // Or add throwable: Throwable
+        ) : OutboxUpdate
+    }
+    // Add sealed interface UploadUpdate for Outbox / upload status
+    // Add sealed interface VideoUpdate (or WorkUpdate) compression & segmentation & encryption
+
+
     // We go online / offline when the websocket listener is connected / disconnected
     data object GoingOnline : BackendEvent
     data object GoingOffline : BackendEvent

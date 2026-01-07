@@ -17,7 +17,6 @@ class DriveLocalTagIndexTest {
 
             // Test data - create sample byte arrays
             val randomId = Random.nextLong()
-            val currentTime = randomId
             val identityId = Uuid.random()
             val driveId = Uuid.random()
             val fileId = Uuid.random()
@@ -43,7 +42,7 @@ class DriveLocalTagIndexTest {
                 identityId = identityId,
                 driveId = driveId,
                 fileId = fileId
-            ).executeAsList()
+            )
 
             // Verify insertion
             assertEquals(1, tags.size, "Should have exactly one local tag")
@@ -66,7 +65,7 @@ class DriveLocalTagIndexTest {
                 identityId = identityId,
                 driveId = driveId,
                 fileId = fileId
-            ).executeAsList()
+            )
 
             assertEquals(2, tagsAfterSecondInsert.size, "Should have exactly two local tags")
 
@@ -82,7 +81,7 @@ class DriveLocalTagIndexTest {
                 identityId = identityId,
                 driveId = driveId,
                 fileId = fileId
-            ).executeAsList()
+            )
 
             assertTrue(tagsAfterDelete.isEmpty(), "Should have no local tags after deletion")
         }
@@ -101,7 +100,7 @@ class DriveLocalTagIndexTest {
                 identityId = identityId,
                 driveId = driveId,
                 fileId = fileId
-            ).executeAsList()
+            )
 
             // Verify no local tags found
             assertTrue(tags.isEmpty(), "Should have no local tags for non-existent file")
@@ -113,7 +112,6 @@ class DriveLocalTagIndexTest {
         DatabaseManager { createInMemoryDatabase() }.use { dbm ->        // Create a QueryBatchCursor with all fields populated
 
             // Test data
-            val randomId = Random.nextLong()
             val identityId = Uuid.random()
             val driveId = Uuid.random()
             val fileId = Uuid.random()
@@ -148,7 +146,7 @@ class DriveLocalTagIndexTest {
                     identityId = identityId,
                     driveId = driveId,
                     fileId = fileId
-                ).executeAsList()
+                )
                 assertTrue(tags.size >= 1, "Should have at least one local tag")
             } catch (e: Exception) {
                 // This is expected if the UNIQUE constraint is enforced
