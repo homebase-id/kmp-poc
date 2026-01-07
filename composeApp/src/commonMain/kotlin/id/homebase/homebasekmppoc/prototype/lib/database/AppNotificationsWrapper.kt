@@ -29,12 +29,12 @@ class AppNotificationsWrapper(
             created: Long,
             modified: Long,
         ) -> T,
-    ): Query<T> = delegate.selectByNotificationId(identityId, notificationId, mapper)
+    ): T? = delegate.selectByNotificationId(identityId, notificationId, mapper).executeAsOneOrNull()
 
     fun selectByNotificationId(
         identityId: Uuid,
         notificationId: Uuid,
-    ): Query<AppNotifications> = delegate.selectByNotificationId(identityId, notificationId)
+    ): AppNotifications? = delegate.selectByNotificationId(identityId, notificationId).executeAsOneOrNull()
 
     fun <T : Any> selectFirstPage(
         identityId: Uuid,
@@ -50,12 +50,12 @@ class AppNotificationsWrapper(
             created: Long,
             modified: Long,
         ) -> T,
-    ): Query<T> = delegate.selectFirstPage(identityId, limit, mapper)
+    ): List<T> = delegate.selectFirstPage(identityId, limit, mapper).executeAsList()
 
     fun selectFirstPage(
         identityId: Uuid,
         limit: Long,
-    ): Query<AppNotifications> = delegate.selectFirstPage(identityId, limit)
+    ): List<AppNotifications> = delegate.selectFirstPage(identityId, limit).executeAsList()
 
     fun <T : Any> selectNextPage(
         identityId: Uuid,
@@ -72,15 +72,15 @@ class AppNotificationsWrapper(
             created: Long,
             modified: Long,
         ) -> T,
-    ): Query<T> = delegate.selectNextPage(identityId, rowId, limit, mapper)
+    ): List<T> = delegate.selectNextPage(identityId, rowId, limit, mapper).executeAsList()
 
     fun selectNextPage(
         identityId: Uuid,
         rowId: Long,
         limit: Long,
-    ): Query<AppNotifications> = delegate.selectNextPage(identityId, rowId, limit)
+    ): List<AppNotifications> = delegate.selectNextPage(identityId, rowId, limit).executeAsList()
 
-    fun insertNotification(
+    suspend fun insertNotification(
         identityId: Uuid,
         notificationId: Uuid,
         unread: Long,
@@ -89,7 +89,11 @@ class AppNotificationsWrapper(
         data: ByteArray?,
         created: Long,
         modified: Long,
-    ): QueryResult<Long> = delegate.insertNotification(identityId, notificationId, unread, senderId, timestamp, data, created, modified)
+    ): Long {
+        return databaseManager.withWriteValue { db ->
+            delegate.insertNotification(identityId, notificationId, unread, senderId, timestamp, data, created, modified).value
+        }
+    }
 
     suspend fun deleteAll(
         identityId: Uuid,

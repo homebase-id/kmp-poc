@@ -41,10 +41,8 @@ WHERE checkOutStamp IS NULL AND
     )
     ORDER BY o.priority ASC, o.nextRunTime ASC
     LIMIT 1
-);
-SELECT rowId,driveId,fileId,dependencyFileId,lastAttempt,nextRunTime,checkOutCount,checkOutStamp,priority,data,files
-FROM Outbox
-WHERE checkOutStamp=:checkOutStamp;
+)
+RETURNING rowId, driveId, fileId, dependencyFileId, lastAttempt, nextRunTime, checkOutCount, checkOutStamp, priority, data, files;
 
 -- What's the lowest timestamp of the next item to process in the outbox?
 nextScheduled:
@@ -80,7 +78,7 @@ SET checkOutStamp=NULL,
 WHERE checkOutStamp IS NOT NULL;
 
 -- Delete a row by rowId
-deleteByRowid:
+deleteByRowId:
 DELETE FROM Outbox
 WHERE rowId = ?;
 

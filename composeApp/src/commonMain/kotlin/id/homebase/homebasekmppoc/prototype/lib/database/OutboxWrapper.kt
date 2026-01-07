@@ -1,8 +1,11 @@
 package id.homebase.homebasekmppoc.lib.database
 
+import app.cash.sqldelight.ExecutableQuery
 import app.cash.sqldelight.Query
 import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.db.SqlDriver
+import id.homebase.homebasekmppoc.prototype.lib.core.time.UnixTimeUtc
+import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
 import kotlin.Any
 import kotlin.Long
 import kotlin.uuid.Uuid
@@ -10,15 +13,18 @@ import kotlin.uuid.Uuid
 class OutboxWrapper(
     driver: SqlDriver,
     outboxAdapter: Outbox.Adapter,
+    private val databaseManager: DatabaseManager
 ) {
     private val delegate = OutboxQueries(driver, outboxAdapter)
 
-    fun checkout(
-        checkOutStamp: Long,
-        now: Long,
-    ): QueryResult<Long> = delegate.checkout(checkOutStamp, now)
+    suspend fun checkout(
+        checkOutStamp: UnixTimeUtc
+    ): Checkout?
+    {
+        return databaseManager.withWriteValue { delegate.checkout(checkOutStamp.milliseconds, UnixTimeUtc.now().milliseconds).executeAsOneOrNull() }
+    }
 
-    fun nextScheduled(): Query<Long> = delegate.nextScheduled()
+    fun nextScheduled(): Long? = delegate.nextScheduled().executeAsOneOrNull()
 
     fun <T : Any> selectCheckedOut(
         checkOutStamp: Long,
@@ -35,15 +41,15 @@ class OutboxWrapper(
             data: ByteArray,
             files: ByteArray?,
         ) -> T,
-    ): Query<T> = delegate.selectCheckedOut(checkOutStamp, mapper)
+    ): T? = delegate.selectCheckedOut(checkOutStamp, mapper).executeAsOneOrNull()
 
     fun selectCheckedOut(
         checkOutStamp: Long,
-    ): Query<SelectCheckedOut> = delegate.selectCheckedOut(checkOutStamp)
+    ): SelectCheckedOut? = delegate.selectCheckedOut(checkOutStamp).executeAsOneOrNull()
 
-    fun count(): Query<Long> = delegate.count()
+    fun count(): Long = delegate.count().executeAsOne()
 
-    fun insert(
+    suspend fun insert(
         driveId: Uuid,
         fileId: Uuid,
         dependencyFileId: Uuid?,
@@ -54,21 +60,55 @@ class OutboxWrapper(
         priority: Long,
         data: ByteArray,
         files: ByteArray?,
-    ): QueryResult<Long> = delegate.insert(driveId, fileId, dependencyFileId, lastAttempt, nextRunTime, checkOutCount, checkOutStamp, priority, data, files)
+    ): Long {
+        return databaseManager.withWriteValue {
+            delegate.insert(
+                driveId,
+                fileId,
+                dependencyFileId,
+                lastAttempt,
+                nextRunTime,
+                checkOutCount,
+                checkOutStamp,
+                priority,
+                data,
+                files
+            ).value
+        }
+    }
 
-    fun checkInFailed(
+    suspend fun checkInFailed(
         checkOutStamp: Long,
         nextRunTime: Long,
-    ): QueryResult<Long> = delegate.checkInFailed(checkOutStamp, nextRunTime)
+    ): Long {
+        return databaseManager.withWriteValue {
+            delegate.checkInFailed(checkOutStamp, nextRunTime).value
+        }
+    }
 
-    fun clearCheckedOut(): QueryResult<Long> = delegate.clearCheckedOut()
 
-    fun deleteByRowid(
+    suspend fun clearCheckedOut(): Long
+    {
+        return databaseManager.withWriteValue {
+            delegate.clearCheckedOut().value
+        }
+    }
+
+    suspend fun deleteByRowId(
         rowId: Long,
-    ): QueryResult<Long> = delegate.deleteByRowid(rowId)
+    ): Long
+    {
+        return databaseManager.withWriteValue {
+            delegate.deleteByRowId(rowId).value
+        }
+    }
 
-    fun deleteBy(
+    suspend fun deleteBy(
         driveId: Uuid,
         fileId: Uuid,
-    ): QueryResult<Long> = delegate.deleteBy(driveId, fileId)
+    ): Long {
+        return databaseManager.withWriteValue {
+            delegate.deleteBy(driveId, fileId).value
+        }
+    }
 }

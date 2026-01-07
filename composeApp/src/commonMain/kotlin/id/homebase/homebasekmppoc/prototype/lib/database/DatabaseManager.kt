@@ -80,7 +80,7 @@ class DatabaseManager(driverProvider: () -> SqlDriver) : AutoCloseable
     public val driveMainIndex: DriveMainIndexWrapper by lazy { DriveMainIndexWrapper(driver, driveMainIndexAdapter, this) }
     public val driveTagIndex: DriveTagIndexWrapper by lazy { DriveTagIndexWrapper(driver, driveTagIndexAdapter, this) }
     public val driveLocalTagIndex: DriveLocalTagIndexWrapper by lazy { DriveLocalTagIndexWrapper(driver, driveLocalTagIndexAdapter, this) }
-    public val outbox: OutboxWrapper by lazy { OutboxWrapper(driver, outboxAdapter) }
+    public val outbox: OutboxWrapper by lazy { OutboxWrapper(driver, outboxAdapter, this) }
 
     init {
         driver = driverProvider()
