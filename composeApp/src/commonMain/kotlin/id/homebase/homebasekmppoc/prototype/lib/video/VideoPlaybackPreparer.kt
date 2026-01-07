@@ -153,7 +153,7 @@ private suspend fun patchHlsUrls(
 
     val modifiedLines = ArrayList<String>(lines.size) // Pre-allocate size
 
-    val aesKey = videoPayload.decryptKeyHeader()?.aesKey?.Base64Encode()
+    val aesKey = videoPayload.decryptKeyHeader()?.aesKey?.base64Encode()
     for (line in lines) {
         when {
             // Case 1: Encryption Key
