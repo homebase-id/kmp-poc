@@ -426,7 +426,7 @@ class DriveUploadProvider(private val client: OdinClient) {
         } catch (e: OdinClientException) {
             throw e
         } catch (e: Exception) {
-            KLogger.e(TAG) { "Upload failed: ${e.message}" }
+            KLogger.d(TAG) { "Upload failed: ${e.message}" }
             throw OdinClientException(
                 "Upload failed: ${e.message}",
                 OdinClientErrorCode.UnhandledScenario,
@@ -456,7 +456,7 @@ class DriveUploadProvider(private val client: OdinClient) {
         } catch (e: OdinClientException) {
             throw e
         } catch (e: Exception) {
-            KLogger.e(TAG) { "Update failed: ${e.message}" }
+            KLogger.d(TAG) { "Update failed: ${e.message}" }
             throw OdinClientException(
                 "Update failed: ${e.message}",
                 OdinClientErrorCode.UnhandledScenario,
@@ -555,7 +555,7 @@ class DriveUploadProvider(private val client: OdinClient) {
             return onVersionConflict()
         }
 
-        KLogger.e(TAG) { "[odin-kt] ${response.status}: $errorBody" }
+        KLogger.d(TAG) { "[odin-kt] ${response.status}: $errorBody" }
         throw OdinClientException(
             errorResponse?.message ?: "Request failed",
             errorResponse?.errorCode ?: OdinClientErrorCode.UnhandledScenario
@@ -587,8 +587,8 @@ class DriveUploadProvider(private val client: OdinClient) {
         }
 
         when (response.status.value) {
-            400 -> KLogger.e(TAG) { "Bad Request: $body" }
-            else -> KLogger.e(TAG) { "Request failed with status ${response.status.value}: $body" }
+            400 -> KLogger.d(TAG) { "Bad Request: $body" }
+            else -> KLogger.d(TAG) { "Request failed with status ${response.status.value}: $body" }
         }
 
         val clientErrorCode =

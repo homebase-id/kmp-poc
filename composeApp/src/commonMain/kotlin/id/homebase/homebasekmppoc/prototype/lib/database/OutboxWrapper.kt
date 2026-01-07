@@ -1,0 +1,114 @@
+package id.homebase.homebasekmppoc.lib.database
+
+import app.cash.sqldelight.ExecutableQuery
+import app.cash.sqldelight.Query
+import app.cash.sqldelight.db.QueryResult
+import app.cash.sqldelight.db.SqlDriver
+import id.homebase.homebasekmppoc.prototype.lib.core.time.UnixTimeUtc
+import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
+import kotlin.Any
+import kotlin.Long
+import kotlin.uuid.Uuid
+
+class OutboxWrapper(
+    driver: SqlDriver,
+    outboxAdapter: Outbox.Adapter,
+    private val databaseManager: DatabaseManager
+) {
+    private val delegate = OutboxQueries(driver, outboxAdapter)
+
+    suspend fun checkout(
+        checkOutStamp: UnixTimeUtc
+    ): Checkout?
+    {
+        return databaseManager.withWriteValue { delegate.checkout(checkOutStamp.milliseconds, UnixTimeUtc.now().milliseconds).executeAsOneOrNull() }
+    }
+
+    fun nextScheduled(): Long? = delegate.nextScheduled().executeAsOneOrNull()
+
+    fun <T : Any> selectCheckedOut(
+        checkOutStamp: Long,
+        mapper: (
+            rowId: Long,
+            driveId: Uuid,
+            fileId: Uuid,
+            dependencyFileId: Uuid?,
+            lastAttempt: Long,
+            nextRunTime: Long,
+            checkOutCount: Long,
+            checkOutStamp: Long?,
+            priority: Long,
+            data: ByteArray,
+            files: ByteArray?,
+        ) -> T,
+    ): T? = delegate.selectCheckedOut(checkOutStamp, mapper).executeAsOneOrNull()
+
+    fun selectCheckedOut(
+        checkOutStamp: Long,
+    ): SelectCheckedOut? = delegate.selectCheckedOut(checkOutStamp).executeAsOneOrNull()
+
+    fun count(): Long = delegate.count().executeAsOne()
+
+    suspend fun insert(
+        driveId: Uuid,
+        fileId: Uuid,
+        dependencyFileId: Uuid?,
+        lastAttempt: Long,
+        nextRunTime: Long,
+        checkOutCount: Long,
+        checkOutStamp: Long?,
+        priority: Long,
+        data: ByteArray,
+        files: ByteArray?,
+    ): Long {
+        return databaseManager.withWriteValue {
+            delegate.insert(
+                driveId,
+                fileId,
+                dependencyFileId,
+                lastAttempt,
+                nextRunTime,
+                checkOutCount,
+                checkOutStamp,
+                priority,
+                data,
+                files
+            ).value
+        }
+    }
+
+    suspend fun checkInFailed(
+        checkOutStamp: Long,
+        nextRunTime: Long,
+    ): Long {
+        return databaseManager.withWriteValue {
+            delegate.checkInFailed(checkOutStamp, nextRunTime).value
+        }
+    }
+
+
+    suspend fun clearCheckedOut(): Long
+    {
+        return databaseManager.withWriteValue {
+            delegate.clearCheckedOut().value
+        }
+    }
+
+    suspend fun deleteByRowId(
+        rowId: Long,
+    ): Long
+    {
+        return databaseManager.withWriteValue {
+            delegate.deleteByRowId(rowId).value
+        }
+    }
+
+    suspend fun deleteBy(
+        driveId: Uuid,
+        fileId: Uuid,
+    ): Long {
+        return databaseManager.withWriteValue {
+            delegate.deleteBy(driveId, fileId).value
+        }
+    }
+}
