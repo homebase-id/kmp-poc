@@ -5,12 +5,15 @@ import kotlin.io.encoding.Base64
 
 @Serializable
 class SecureByteArray(private val bytes: ByteArray) {
+
+    constructor(base64: String) : this(Base64.decode(base64))
+
     // Direct access—returns the internal array reference (mutable!)
     val unsafeBytes: ByteArray get() = bytes
 
     fun toByteArray(): ByteArray = bytes.copyOf()
 
-    fun Base64Encode(): String {
+    fun base64Encode(): String {
         return Base64.encode(bytes)
     }
 

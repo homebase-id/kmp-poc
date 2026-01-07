@@ -21,24 +21,24 @@ class KeyValueWrapper(
             key: Uuid,
             data: ByteArray,
         ) -> T,
-    ): Query<T> = delegate.selectByKey(key, mapper)
+    ): T? = delegate.selectByKey(key, mapper).executeAsOneOrNull()
 
     fun selectByKey(
         key: Uuid,
-    ): Query<KeyValue> = delegate.selectByKey(key)
+    ): KeyValue? = delegate.selectByKey(key).executeAsOneOrNull()
 
     suspend fun upsertValue(
         key: Uuid,
         data: ByteArray,
-    ): Long
+    ): Boolean
     {
-        return databaseManager.withWriteValue { delegate.upsertValue(key, data).value }
+        return databaseManager.withWriteValue { delegate.upsertValue(key, data).value > 0 }
     }
 
     suspend fun deleteByKey(
         key: Uuid,
-    ): Long
+    ): Boolean
     {
-        return databaseManager.withWriteValue { delegate.deleteByKey(key).value }
+        return databaseManager.withWriteValue { delegate.deleteByKey(key).value > 0 }
     }
 }

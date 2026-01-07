@@ -21,12 +21,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
 
-// TODO: When we update main-index-meta we should PROBABLY ignore any item with incoming.modified < db.modified
-
 class DriveSync(
     private val identityId: Uuid,
     private val driveId: Uuid,
-    private val driveQueryProvider: DriveQueryProvider, // TODO: <- can we get rid of this?)
+    private val driveQueryProvider: DriveQueryProvider, // TODO: <- can we get rid of this?
     private val databaseManager: DatabaseManager
 ) {
     private var cursor: QueryBatchCursor?
@@ -38,18 +36,17 @@ class DriveSync(
     //TODO: Consider having a (readable) "last modified" which holds the largest timestamp of last-modified
 
     init {
-        // Temp hack, remove soon.
         // Load cursor from database
-        runBlocking { initialize() }
         val cursorStorage = CursorStorage(databaseManager, driveId)
         cursor = cursorStorage.loadCursor()
+
+        // temp hack
+        runBlocking { testHack() }
     }
 
-    suspend fun initialize()
+    suspend fun testHack()
     {
         // Temp hack, remove soon.
-        // Load cursor from database
-
         DatabaseManager.appDb.driveMainIndex.deleteAll() // TODO: <-- don't delete all! :-)
         DatabaseManager.appDb.driveTagIndex.deleteAll() // TODO: <-- don't delete all! :-)
         DatabaseManager.appDb.driveLocalTagIndex.deleteAll() // TODO: <-- don't delete all! :-)
@@ -82,9 +79,10 @@ class DriveSync(
         EventBusFlow.emit(BackendEvent.SyncUpdate.SyncStarted(driveId));
 
         while (keepGoing) {
+            Logger.i("Querying host for ${batchSize} rows")
             val request = QueryBatchRequest(
                 queryParams = FileQueryParams(
-                    fileState = listOf(FileState.Active)
+                    fileState = listOf(FileState.Active) // <-- TODO: We want them all, not just "active"?
                 ),
                 resultOptionsRequest = QueryBatchResultOptionsRequest(
                     maxRecords = batchSize,
@@ -106,7 +104,7 @@ class DriveSync(
                         totalCount += batchCount
 
                         // Run DB operation in background without waiting - fire and forget
-                        CoroutineScope(Dispatchers.Default).launch {
+                        scope.launch {
                             try {
                                 val dbMs = measureTimedValue {
                                     fileHeaderProcessor.baseUpsertEntryZapZap(

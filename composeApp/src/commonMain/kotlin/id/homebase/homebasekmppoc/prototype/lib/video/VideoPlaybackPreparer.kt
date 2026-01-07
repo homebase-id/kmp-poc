@@ -8,6 +8,7 @@ import id.homebase.homebasekmppoc.prototype.lib.video.VideoMetaData
 import io.ktor.http.encodeURLParameter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlin.math.ceil
 import kotlin.uuid.Uuid
 
 sealed class VideoPlaybackPreparationResult {
@@ -48,6 +49,8 @@ suspend fun prepareVideoContentForPlayback(
                 videoPayload,
                 videoMetaData)
 
+            Logger.i("VideoPreparer") { "HLS patched playlist:\n $hlsPlayList" }
+
             val serverUrl = videoServer.getServerUrl()
             val contentId = "video-manifest-${videoPayload.getCompositeKey()}.m3u8"
 
@@ -60,6 +63,8 @@ suspend fun prepareVideoContentForPlayback(
                     line
                 }
             }
+
+            Logger.i("VideoPreparer") { "HLS proxied playlist:\n $proxiedPlayList" }
 
             videoServer.registerContent(
                 id = contentId,
@@ -79,7 +84,7 @@ suspend fun prepareVideoContentForPlayback(
         // Non-HLS - load entire video into RAM
         //
         else {
-            val videoBytes = videoPayload.getPayloadBytes(AppOrOwner.Owner)
+            val videoBytes = videoPayload.getPayloadBytes(appOrOwner)
             val contentId = "video-${Uuid.random()}"
 
             videoServer.registerContent(
@@ -127,14 +132,28 @@ private suspend fun createHlsPlaylist(
 
     val hlsPlaylist = videoMetaData.hlsPlaylist
 
-    val lines = hlsPlaylist.lines()
+    var lines = hlsPlaylist.lines()
     if (lines.isEmpty() || !lines[0].startsWith("#EXTM3U")) {
         throw Exception("Invalid HLS playlist content")
     }
 
+    lines = patchHlsUrls(appOrOwner, videoPayload, lines)
+    lines = fixTargetDuration(lines)
+    lines = convertByteRangesToUrlPath(lines)
+
+    return lines.joinToString("\n")
+}
+
+//
+
+private suspend fun patchHlsUrls(
+    appOrOwner: AppOrOwner,
+    videoPayload: PayloadWrapper,
+    lines: List<String>): List<String> {
+
     val modifiedLines = ArrayList<String>(lines.size) // Pre-allocate size
 
-    val aesKey = videoPayload.decryptKeyHeader()?.aesKey?.Base64Encode()
+    val aesKey = videoPayload.decryptKeyHeader()?.aesKey?.base64Encode()
     for (line in lines) {
         when {
             // Case 1: Encryption Key
@@ -161,8 +180,79 @@ private suspend fun createHlsPlaylist(
             }
         }
     }
-    return modifiedLines.joinToString("\n")
+
+    return modifiedLines
 }
 
 //
 
+private fun fixTargetDuration(lines: List<String>): List<String> {
+    // 1. Calculate the maximum segment duration found in EXTINF tags
+    val maxDuration = lines.asSequence()
+        .filter { it.startsWith("#EXTINF:") }
+        .mapNotNull {
+            it.substringAfter(":")
+                .substringBefore(",")
+                .toDoubleOrNull()
+        }
+        .maxOrNull() ?: 0.0
+
+    // 2. Target duration must be the ceiling of the max duration
+    val newTarget = ceil(maxDuration).toInt()
+
+    // 3. Return new list with updated header
+    return lines.map { line ->
+        if (line.startsWith("#EXT-X-TARGETDURATION:")) {
+            "#EXT-X-TARGETDURATION:$newTarget"
+        } else {
+            line
+        }
+    }
+}
+
+//
+
+private fun convertByteRangesToUrlPath(lines: List<String>): List<String> {
+    val result = mutableListOf<String>()
+
+    // Stores: Pair(offset, length)
+    var pendingRange: Pair<String, String>? = null
+
+    for (line in lines) {
+        when {
+            line.startsWith("#EXT-X-BYTERANGE:") -> {
+                val rawValue = line.substringAfter(":")
+                val parts = rawValue.split("@")
+                val length = parts[0]
+                // HLS spec says if offset is missing, it continues from previous.
+                // However, based on your examples having explicit offsets, we parse part[1].
+                val offset = parts.getOrNull(1) ?: "0"
+
+                pendingRange = offset to length
+                // We skip adding this line to result (it is deleted)
+            }
+
+            line.isNotBlank() && !line.startsWith("#") -> {
+                if (pendingRange != null) {
+                    val (offset, length) = pendingRange
+
+                    // Drop query parameters here
+                    val cleanBaseUrl = line.substringBefore("?")
+
+                    result.add("$cleanBaseUrl/$offset/$length")
+
+                    // Reset
+                    pendingRange = null
+                } else {
+                    result.add(line)
+                }
+            }
+
+            else -> {
+                // Pass through header tags, EXTINF, etc.
+                result.add(line)
+            }
+        }
+    }
+    return result
+}
