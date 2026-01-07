@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc.prototype.lib.http.client
+package id.homebase.homebasekmppoc.prototype.lib.ApiServiceExample
 
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock

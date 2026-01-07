@@ -36,6 +36,7 @@ import io.github.vinceglb.filekit.dialogs.openFilePicker
 import io.github.vinceglb.filekit.name
 import io.github.vinceglb.filekit.readBytes
 import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import kotlin.uuid.Uuid
@@ -153,7 +154,12 @@ fun AppNavHost(
         composable<Route.Video> { VideoPlayerTestPage(youAuthFlowManager) }
 
         // CdnTest route - uses shared auth from YouAuthFlowManager
-        composable<Route.CdnTest> { CdnTestPage(youAuthFlowManager) }
+        composable<Route.CdnTest> {
+            CdnTestPage(
+                youAuthFlowManager = koinInject(),
+                apiService = koinInject()
+            )
+        }
 
         // DriveUpload route - uses MVI pattern with ViewModel
         composable<Route.DriveUpload> {

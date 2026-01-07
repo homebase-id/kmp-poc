@@ -1,4 +1,4 @@
-package id.homebase.homebasekmppoc.prototype.lib.http.client
+package id.homebase.homebasekmppoc.prototype.lib.ApiServiceExample
 
 import id.homebase.homebasekmppoc.prototype.lib.core.SecureByteArray
 

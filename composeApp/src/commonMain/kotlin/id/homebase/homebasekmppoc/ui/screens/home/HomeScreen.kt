@@ -47,7 +47,7 @@ fun HomeScreen(state: HomeUiState, onAction: (HomeUiAction) -> Unit) {
 
             NavigationButton("Video") { onAction(HomeUiAction.VideoClicked) }
 
-            NavigationButton("CdnTest") { onAction(HomeUiAction.CdnTestClicked) }
+            NavigationButton("API-SERVICE-EXAMPLE") { onAction(HomeUiAction.CdnTestClicked) }
 
             NavigationButton("Drive Upload") { onAction(HomeUiAction.DriveUploadClicked) }
 

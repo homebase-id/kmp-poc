@@ -4,6 +4,7 @@ import id.homebase.homebasekmppoc.lib.youauth.OdinClientFactory
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.DriveFileProvider
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthProvider
+import id.homebase.homebasekmppoc.prototype.lib.ApiServiceExample.apiModule
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.DriveUploadProvider
 import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
@@ -23,6 +24,9 @@ import org.koin.dsl.module
  * Main application DI module. Register all dependencies here.
  */
 val appModule = module {
+    includes(
+        apiModule
+    )
 
     /* ───────────────────────────
      * Core / Auth

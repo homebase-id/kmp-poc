@@ -9,16 +9,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthState
+import id.homebase.homebasekmppoc.prototype.lib.ApiServiceExample.ApiService
+import id.homebase.homebasekmppoc.prototype.showMessage
 import kotlinx.coroutines.launch
 
 /** Test page for CDN functionality. Uses shared YouAuthFlowManager for authentication state. */
 @Composable
-fun CdnTestPage(youAuthFlowManager: YouAuthFlowManager) {
+fun CdnTestPage(
+    youAuthFlowManager: YouAuthFlowManager,
+    apiService: ApiService) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
-
-    var showLogionResultDialog by remember { mutableStateOf(false) }
-    var loginResultMessage by remember { mutableStateOf("") }
-    var isLoginSuccess by remember { mutableStateOf(false) }
 
     val authState by youAuthFlowManager.authState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
@@ -29,14 +29,8 @@ fun CdnTestPage(youAuthFlowManager: YouAuthFlowManager) {
     LaunchedEffect(authState) {
         when (val state = authState) {
             is YouAuthState.Authenticated -> {
-                loginResultMessage = "Authentication successful!\nIdentity: ${state.identity}"
-                isLoginSuccess = true
-                showLogionResultDialog = false
-            }
-            is YouAuthState.Error -> {
-                loginResultMessage = "Authentication failed:\n${state.message}"
-                isLoginSuccess = false
-                showLogionResultDialog = true
+                val result = apiService.echoSharedSecretEncryptedParam()
+                showMessage("echoSharedSecretEncryptedParam", result)
             }
             else -> {}
         }
@@ -54,25 +48,11 @@ fun CdnTestPage(youAuthFlowManager: YouAuthFlowManager) {
         )
     }
 
-    //
-    // Result dialog
-    //
-    if (showLogionResultDialog) {
-        AlertDialog(
-                onDismissRequest = { showLogionResultDialog = false },
-                title = { Text(if (isLoginSuccess) "Success" else "Error") },
-                text = { Text(loginResultMessage) },
-                confirmButton = {
-                    TextButton(onClick = { showLogionResultDialog = false }) { Text("OK") }
-                }
-        )
-    }
-
     Column(
             modifier = Modifier.fillMaxSize().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(text = "CDN Test", style = MaterialTheme.typography.headlineMedium)
+        Text(text = "API-SERVICE-EXAMPLE", style = MaterialTheme.typography.headlineMedium)
 
         // Authentication section
         Card(

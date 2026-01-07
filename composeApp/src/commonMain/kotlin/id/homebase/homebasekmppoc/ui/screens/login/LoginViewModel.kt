@@ -2,6 +2,7 @@ package id.homebase.homebasekmppoc.ui.screens.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.lib.youauth.DrivePermissionType
 import id.homebase.homebasekmppoc.lib.youauth.OdinClientFactory
 import id.homebase.homebasekmppoc.lib.youauth.TargetDriveAccessRequest
@@ -88,8 +89,16 @@ class LoginViewModel(
 
     init {
         loadUsernameFromStorage()
-        checkExistingSession()
         observeAuthState()
+
+        // SEB:NOTE Bishwa: checkExistingSession became suspend fun, so we need to launch a coroutine
+        viewModelScope.launch {
+            try {
+                checkExistingSession()
+            } catch (e: Exception) {
+                Logger.e ("LoginViewModel", e) { "Error checking existing session: ${e.message}" }
+            }
+        }
     }
 
     private fun loadUsernameFromStorage() {
@@ -126,10 +135,10 @@ class LoginViewModel(
         viewModelScope.launch { youAuthFlowManager.onAppResumed() }
     }
 
-    private fun checkExistingSession() {
+    private suspend fun checkExistingSession() {
         if (youAuthFlowManager.restoreSession()) {
             _uiState.update { it.copy(isAuthenticated = true) }
-            viewModelScope.launch { _uiEvent.send(LoginUiEvent.NavigateToHome) }
+            _uiEvent.send(LoginUiEvent.NavigateToHome)
         }
     }
 
