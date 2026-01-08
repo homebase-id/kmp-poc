@@ -52,6 +52,9 @@ class DriveSync(
         DatabaseManager.appDb.driveTagIndex.deleteAll() // TODO: <-- don't delete all! :-)
         DatabaseManager.appDb.driveLocalTagIndex.deleteAll() // TODO: <-- don't delete all! :-)
         DatabaseManager.appDb.keyValue.deleteByKey(driveId) // TODO: <-- don't delete the cursor
+        val cursorStorage = CursorStorage(databaseManager, driveId)
+        cursorStorage.deleteCursor();
+        cursor = null
     }
 
     // I remain tempted to let the sync() function spawn a thread

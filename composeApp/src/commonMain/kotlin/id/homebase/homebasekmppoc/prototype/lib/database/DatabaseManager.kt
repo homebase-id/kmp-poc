@@ -63,20 +63,43 @@ class DatabaseManager(driverProvider: () -> SqlDriver) : AutoCloseable
     private var driver: SqlDriver
     private val dbDispatcher = Dispatchers.IO.limitedParallelism(1)
 
-    companion object {
-        lateinit var instance: DatabaseManager
-        private set
+    init {
+        driver = driverProvider()
+        OdinDatabase.Schema.create(driver) // Create the tables if they are missing
+        database = OdinDatabase(
+            driver,
+            appNotificationsAdapter,
+            driveLocalTagIndexAdapter,
+            driveMainIndexAdapter,
+            driveTagIndexAdapter,
+            keyValueAdapter,
+            outboxAdapter
+        )
+        logger.i { "Database initialized" }
+    }
 
-        fun initialize(driverProvider: () -> SqlDriver) {
-            if (::instance.isInitialized) throw IllegalStateException("Already initialized")
-            instance = DatabaseManager(driverProvider)
-        }
+    companion object {
+        private const val DATABASE_VERSION=1  // Increase to wipe the database and rebuild all tables
+        private lateinit var instance: DatabaseManager
         val appDb: DatabaseManager get() = instance
 
-        suspend fun wipe(driverProvider: () -> SqlDriver)
+        suspend fun initialize(driverProvider: () -> SqlDriver) {
+            if (::instance.isInitialized) throw IllegalStateException("Already initialized")
+
+            val driver = driverProvider()
+            instance = DatabaseManager(driverProvider)
+
+            val version = instance.driveMainIndex.getSchemaVersion()
+
+            if (version < DATABASE_VERSION) {
+                wipeTables(driver);
+                OdinDatabase.Schema.create(driver)
+            }
+        }
+
+        suspend fun wipeTables(driver: SqlDriver)
         {
             withContext(Dispatchers.IO) {
-                val driver = driverProvider()
                 try {
                     val tables = listOf(
                         "AppNotifications",
@@ -97,7 +120,6 @@ class DatabaseManager(driverProvider: () -> SqlDriver) : AutoCloseable
                 }
             }
         }
-
     }
 
     // Lazy wrappers
@@ -107,21 +129,6 @@ class DatabaseManager(driverProvider: () -> SqlDriver) : AutoCloseable
     public val driveTagIndex: DriveTagIndexWrapper by lazy { DriveTagIndexWrapper(driver, driveTagIndexAdapter, this) }
     public val driveLocalTagIndex: DriveLocalTagIndexWrapper by lazy { DriveLocalTagIndexWrapper(driver, driveLocalTagIndexAdapter, this) }
     public val outbox: OutboxWrapper by lazy { OutboxWrapper(driver, outboxAdapter, this) }
-
-    init {
-        driver = driverProvider()
-        OdinDatabase.Schema.create(driver) // Create the tables if they are missing
-        database = OdinDatabase(
-            driver,
-            appNotificationsAdapter,
-            driveLocalTagIndexAdapter,
-            driveMainIndexAdapter,
-            driveTagIndexAdapter,
-            keyValueAdapter,
-            outboxAdapter
-        )
-        logger.i { "Database initialized" }
-    }
 
     suspend fun <R> executeReadQuery(
         identifier: Int?,

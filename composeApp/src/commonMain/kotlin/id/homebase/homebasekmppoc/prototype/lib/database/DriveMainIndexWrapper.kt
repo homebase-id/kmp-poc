@@ -1,8 +1,8 @@
 package id.homebase.homebasekmppoc.lib.database
 
-import app.cash.sqldelight.Query
 import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.db.SqlDriver
+import app.cash.sqldelight.db.SqlCursor
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
 import kotlin.Any
 import kotlin.Long
@@ -89,7 +89,7 @@ class DriveMainIndexWrapper(
     suspend fun upsertDriveMainIndex(
         identityId: Uuid,
         driveId: Uuid,
-        fileId: Uuid?,
+        fileId: Uuid,
         uniqueId: Uuid?,
         globalTransitId: Uuid?,
         groupId: Uuid?,
@@ -122,5 +122,35 @@ class DriveMainIndexWrapper(
     ): Boolean
     {
         return databaseManager.withWriteValue { delegate.deleteBy(identityId, driveId, fileId).value > 0 }
+    }
+
+    // Returns -1 if unable to read the version
+    suspend fun getSchemaVersion(): Long {
+        val sqlQuery = "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'DriveMainIndex'"
+        val createStmt = databaseManager.executeReadQuery(
+            null,
+            sqlQuery,
+            mapper = { cursor: SqlCursor ->
+                if (cursor.next().value) {
+                    QueryResult.Value(cursor.getString(0))
+                } else {
+                    QueryResult.Value(null)
+                }
+            },
+            parameters = 0,
+            binders = null
+        ).value as String?
+
+        if (createStmt == null) return -1
+
+        val commentRegex = Regex("-- Version: (\\d+)")
+        val match = commentRegex.find(createStmt)
+
+        val result = match?.groups?.get(1)?.value?.toLong()
+
+        if (result == null)
+            return -1
+        else
+            return result
     }
 }
