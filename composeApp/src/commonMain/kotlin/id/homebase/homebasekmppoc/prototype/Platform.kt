@@ -5,8 +5,16 @@ import kotlin.uuid.Uuid
 
 // SEB:TODO this file is a mess of all sorts of platform abstractions and common code. Clean it up!
 
+enum class PlatformType {
+    ANDROID,
+    IOS,
+    JVM,
+    JS,
+    NATIVE
+}
+
 interface Platform {
-    val name: String
+    val name: PlatformType
 }
 
 expect fun getPlatform(): Platform
