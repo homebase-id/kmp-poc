@@ -19,7 +19,10 @@ class AuthPresentationContextProvider : NSObject(), platform.AuthenticationServi
 
 fun MainViewController(): UIViewController {
     // Initialize database
-    runBlocking { DatabaseManager.initialize { DatabaseDriverFactory().createDriver() }}
+    runBlocking {
+        // DatabaseManager.wipe { DatabaseDriverFactory().createDriver() }
+        DatabaseManager.initialize { DatabaseDriverFactory().createDriver() }
+    }
 
     val controller = ComposeUIViewController { App() }
     MainViewControllerRef.instance = controller
