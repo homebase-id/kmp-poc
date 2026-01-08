@@ -9,7 +9,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthState
-import id.homebase.homebasekmppoc.prototype.lib.ApiServiceExample.ApiService
+import id.homebase.homebasekmppoc.prototype.lib.ApiServiceExample.ApiExampleService
 import id.homebase.homebasekmppoc.prototype.showMessage
 import kotlinx.coroutines.launch
 
@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun CdnTestPage(
     youAuthFlowManager: YouAuthFlowManager,
-    apiService: ApiService) {
+    apiService: ApiExampleService) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     val authState by youAuthFlowManager.authState.collectAsState()

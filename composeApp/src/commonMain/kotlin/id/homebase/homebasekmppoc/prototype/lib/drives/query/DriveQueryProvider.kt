@@ -1,21 +1,30 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives.query
 
+import id.homebase.homebasekmppoc.prototype.lib.ApiServiceExample.CredentialsManager
 import id.homebase.homebasekmppoc.prototype.lib.core.SecureByteArray
+import id.homebase.homebasekmppoc.prototype.lib.crypto.CryptoHelper
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchRequest
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResponse
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.ValidationUtil
-import id.homebase.homebasekmppoc.prototype.lib.http.CreateHttpClientOptions
 import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
+import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
+import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.accept
+import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
+import io.ktor.http.content.TextContent
 import io.ktor.http.contentType
 import kotlin.uuid.Uuid
 
 /** Drive query provider for querying files from a drive */
-class DriveQueryProvider(private val odinClient: OdinClient) {
+class DriveQueryProvider(
+    private val odinClient: OdinClient,
+    private val httpClient: HttpClient,
+    private val credentialsManager: CredentialsManager
+) {
 
     /**
      * Query a batch of files from a drive
@@ -42,22 +51,44 @@ class DriveQueryProvider(private val odinClient: OdinClient) {
                 request
             }
 
-        val url = "drives/${driveId}/files/query-batch"
-        val client = odinClient.createHttpClient(CreateHttpClientOptions())
 
-        val response: QueryBatchResponse =
-            client
-                .post(url) {
-                    contentType(ContentType.Application.Json)
-                    accept(ContentType.Application.Json)
-                    setBody(finalRequest)
-                    // Apply custom HTTP configuration if provided
-                    options?.httpConfig?.invoke(this)
-                }
-                .body<QueryBatchResponse>()
+        val (domain, cat, secret) = checkNotNull(credentialsManager.getActiveCredentials());
 
-        return handleResponse(response, options)
+        val url = "https://${domain}/api/v2/drives/${driveId}/files/query-batch"
+        val client = httpClient;
+
+        val response = client
+            .post(url) {
+                bearerAuth(cat)
+                contentType(ContentType.Application.Json)
+                accept(ContentType.Application.Json)
+                setBody(encryptBody(finalRequest, secret))
+            }
+
+        val bodyCipher = response.body<String>()
+        val bodyJson = decryptContentAsString(bodyCipher, secret)
+
+        val qbResponse = OdinSystemSerializer.deserialize<QueryBatchResponse>(bodyJson)
+        return handleResponse(qbResponse, options)
     }
+
+    private suspend fun encryptBody(body: QueryBatchRequest, secret: SecureByteArray): TextContent {
+        var bodyText = OdinSystemSerializer.serialize(body)
+        val payload = CryptoHelper.encryptData(bodyText, secret.unsafeBytes)
+        return TextContent(
+            OdinSystemSerializer.json.encodeToString(payload),
+            ContentType.Application.Json
+        )
+    }
+
+
+    private suspend fun decryptContentAsString(
+        cipherJson: String,
+        secret: SecureByteArray
+    ): String {
+        return CryptoHelper.decryptContentAsString(cipherJson, secret.unsafeBytes)
+    }
+
 
     /** Handle the HTTP response and decrypt if needed */
     private suspend fun handleResponse(

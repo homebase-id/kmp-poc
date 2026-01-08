@@ -7,12 +7,20 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
+import io.ktor.client.statement.HttpResponse
+import io.ktor.http.isSuccess
 import kotlinx.serialization.json.Json
 
-class ApiService(
+class ApiExampleService(
     private val httpClient: HttpClient,
     private val credentialsManager: CredentialsManager
 ) {
+
+    suspend fun Ping(homebaseId: String): Boolean {
+        val response: HttpResponse = httpClient.get("http://${homebaseId}/api/v2/health/ping")
+        return response.status.isSuccess();
+    }
+
     suspend fun echoSharedSecretEncryptedParam(): String {
         val (domain, cat, secret) = requireCredentials()
         Logger.d { "echoSharedSecretEncryptedParam: $domain, $cat, $secret" }
@@ -21,7 +29,8 @@ class ApiService(
         // Specific to this endpoint
         //
         val test = "Hello, World!"
-        val uri = "https://$domain/api/v2/auth/echo-shared-secret-encrypted-param?checkValue64=${test}"
+        val uri =
+            "https://$domain/api/v2/auth/echo-shared-secret-encrypted-param?checkValue64=${test}"
 
         //
         // Common for most endpoints
@@ -67,7 +76,10 @@ class ApiService(
 
     //
 
-    private suspend fun decryptContentAsString(cipherJson: String, secret: SecureByteArray): String {
+    private suspend fun decryptContentAsString(
+        cipherJson: String,
+        secret: SecureByteArray
+    ): String {
         return CryptoHelper.decryptContentAsString(cipherJson, secret.unsafeBytes)
     }
 

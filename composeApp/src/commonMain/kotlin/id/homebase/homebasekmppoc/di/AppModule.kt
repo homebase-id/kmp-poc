@@ -4,6 +4,7 @@ import id.homebase.homebasekmppoc.lib.youauth.OdinClientFactory
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.DriveFileProvider
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthProvider
+import id.homebase.homebasekmppoc.prototype.lib.ApiServiceExample.CredentialsManager
 import id.homebase.homebasekmppoc.prototype.lib.ApiServiceExample.apiModule
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.DriveUploadProvider
@@ -14,6 +15,7 @@ import id.homebase.homebasekmppoc.prototype.ui.driveUpload.DriveUploadService
 import id.homebase.homebasekmppoc.prototype.ui.driveUpload.DriveUploadViewModel
 import id.homebase.homebasekmppoc.ui.screens.home.HomeViewModel
 import id.homebase.homebasekmppoc.ui.screens.login.LoginViewModel
+import org.koin.core.module.dsl.factoryOf
 import kotlin.uuid.Uuid
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModel
@@ -48,11 +50,7 @@ val appModule = module {
     /* ───────────────────────────
      * Drive Providers
      * ─────────────────────────── */
-
-    factory<DriveQueryProvider?> {
-        val odinClient: OdinClient? = get()
-        odinClient?.let { DriveQueryProvider(it) }
-    }
+    factoryOf(::DriveQueryProvider)
 
     factory<DriveUploadProvider?> {
         val odinClient: OdinClient? = get()
@@ -83,7 +81,8 @@ val appModule = module {
     viewModel {
         LoginViewModel(
             youAuthFlowManager = get(),
-            odinClientFactory = get()
+            odinClientFactory = get(),
+            apiService = get()
         )
     }
     viewModelOf(::DriveFetchViewModel)

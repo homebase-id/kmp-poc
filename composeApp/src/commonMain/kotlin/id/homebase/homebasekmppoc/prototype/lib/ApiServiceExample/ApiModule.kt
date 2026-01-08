@@ -7,6 +7,6 @@ val apiModule = module {
     single { HttpClientProvider.create() }
     singleOf(::CredentialsManager)
     singleOf(::AuthRepository)
-    singleOf(::ApiService)
+    singleOf(::ApiExampleService)
 }
 

@@ -9,6 +9,7 @@ import id.homebase.homebasekmppoc.lib.youauth.TargetDriveAccessRequest
 import id.homebase.homebasekmppoc.lib.youauth.UsernameStorage
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthState
+import id.homebase.homebasekmppoc.prototype.lib.ApiServiceExample.ApiExampleService
 import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
 import id.homebase.homebasekmppoc.prototype.lib.http.CreateHttpClientOptions
 import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
@@ -78,7 +79,8 @@ var targetDriveAccessRequest: List<TargetDriveAccessRequest> =
 class LoginViewModel(
     private val youAuthFlowManager: YouAuthFlowManager,
     private val usernameStorage: UsernameStorage = UsernameStorage(),
-    private val odinClientFactory: OdinClientFactory
+    private val odinClientFactory: OdinClientFactory,
+    private val apiService: ApiExampleService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
@@ -96,7 +98,7 @@ class LoginViewModel(
             try {
                 checkExistingSession()
             } catch (e: Exception) {
-                Logger.e ("LoginViewModel", e) { "Error checking existing session: ${e.message}" }
+                Logger.e("LoginViewModel", e) { "Error checking existing session: ${e.message}" }
             }
         }
     }
@@ -154,11 +156,9 @@ class LoginViewModel(
 
             // Verify the identity is reachable before starting auth flow
             try {
-                val odinClient = odinClientFactory.createUnauthenticated(homebaseId);
-                val httpClient = odinClient.createHttpClient()
-                val response: HttpResponse = httpClient.get("health/ping")
 
-                if (!response.status.isSuccess()) {
+                val success = apiService.Ping(homebaseId);
+                if (!success) {
                     _uiState.update {
                         it.copy(
                             isLoading = false,
