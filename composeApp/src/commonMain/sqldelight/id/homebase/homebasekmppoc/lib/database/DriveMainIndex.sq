@@ -1,10 +1,10 @@
 import kotlin.uuid.Uuid;
 
-CREATE TABLE IF NOT EXISTS DriveMainIndex(
+CREATE TABLE IF NOT EXISTS DriveMainIndex( -- Version: 1
    rowId INTEGER PRIMARY KEY AUTOINCREMENT,
    identityId BLOB AS Uuid NOT NULL,
    driveId BLOB AS Uuid NOT NULL,
-   fileId BLOB AS Uuid,  -- You can set fileId to NULL so it can get set once assigned by host
+   fileId BLOB AS Uuid NOT NULL,
    uniqueId BLOB AS Uuid,
    globalTransitId BLOB AS Uuid,
    senderId TEXT,
