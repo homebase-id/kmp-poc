@@ -1,5 +1,8 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives.upload
 
+import id.homebase.homebasekmppoc.prototype.lib.ApiServiceExample.CredentialsManager
+import id.homebase.homebasekmppoc.prototype.lib.client.ApiResponse
+import id.homebase.homebasekmppoc.prototype.lib.client.OdinApiProviderBase
 import co.touchlab.kermit.Logger as KLogger
 import id.homebase.homebasekmppoc.prototype.lib.core.OdinClientErrorCode
 import id.homebase.homebasekmppoc.prototype.lib.core.OdinClientException
@@ -17,6 +20,7 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.files.ThumbnailFile
 import id.homebase.homebasekmppoc.prototype.lib.http.CreateHttpClientOptions
 import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
+import io.ktor.client.HttpClient
 import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
@@ -64,7 +68,11 @@ private data class UpdateLocalMetadataContentRequest(
 
 /** Provider for drive upload and update operations. Ported from JS/TS odin-js UploadProvider. */
 @OptIn(ExperimentalEncodingApi::class)
-class DriveUploadProvider(private val client: OdinClient) {
+class DriveUploadProvider(
+    private val client: OdinClient,
+    httpClient: HttpClient,
+    credentialsManager: CredentialsManager
+) : OdinApiProviderBase(httpClient, credentialsManager) {
 
     companion object {
         private const val TAG = "DriveUploadProvider"
@@ -400,10 +408,9 @@ class DriveUploadProvider(private val client: OdinClient) {
         fileSystemType: FileSystemType? = null,
         onVersionConflict: (suspend () -> CreateFileResult?)? = null
     ): CreateFileResult? {
-        val httpClient =
-            client.createHttpClient(CreateHttpClientOptions(overrideEncryption = true))
-
         try {
+            val creds = requireCreds()
+
             val queryParams =
                 buildMap<String, String> {
                     if (fileSystemType != null) {
@@ -411,16 +418,28 @@ class DriveUploadProvider(private val client: OdinClient) {
                     }
                 }
 
-            val url = "drives/files"
-            val response: HttpResponse =
-                httpClient.post(url) {
-                    url {
-                        queryParams.forEach { (key, value) ->
-                            parameters.append(key, value)
+            val url =
+                apiUrl(
+                    creds.domain,
+                    buildString {
+                        append("/drives/files")
+                        if (queryParams.isNotEmpty()) {
+                            append("?")
+                            append(
+                                queryParams.entries.joinToString("&") {
+                                    "${it.key}=${it.value}"
+                                }
+                            )
                         }
                     }
-                    setBody(data)
-                }
+                )
+
+            val response =
+                plainPostMultipart(
+                    url = url,
+                    token = creds.accessToken,
+                    formData = data
+                )
 
             return handleUploadResponse(response, onVersionConflict)
         } catch (e: OdinClientException) {
@@ -432,26 +451,26 @@ class DriveUploadProvider(private val client: OdinClient) {
                 OdinClientErrorCode.UnhandledScenario,
                 e
             )
-        } finally {
-            // httpClient.close()
         }
     }
+
 
     /** Performs a raw update to an existing file on the drive. */
     suspend fun pureUpdate(
         data: MultiPartFormDataContent,
         onVersionConflict: (suspend () -> UpdateFileResult?)? = null
     ): UpdateFileResult? {
-        val httpClient =
-            client.createHttpClient(
-                CreateHttpClientOptions(
-                    overrideEncryption = true
-                )
-            )
-
         try {
-            val url = "drives/files"
-            val response: HttpResponse = httpClient.patch(url) { setBody(data) }
+            val creds = requireCreds()
+            val url = apiUrl(creds.domain, "/drives/files")
+
+            val response =
+                plainPatchMultipart(
+                    url = url,
+                    token = creds.accessToken,
+                    formData = data
+                )
+
             return handleUpdateResponse(response, onVersionConflict)
         } catch (e: OdinClientException) {
             throw e
@@ -462,11 +481,9 @@ class DriveUploadProvider(private val client: OdinClient) {
                 OdinClientErrorCode.UnhandledScenario,
                 e
             )
-        } finally {
-            // using a shared client per gpt
-            // httpClient.close()
         }
     }
+
 
     /**
      * Builds an encrypted descriptor (UploadFileDescriptor encrypted with sharedSecret). Matches
@@ -510,13 +527,12 @@ class DriveUploadProvider(private val client: OdinClient) {
     }
 
     private suspend fun handleUploadResponse(
-        response: HttpResponse,
+        response: ApiResponse,
         onVersionConflict: (suspend () -> CreateFileResult?)? = null
     ): CreateFileResult? {
         return when {
-            response.status.isSuccess() -> {
-                val body = response.bodyAsText()
-                OdinSystemSerializer.json.decodeFromString<CreateFileResult>(body)
+            response.status in 200..299 -> {
+                OdinSystemSerializer.deserialize<CreateFileResult>(response.body)
             }
 
             else -> handleErrorResponse(response, onVersionConflict) { it() }
@@ -524,18 +540,18 @@ class DriveUploadProvider(private val client: OdinClient) {
     }
 
     private suspend fun handleUpdateResponse(
-        response: HttpResponse,
+        response: ApiResponse,
         onVersionConflict: (suspend () -> UpdateFileResult?)? = null
     ): UpdateFileResult? {
         return when {
-            response.status.isSuccess() -> {
-                val body = response.bodyAsText()
-                OdinSystemSerializer.json.decodeFromString<UpdateFileResult>(body)
+            response.status in 200..299 -> {
+                OdinSystemSerializer.deserialize<UpdateFileResult>(response.body)
             }
 
             else -> handleErrorResponse(response, onVersionConflict) { it() }
         }
     }
+
 
     private suspend fun handleLocalMetadataError(
         response: HttpResponse,
@@ -563,15 +579,16 @@ class DriveUploadProvider(private val client: OdinClient) {
     }
 
     private suspend fun <T> handleErrorResponse(
-        response: HttpResponse,
+        response: ApiResponse,
         onVersionConflict: (suspend () -> T?)? = null,
         invokeCallback: suspend ((suspend () -> T?)) -> T?
     ): T? {
-        val body = response.bodyAsText()
+
+        val body = response.body
 
         val errorResponse =
             try {
-                OdinSystemSerializer.json.decodeFromString<OdinErrorResponse>(body)
+                OdinSystemSerializer.deserialize<OdinErrorResponse>(body)
             } catch (e: Exception) {
                 null
             }
@@ -586,14 +603,17 @@ class DriveUploadProvider(private val client: OdinClient) {
             }
         }
 
-        when (response.status.value) {
+        when (response.status) {
             400 -> KLogger.d(TAG) { "Bad Request: $body" }
-            else -> KLogger.d(TAG) { "Request failed with status ${response.status.value}: $body" }
+            else ->
+                KLogger.d(TAG) {
+                    "Request failed with status ${response.status}: $body"
+                }
         }
 
         val clientErrorCode =
             errorResponse?.errorCode
-                ?: when (response.status.value) {
+                ?: when (response.status) {
                     400 -> OdinClientErrorCode.ArgumentError
                     401, 403 -> OdinClientErrorCode.InvalidAuthToken
                     404 -> OdinClientErrorCode.FileNotFound
@@ -604,8 +624,10 @@ class DriveUploadProvider(private val client: OdinClient) {
                 }
 
         throw OdinClientException(
-            errorResponse?.message ?: "Request failed with status ${response.status.value}",
+            errorResponse?.message
+                ?: "Request failed with status ${response.status}",
             clientErrorCode
         )
     }
+
 }

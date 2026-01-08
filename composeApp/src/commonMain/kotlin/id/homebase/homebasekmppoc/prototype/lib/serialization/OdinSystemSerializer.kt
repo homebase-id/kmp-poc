@@ -3,6 +3,7 @@ package id.homebase.homebasekmppoc.prototype.lib.serialization
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
 import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.modules.SerializersModule
 import kotlin.uuid.Uuid
 
@@ -65,4 +66,10 @@ object OdinSystemSerializer {
     inline fun <reified T> deserialize(jsonString: String): T {
         return json.decodeFromString(jsonString)
     }
+
+    fun serializeAny(value: Any): String {
+        val element = json.encodeToJsonElement(value)
+        return json.encodeToString(element)
+    }
+
 }

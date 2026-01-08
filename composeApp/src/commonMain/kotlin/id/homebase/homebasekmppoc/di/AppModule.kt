@@ -4,7 +4,6 @@ import id.homebase.homebasekmppoc.lib.youauth.OdinClientFactory
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.DriveFileProvider
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthProvider
-import id.homebase.homebasekmppoc.prototype.lib.ApiServiceExample.CredentialsManager
 import id.homebase.homebasekmppoc.prototype.lib.ApiServiceExample.apiModule
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.DriveUploadProvider
@@ -52,10 +51,7 @@ val appModule = module {
      * ─────────────────────────── */
     factoryOf(::DriveQueryProvider)
 
-    factory<DriveUploadProvider?> {
-        val odinClient: OdinClient? = get()
-        odinClient?.let { DriveUploadProvider(it) }
-    }
+    factoryOf(::DriveUploadProvider)
 
     factory<DriveFileProvider?> {
         val odinClient: OdinClient? = get()
