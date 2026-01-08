@@ -7,6 +7,8 @@ import id.homebase.homebasekmppoc.lib.storage.SecureStorage
 import id.homebase.homebasekmppoc.prototype.decodeUrl
 import id.homebase.homebasekmppoc.prototype.generateUuidBytes
 import id.homebase.homebasekmppoc.prototype.generateUuidString
+import id.homebase.homebasekmppoc.prototype.lib.ApiServiceExample.ApiCredentials
+import id.homebase.homebasekmppoc.prototype.lib.ApiServiceExample.CredentialsManager
 import id.homebase.homebasekmppoc.prototype.lib.core.SecureByteArray
 import id.homebase.homebasekmppoc.prototype.lib.crypto.EccKeyPair
 import id.homebase.homebasekmppoc.prototype.lib.crypto.EccKeySize
@@ -51,7 +53,7 @@ private data class AuthCodeFlowState(
  *
  * This is the recommended entry point for UI components like LoginViewModel.
  */
-class YouAuthFlowManager {
+class YouAuthFlowManager(private val credentialsManager: CredentialsManager) {
     private val _authState = MutableStateFlow<YouAuthState>(YouAuthState.Unauthenticated)
     val authState: StateFlow<YouAuthState> = _authState.asStateFlow()
 
@@ -100,7 +102,7 @@ class YouAuthFlowManager {
     }
 
     /** Check if there are stored credentials and restore session. */
-    fun restoreSession(): Boolean {
+    suspend fun restoreSession(): Boolean {
         if (OdinClientFactory.hasStoredCredentials()) {
             val client = OdinClientFactory.createFromStorage()
             if (client != null) {
@@ -115,6 +117,15 @@ class YouAuthFlowManager {
                         )
                 }
                 Logger.i(TAG) { "Session restored for $identity" }
+
+                // API-SERVICE-EXAMPLE: Store credentials in CredentialsManager
+                val apiCredentials = ApiCredentials.create(
+                    identity,
+                    SecureStorage.get(YouAuthStorageKeys.CLIENT_AUTH_TOKEN)!!,
+                    SecureByteArray(SecureStorage.get(YouAuthStorageKeys.SHARED_SECRET)!!)
+                )
+                credentialsManager.setActiveCredentials(apiCredentials)
+
                 return true
             }
         }
@@ -256,6 +267,14 @@ class YouAuthFlowManager {
                             sharedSecret = result.sharedSecret
                     )
 
+            // API-SERVICE-EXAMPLE: Store credentials in CredentialsManager
+            val apiCredentials = ApiCredentials.create(
+                result.identity,
+                result.clientAuthToken,
+                SecureByteArray(result.sharedSecret)
+            )
+            credentialsManager.setActiveCredentials(apiCredentials)
+
             Logger.i(TAG) { "Authentication completed successfully for ${result.identity}" }
         } catch (e: Exception) {
             Logger.e(TAG, e) { "Error completing auth" }
@@ -280,6 +299,10 @@ class YouAuthFlowManager {
 
         OdinClientFactory.clearCredentials()
         _authState.value = YouAuthState.Unauthenticated
+
+        // API-SERVICE-EXAMPLE: remove from CredentialsManager
+        credentialsManager.removeActiveCredentials()
+
         Logger.i(TAG) { "User logged out" }
     }
 
@@ -291,7 +314,7 @@ class YouAuthFlowManager {
      * Cancel the current authentication flow. Call this when the user cancels the browser or
      * navigates away.
      */
-    fun cancelAuth() {
+    suspend fun cancelAuth() {
         if (_authState.value == YouAuthState.Authenticating) {
             Logger.i(TAG) { "Authentication cancelled by user" }
 
@@ -304,6 +327,9 @@ class YouAuthFlowManager {
             authCodeFlowState = null
 
             _authState.value = YouAuthState.Unauthenticated
+
+            // API-SERVICE-EXAMPLE: remove from CredentialsManager
+            credentialsManager.removeActiveCredentials()
         }
     }
 

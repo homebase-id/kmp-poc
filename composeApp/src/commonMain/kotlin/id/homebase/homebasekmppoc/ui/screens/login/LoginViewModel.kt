@@ -2,12 +2,14 @@ package id.homebase.homebasekmppoc.ui.screens.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.lib.youauth.DrivePermissionType
 import id.homebase.homebasekmppoc.lib.youauth.OdinClientFactory
 import id.homebase.homebasekmppoc.lib.youauth.TargetDriveAccessRequest
 import id.homebase.homebasekmppoc.lib.youauth.UsernameStorage
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthState
+import id.homebase.homebasekmppoc.prototype.lib.ApiServiceExample.ApiExampleService
 import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
 import id.homebase.homebasekmppoc.prototype.lib.http.CreateHttpClientOptions
 import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
@@ -77,7 +79,8 @@ var targetDriveAccessRequest: List<TargetDriveAccessRequest> =
 class LoginViewModel(
     private val youAuthFlowManager: YouAuthFlowManager,
     private val usernameStorage: UsernameStorage = UsernameStorage(),
-    private val odinClientFactory: OdinClientFactory
+    private val odinClientFactory: OdinClientFactory,
+    private val apiService: ApiExampleService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
@@ -88,8 +91,16 @@ class LoginViewModel(
 
     init {
         loadUsernameFromStorage()
-        checkExistingSession()
         observeAuthState()
+
+        // SEB:NOTE Bishwa: checkExistingSession became suspend fun, so we need to launch a coroutine
+        viewModelScope.launch {
+            try {
+                checkExistingSession()
+            } catch (e: Exception) {
+                Logger.e("LoginViewModel", e) { "Error checking existing session: ${e.message}" }
+            }
+        }
     }
 
     private fun loadUsernameFromStorage() {
@@ -126,10 +137,10 @@ class LoginViewModel(
         viewModelScope.launch { youAuthFlowManager.onAppResumed() }
     }
 
-    private fun checkExistingSession() {
+    private suspend fun checkExistingSession() {
         if (youAuthFlowManager.restoreSession()) {
             _uiState.update { it.copy(isAuthenticated = true) }
-            viewModelScope.launch { _uiEvent.send(LoginUiEvent.NavigateToHome) }
+            _uiEvent.send(LoginUiEvent.NavigateToHome)
         }
     }
 
@@ -145,11 +156,9 @@ class LoginViewModel(
 
             // Verify the identity is reachable before starting auth flow
             try {
-                val odinClient = odinClientFactory.createUnauthenticated(homebaseId);
-                val httpClient = odinClient.createHttpClient()
-                val response: HttpResponse = httpClient.get("health/ping")
 
-                if (!response.status.isSuccess()) {
+                val success = apiService.Ping(homebaseId);
+                if (!success) {
                     _uiState.update {
                         it.copy(
                             isLoading = false,
