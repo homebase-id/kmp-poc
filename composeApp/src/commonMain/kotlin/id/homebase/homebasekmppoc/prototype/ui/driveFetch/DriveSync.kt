@@ -21,6 +21,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
 
+
 class DriveSync(
     private val identityId: Uuid,
     private val driveId: Uuid,
@@ -91,6 +92,7 @@ class DriveSync(
                 )
             )
 
+            var recordsRead = 0
             val durationMs = measureTimedValue {
                 try {
                     queryBatchResponse = driveQueryProvider.queryBatch(driveId, request)
@@ -100,8 +102,8 @@ class DriveSync(
 
                     val searchResults = queryBatchResponse.searchResults
                     if (searchResults.isNotEmpty()) {
-                        val batchCount = searchResults.size
-                        totalCount += batchCount
+                        recordsRead = searchResults.size
+                        totalCount += recordsRead
 
                         // Run DB operation in background without waiting - fire and forget
                         scope.launch {
@@ -114,7 +116,7 @@ class DriveSync(
                                         cursor = cursor
                                     )
                                 }
-                                Logger.i("DB insert time ${dbMs} for ${searchResults.size} rows")
+                                Logger.i("DB insert time $dbMs for ${searchResults.size} rows")
                             } catch (e: Exception) {
                                 Logger.e("DB upsert failed for batch: ${e.message}")
                             }
@@ -125,27 +127,31 @@ class DriveSync(
                         EventBusFlow.emit(BackendEvent.SyncUpdate.BatchReceived(
                             driveId = driveId,
                             totalCount = totalCount,
-                            batchCount = batchCount,
+                            batchCount = recordsRead,
                             latestModified = latestModified,
                             batchData = searchResults
                         ))
                     }
 
-                    keepGoing = searchResults?.let { it.size >= batchSize } ?: false
+                    // TODO: The BE should return the moreRows boolean from QueryBatch.
+                    keepGoing = searchResults.size >= batchSize
                 } catch (e: Exception) {
                     EventBusFlow.emit(BackendEvent.SyncUpdate.Failed(driveId, "Sync failed: ${e.message}"))
                     keepGoing = false
                 }
             }
 
-            val batchWas = batchSize
-            val targetMs = 700L
-            if (durationMs.duration.inWholeMilliseconds > 0) {
-                batchSize = (batchSize.toLong() * targetMs / durationMs.duration.inWholeMilliseconds)
-                    .toInt()
-                    .coerceIn(50, 1000)
+            if (recordsRead > 0) {
+                val batchWas = batchSize
+                val targetMs = 700L
+                if (durationMs.duration.inWholeMilliseconds > 0) {
+                    batchSize =
+                        (batchSize.toLong() * targetMs / durationMs.duration.inWholeMilliseconds)
+                            .toInt()
+                            .coerceIn(50, 1000)
+                }
+                Logger.d("Batch size: $batchWas, took ${durationMs.duration.inWholeMilliseconds}ms, now adjusted to: $batchSize")
             }
-            Logger.d("Batch size: $batchWas, took ${durationMs.duration.inWholeMilliseconds}ms, now adjusted to: $batchSize")
         }
 
         EventBusFlow.emit(BackendEvent.SyncUpdate.Completed(driveId, totalCount))

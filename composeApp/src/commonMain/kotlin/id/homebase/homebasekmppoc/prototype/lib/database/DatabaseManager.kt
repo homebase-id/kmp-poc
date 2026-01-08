@@ -72,6 +72,32 @@ class DatabaseManager(driverProvider: () -> SqlDriver) : AutoCloseable
             instance = DatabaseManager(driverProvider)
         }
         val appDb: DatabaseManager get() = instance
+
+        suspend fun wipe(driverProvider: () -> SqlDriver)
+        {
+            withContext(Dispatchers.IO) {
+                val driver = driverProvider()
+                try {
+                    val tables = listOf(
+                        "AppNotifications",
+                        "DriveLocalTagIndex",
+                        "DriveMainIndex",
+                        "DriveTagIndex",
+                        "KeyValue",
+                        "Outbox"
+                    )
+                    tables.forEach { table ->
+                        driver.execute(null, "DROP TABLE IF EXISTS $table;", 0)
+                    }
+                    // OdinDatabase.Schema.create(driver)
+                } catch (e: Exception) {
+                    throw e
+                } finally {
+                    // driver.close()
+                }
+            }
+        }
+
     }
 
     // Lazy wrappers
@@ -84,6 +110,7 @@ class DatabaseManager(driverProvider: () -> SqlDriver) : AutoCloseable
 
     init {
         driver = driverProvider()
+        OdinDatabase.Schema.create(driver) // Create the tables if they are missing
         database = OdinDatabase(
             driver,
             appNotificationsAdapter,
@@ -102,8 +129,14 @@ class DatabaseManager(driverProvider: () -> SqlDriver) : AutoCloseable
         mapper: (SqlCursor) -> QueryResult<R>,
         parameters: Int,
         binders: (SqlPreparedStatement.() -> Unit)? = null
-    ): QueryResult<R> = driver.executeQuery(identifier, sql, mapper, parameters, binders)
-
+    ): QueryResult<R> = withContext(dbDispatcher) {
+        try {
+            driver.executeQuery(identifier, sql, mapper, parameters, binders)
+        } catch (e: Exception) {
+            logger.e { "executeReadQuery failed: ${e.message}\nSQL: $sql\nStack: ${e.stackTraceToString()}" }
+            throw e  // Rethrow if you want the caller to handle, or return a fallback QueryResult
+        }
+    }
     suspend fun withWriteTransaction(block: (OdinDatabase) -> Unit) {
         withContext(dbDispatcher) {
             database.transaction { block(database) }

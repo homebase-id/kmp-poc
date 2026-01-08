@@ -25,7 +25,15 @@ class KeyValueWrapper(
 
     fun selectByKey(
         key: Uuid,
-    ): KeyValue? = delegate.selectByKey(key).executeAsOneOrNull()
+    ): KeyValue?
+    {
+        try {
+            return delegate.selectByKey(key).executeAsOneOrNull()
+        } catch (e: Exception) {
+            println { "executeReadQuery failed: ${e.message}\n" }
+            throw e  // Rethrow if you want the caller to handle, or return a fallback QueryResult
+        }
+    }
 
     suspend fun upsertValue(
         key: Uuid,

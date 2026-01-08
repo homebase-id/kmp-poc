@@ -191,7 +191,7 @@ object MainIndexMetaHelpers {
                     n = 0L
                     var l = 0L
                     fileHeader.fileMetadata.appData.tags?.forEach { tagRecord ->
-                        println("Insert Tag ${driveMainIndexRecord.fileId}: $tagRecord")
+                        // println("Insert Tag ${driveMainIndexRecord.fileId}: $tagRecord")
                         n += db.driveTagIndexQueries.insertTag(
                             identityId = identityId,
                             driveId = driveId,
@@ -206,7 +206,7 @@ object MainIndexMetaHelpers {
                     n = 0L
                     l = 0L
                     fileHeader.fileMetadata.localAppData?.tags?.forEach { tagRecord ->
-                        println("Insert Local Tag ${driveMainIndexRecord.fileId}: $tagRecord")
+                        // println("Insert Local Tag ${driveMainIndexRecord.fileId}: $tagRecord")
                         n += db.driveLocalTagIndexQueries.insertLocalTag(
                             identityId = identityId,
                             driveId = driveId,
