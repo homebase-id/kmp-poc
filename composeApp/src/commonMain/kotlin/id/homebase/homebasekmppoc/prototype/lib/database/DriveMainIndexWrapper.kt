@@ -1,8 +1,8 @@
 package id.homebase.homebasekmppoc.lib.database
 
-import app.cash.sqldelight.Query
 import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.db.SqlDriver
+import app.cash.sqldelight.db.SqlCursor
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
 import kotlin.Any
 import kotlin.Long
@@ -38,26 +38,26 @@ class DriveMainIndexWrapper(
             fileSystemType: Long,
             jsonHeader: String,
         ) -> T,
-    ): Query<T> = delegate.selectByIdentityAndDriveAndFile(identityId, driveId, fileId, mapper)
+    ): T? = delegate.selectByIdentityAndDriveAndFile(identityId, driveId, fileId, mapper).executeAsOneOrNull()
 
     fun selectByIdentityAndDriveAndFile(
         identityId: Uuid,
         driveId: Uuid,
         fileId: Uuid,
-    ): Query<DriveMainIndex> = delegate.selectByIdentityAndDriveAndFile(identityId, driveId, fileId)
+    ): DriveMainIndex? = delegate.selectByIdentityAndDriveAndFile(identityId, driveId, fileId).executeAsOneOrNull()
 
     fun selectByIdentityAndDriveAndUnique(
         identityId: Uuid,
         driveId: Uuid,
         uniqueId: Uuid,
-    ): Query<DriveMainIndex> = delegate.selectByIdentityAndDriveAndUnique(identityId, driveId, uniqueId)
+    ): DriveMainIndex? = delegate.selectByIdentityAndDriveAndUnique(identityId, driveId, uniqueId).executeAsOneOrNull()
 
 
     fun selectByIdentityAndDriveAndGlobal(
         identityId: Uuid,
         driveId: Uuid,
         globalTransitId: Uuid,
-    ): Query<DriveMainIndex> = delegate.selectByIdentityAndDriveAndGlobal(identityId, driveId, globalTransitId)
+    ): DriveMainIndex? = delegate.selectByIdentityAndDriveAndGlobal(identityId, driveId, globalTransitId).executeAsOneOrNull()
 
 
     fun <T : Any> selectAll(
@@ -80,16 +80,16 @@ class DriveMainIndexWrapper(
             fileSystemType: Long,
             jsonHeader: String,
         ) -> T,
-    ): Query<T> = delegate.selectAll(mapper)
+    ): List<T> = delegate.selectAll(mapper).executeAsList()
 
-    fun selectAll(): Query<DriveMainIndex> = delegate.selectAll()
+    fun selectAll(): List<DriveMainIndex> = delegate.selectAll().executeAsList()
 
-    fun countAll(): Query<Long> = delegate.countAll()
+    fun countAll(): Long = delegate.countAll().executeAsOne()
 
     suspend fun upsertDriveMainIndex(
         identityId: Uuid,
         driveId: Uuid,
-        fileId: Uuid?,
+        fileId: Uuid,
         uniqueId: Uuid?,
         globalTransitId: Uuid?,
         groupId: Uuid?,
@@ -103,24 +103,54 @@ class DriveMainIndexWrapper(
         modified: Long,
         fileSystemType: Long,
         jsonHeader: String,
-    ): Long
+    ): Boolean
     {
         return databaseManager.withWriteValue {
-            delegate.upsertDriveMainIndex(identityId, driveId, fileId, uniqueId, globalTransitId, groupId, senderId, fileType, dataType, archivalStatus, historyStatus, userDate, created, modified, fileSystemType, jsonHeader).value
+            delegate.upsertDriveMainIndex(identityId, driveId, fileId, uniqueId, globalTransitId, groupId, senderId, fileType, dataType, archivalStatus, historyStatus, userDate, created, modified, fileSystemType, jsonHeader).value > 0
         }
     }
 
-    suspend fun deleteAll(): Long
+    suspend fun deleteAll(): Boolean
     {
-        return databaseManager.withWriteValue { delegate.deleteAll().value }
+        return databaseManager.withWriteValue { delegate.deleteAll().value > 0 }
     }
 
     suspend fun deleteBy(
         identityId: Uuid,
         driveId: Uuid,
         fileId: Uuid,
-    ): Long
+    ): Boolean
     {
-        return databaseManager.withWriteValue { delegate.deleteBy(identityId, driveId, fileId).value }
+        return databaseManager.withWriteValue { delegate.deleteBy(identityId, driveId, fileId).value > 0 }
+    }
+
+    // Returns -1 if unable to read the version
+    suspend fun getSchemaVersion(): Long {
+        val sqlQuery = "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'DriveMainIndex'"
+        val createStmt = databaseManager.executeReadQuery(
+            null,
+            sqlQuery,
+            mapper = { cursor: SqlCursor ->
+                if (cursor.next().value) {
+                    QueryResult.Value(cursor.getString(0))
+                } else {
+                    QueryResult.Value(null)
+                }
+            },
+            parameters = 0,
+            binders = null
+        ).value as String?
+
+        if (createStmt == null) return -1
+
+        val commentRegex = Regex("-- Version: (\\d+)")
+        val match = commentRegex.find(createStmt)
+
+        val result = match?.groups?.get(1)?.value?.toLong()
+
+        if (result == null)
+            return -1
+        else
+            return result
     }
 }

@@ -21,12 +21,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
 
-// TODO: When we update main-index-meta we should PROBABLY ignore any item with incoming.modified < db.modified
 
 class DriveSync(
     private val identityId: Uuid,
     private val driveId: Uuid,
-    private val driveQueryProvider: DriveQueryProvider, // TODO: <- can we get rid of this?)
+    private val driveQueryProvider: DriveQueryProvider, // TODO: <- can we get rid of this?
     private val databaseManager: DatabaseManager
 ) {
     private var cursor: QueryBatchCursor?
@@ -38,22 +37,24 @@ class DriveSync(
     //TODO: Consider having a (readable) "last modified" which holds the largest timestamp of last-modified
 
     init {
-        // Temp hack, remove soon.
         // Load cursor from database
-        runBlocking { initialize() }
         val cursorStorage = CursorStorage(databaseManager, driveId)
         cursor = cursorStorage.loadCursor()
+
+        // temp hack
+        runBlocking { testHack() }
     }
 
-    suspend fun initialize()
+    suspend fun testHack()
     {
         // Temp hack, remove soon.
-        // Load cursor from database
-
         DatabaseManager.appDb.driveMainIndex.deleteAll() // TODO: <-- don't delete all! :-)
         DatabaseManager.appDb.driveTagIndex.deleteAll() // TODO: <-- don't delete all! :-)
         DatabaseManager.appDb.driveLocalTagIndex.deleteAll() // TODO: <-- don't delete all! :-)
         DatabaseManager.appDb.keyValue.deleteByKey(driveId) // TODO: <-- don't delete the cursor
+        val cursorStorage = CursorStorage(databaseManager, driveId)
+        cursorStorage.deleteCursor();
+        cursor = null
     }
 
     // I remain tempted to let the sync() function spawn a thread
@@ -82,9 +83,10 @@ class DriveSync(
         EventBusFlow.emit(BackendEvent.SyncUpdate.SyncStarted(driveId));
 
         while (keepGoing) {
+            Logger.i("Querying host for ${batchSize} rows")
             val request = QueryBatchRequest(
                 queryParams = FileQueryParams(
-                    fileState = listOf(FileState.Active)
+                    fileState = listOf(FileState.Active) // <-- TODO: We want them all, not just "active"?
                 ),
                 resultOptionsRequest = QueryBatchResultOptionsRequest(
                     maxRecords = batchSize,
@@ -93,6 +95,7 @@ class DriveSync(
                 )
             )
 
+            var recordsRead = 0
             val durationMs = measureTimedValue {
                 try {
                     queryBatchResponse = driveQueryProvider.queryBatch(driveId, request)
@@ -102,11 +105,11 @@ class DriveSync(
 
                     val searchResults = queryBatchResponse.searchResults
                     if (searchResults.isNotEmpty()) {
-                        val batchCount = searchResults.size
-                        totalCount += batchCount
+                        recordsRead = searchResults.size
+                        totalCount += recordsRead
 
                         // Run DB operation in background without waiting - fire and forget
-                        CoroutineScope(Dispatchers.Default).launch {
+                        scope.launch {
                             try {
                                 val dbMs = measureTimedValue {
                                     fileHeaderProcessor.baseUpsertEntryZapZap(
@@ -116,7 +119,7 @@ class DriveSync(
                                         cursor = cursor
                                     )
                                 }
-                                Logger.i("DB insert time ${dbMs} for ${searchResults.size} rows")
+                                Logger.i("DB insert time $dbMs for ${searchResults.size} rows")
                             } catch (e: Exception) {
                                 Logger.e("DB upsert failed for batch: ${e.message}")
                             }
@@ -127,27 +130,31 @@ class DriveSync(
                         EventBusFlow.emit(BackendEvent.SyncUpdate.BatchReceived(
                             driveId = driveId,
                             totalCount = totalCount,
-                            batchCount = batchCount,
+                            batchCount = recordsRead,
                             latestModified = latestModified,
                             batchData = searchResults
                         ))
                     }
 
-                    keepGoing = searchResults?.let { it.size >= batchSize } ?: false
+                    // TODO: The BE should return the moreRows boolean from QueryBatch.
+                    keepGoing = searchResults.size >= batchSize
                 } catch (e: Exception) {
                     EventBusFlow.emit(BackendEvent.SyncUpdate.Failed(driveId, "Sync failed: ${e.message}"))
                     keepGoing = false
                 }
             }
 
-            val batchWas = batchSize
-            val targetMs = 700L
-            if (durationMs.duration.inWholeMilliseconds > 0) {
-                batchSize = (batchSize.toLong() * targetMs / durationMs.duration.inWholeMilliseconds)
-                    .toInt()
-                    .coerceIn(50, 1000)
+            if (recordsRead > 0) {
+                val batchWas = batchSize
+                val targetMs = 700L
+                if (durationMs.duration.inWholeMilliseconds > 0) {
+                    batchSize =
+                        (batchSize.toLong() * targetMs / durationMs.duration.inWholeMilliseconds)
+                            .toInt()
+                            .coerceIn(50, 1000)
+                }
+                Logger.d("Batch size: $batchWas, took ${durationMs.duration.inWholeMilliseconds}ms, now adjusted to: $batchSize")
             }
-            Logger.d("Batch size: $batchWas, took ${durationMs.duration.inWholeMilliseconds}ms, now adjusted to: $batchSize")
         }
 
         EventBusFlow.emit(BackendEvent.SyncUpdate.Completed(driveId, totalCount))

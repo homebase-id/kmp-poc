@@ -173,6 +173,10 @@ fun DriveFetchPage(
                 is BackendEvent.GoingOffline -> {
                     isOnline = false
                 }
+
+                else -> {
+                    // Some other event... ?
+                }
             }
         }
     }

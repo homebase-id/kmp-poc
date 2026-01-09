@@ -22,9 +22,7 @@ class CursorStorage(
      * Returns null if no cursor is found in the database
      */
     fun loadCursor(): QueryBatchCursor? {
-        return databaseManager.keyValue.selectByKey(driveId)
-            .executeAsOneOrNull()
-            ?.let { QueryBatchCursor.fromJson(it.data_.decodeToString()) }
+        return databaseManager.keyValue.selectByKey(driveId)?.let { QueryBatchCursor.fromJson(it.data_.decodeToString()) }
     }
     
     /**

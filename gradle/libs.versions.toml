@@ -25,8 +25,9 @@ kermit="2.0.8"
 cryptography="0.5.0"
 robolectric = "4.16"
 navigation = "2.9.1"
-koin = "4.1.1"
-filekit = "0.12.0"
+ koin = "4.1.1"
+ filekit = "0.12.0"
+ atomicfu = "0.26.1"
 
 
 [libraries]
@@ -56,8 +57,9 @@ ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
 ktor-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "ktor" }
 ktor-server-html-builder = { module = "io.ktor:ktor-server-html-builder", version.ref = "ktor" }
 ktor-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
-androidx-browser = { group = "androidx.browser", name = "browser", version.ref = "browser" }
-kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
+ androidx-browser = { group = "androidx.browser", name = "browser", version.ref = "browser" }
+ atomicfu = { module = "org.jetbrains.kotlinx:atomicfu", version.ref = "atomicfu" }
+ kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
 sqldelight-runtime = { module = "app.cash.sqldelight:runtime", version.ref = "sqldelight" }
 sqldelight-coroutines-extensions = { module = "app.cash.sqldelight:coroutines-extensions", version.ref = "sqldelight" }
 sqldelight-android-driver = { module = "app.cash.sqldelight:android-driver", version.ref = "sqldelight" }

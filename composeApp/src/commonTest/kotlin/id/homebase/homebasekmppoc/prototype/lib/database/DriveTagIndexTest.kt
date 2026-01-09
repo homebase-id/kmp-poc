@@ -41,7 +41,7 @@ class DriveTagIndexTest {
                 identityId = identityId,
                 driveId = driveId,
                 fileId = fileId
-            ).executeAsList()
+            )
 
             // Verify insertion
             assertEquals(1, tags.size, "Should have exactly one tag")
@@ -64,7 +64,7 @@ class DriveTagIndexTest {
                 identityId = identityId,
                 driveId = driveId,
                 fileId = fileId
-            ).executeAsList()
+            )
 
             assertEquals(2, tagsAfterSecondInsert.size, "Should have exactly two tags")
 
@@ -80,7 +80,7 @@ class DriveTagIndexTest {
                 identityId = identityId,
                 driveId = driveId,
                 fileId = fileId
-            ).executeAsList()
+            )
 
             assertTrue(tagsAfterDelete.isEmpty(), "Should have no tags after deletion")
         }
@@ -99,7 +99,7 @@ class DriveTagIndexTest {
                 identityId = identityId,
                 driveId = driveId,
                 fileId = fileId
-            ).executeAsList()
+            )
 
             // Verify no tags found
             assertTrue(tags.isEmpty(), "Should have no tags for non-existent file")
@@ -145,7 +145,7 @@ class DriveTagIndexTest {
                     identityId = identityId,
                     driveId = driveId,
                     fileId = fileId
-                ).executeAsList()
+                )
                 assertTrue(tags.size >= 1, "Should have at least one tag")
             } catch (e: Exception) {
                 // This is expected if the UNIQUE constraint is enforced

@@ -96,14 +96,14 @@ open class DriveSyncThreadSafetyTest {
             assertEquals(threadCount, completedThreads, "All threads should have completed")
 
             // Verify database integrity
-            val actualRowCount = dbm.driveMainIndex.countAll().executeAsOne()
+            val actualRowCount = dbm.driveMainIndex.countAll()
             assertEquals(
                 totalExpectedRows.toLong(), actualRowCount,
                 "Database should contain exactly $totalExpectedRows rows, but has $actualRowCount"
             )
 
             // Verify no duplicate rows (should be unique file IDs)
-            val allDbRecords = dbm.driveMainIndex.selectAll().executeAsList()
+            val allDbRecords = dbm.driveMainIndex.selectAll()
             val duplicateFileIds = allDbRecords
                 .groupBy { it.fileId }
                 .filter { it.value.size > 1 }

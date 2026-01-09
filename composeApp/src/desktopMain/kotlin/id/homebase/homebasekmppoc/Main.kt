@@ -12,7 +12,10 @@ import kotlinx.coroutines.runBlocking
 
 fun main() = application {
     // Initialize database
-    runBlocking { DatabaseManager.initialize { DatabaseDriverFactory().createDriver() } }
+    runBlocking {
+        // DatabaseManager.wipe { DatabaseDriverFactory().createDriver() } // <-- uncomment to wipe all the tables.
+        DatabaseManager.initialize { DatabaseDriverFactory().createDriver() }
+    }
 
     Window(
         onCloseRequest = ::exitApplication,

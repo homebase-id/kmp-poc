@@ -33,8 +33,11 @@ class MainActivity : ComponentActivity() {
         SharedPreferences.initialize(applicationContext)
         FileKit.init(this)
         // Initialize App database singleton (a companion (static) object in the DatabaseManager class
-        val driver = DatabaseDriverFactory(applicationContext)
-        DatabaseManager.initialize { driver.createDriver() }
+
+        runBlocking {
+            // DatabaseManager.wipe { DatabaseDriverFactory(applicationContext).createDriver() } // <-- Uncomment to wipe database
+            DatabaseManager.initialize { DatabaseDriverFactory(applicationContext).createDriver() }
+        }
 
         handleIntent(intent)
 

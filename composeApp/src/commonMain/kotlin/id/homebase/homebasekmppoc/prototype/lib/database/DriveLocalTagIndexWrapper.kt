@@ -26,15 +26,15 @@ class DriveLocalTagIndexWrapper(
             fileId: Uuid,
             tagId: Uuid,
         ) -> T,
-    ): Query<T> = delegate.selectByFile(identityId, driveId, fileId, mapper)
+    ): List<T> = delegate.selectByFile(identityId, driveId, fileId, mapper).executeAsList()
 
     fun selectByFile(
         identityId: Uuid,
         driveId: Uuid,
         fileId: Uuid,
-    ): Query<DriveLocalTagIndex> = delegate.selectByFile(identityId, driveId, fileId)
+    ): List<DriveLocalTagIndex> = delegate.selectByFile(identityId, driveId, fileId).executeAsList()
 
-    fun countAll(): Query<Long> = delegate.countAll()
+    fun countAll(): Long = delegate.countAll().executeAsOne()
 
     suspend fun insertLocalTag(
         identityId: Uuid,

@@ -14,7 +14,6 @@ import id.homebase.homebasekmppoc.lib.database.OdinDatabase
 import id.homebase.homebasekmppoc.lib.database.Outbox
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
-import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import id.homebase.homebasekmppoc.lib.database.AppNotificationsWrapper
 import id.homebase.homebasekmppoc.lib.database.DriveMainIndexWrapper
@@ -64,27 +63,9 @@ class DatabaseManager(driverProvider: () -> SqlDriver) : AutoCloseable
     private var driver: SqlDriver
     private val dbDispatcher = Dispatchers.IO.limitedParallelism(1)
 
-    companion object {
-        lateinit var instance: DatabaseManager
-        private set
-
-        fun initialize(driverProvider: () -> SqlDriver) {
-            if (::instance.isInitialized) throw IllegalStateException("Already initialized")
-            instance = DatabaseManager(driverProvider)
-        }
-        val appDb: DatabaseManager get() = instance
-    }
-
-    // Lazy wrappers
-    public val keyValue: KeyValueWrapper by lazy { KeyValueWrapper(driver, keyValueAdapter, this) }
-    public val appNotifications: AppNotificationsWrapper by lazy { AppNotificationsWrapper(driver, appNotificationsAdapter, this) }
-    public val driveMainIndex: DriveMainIndexWrapper by lazy { DriveMainIndexWrapper(driver, driveMainIndexAdapter, this) }
-    public val driveTagIndex: DriveTagIndexWrapper by lazy { DriveTagIndexWrapper(driver, driveTagIndexAdapter, this) }
-    public val driveLocalTagIndex: DriveLocalTagIndexWrapper by lazy { DriveLocalTagIndexWrapper(driver, driveLocalTagIndexAdapter, this) }
-    public val outbox: OutboxWrapper by lazy { OutboxWrapper(driver, outboxAdapter) }
-
     init {
         driver = driverProvider()
+        OdinDatabase.Schema.create(driver) // Create the tables if they are missing
         database = OdinDatabase(
             driver,
             appNotificationsAdapter,
@@ -97,14 +78,72 @@ class DatabaseManager(driverProvider: () -> SqlDriver) : AutoCloseable
         logger.i { "Database initialized" }
     }
 
+    companion object {
+        private const val DATABASE_VERSION=1  // Increase to wipe the database and rebuild all tables
+        private lateinit var instance: DatabaseManager
+        val appDb: DatabaseManager get() = instance
+
+        suspend fun initialize(driverProvider: () -> SqlDriver) {
+            if (::instance.isInitialized) throw IllegalStateException("Already initialized")
+
+            val driver = driverProvider()
+            instance = DatabaseManager(driverProvider)
+
+            val version = instance.driveMainIndex.getSchemaVersion()
+
+            if (version < DATABASE_VERSION) {
+                wipeTables(driver);
+                OdinDatabase.Schema.create(driver)
+            }
+        }
+
+        suspend fun wipeTables(driver: SqlDriver)
+        {
+            withContext(Dispatchers.IO) {
+                try {
+                    val tables = listOf(
+                        "AppNotifications",
+                        "DriveLocalTagIndex",
+                        "DriveMainIndex",
+                        "DriveTagIndex",
+                        "KeyValue",
+                        "Outbox"
+                    )
+                    tables.forEach { table ->
+                        driver.execute(null, "DROP TABLE IF EXISTS $table;", 0)
+                    }
+                    // OdinDatabase.Schema.create(driver)
+                } catch (e: Exception) {
+                    throw e
+                } finally {
+                    // driver.close()
+                }
+            }
+        }
+    }
+
+    // Lazy wrappers
+    public val keyValue: KeyValueWrapper by lazy { KeyValueWrapper(driver, keyValueAdapter, this) }
+    public val appNotifications: AppNotificationsWrapper by lazy { AppNotificationsWrapper(driver, appNotificationsAdapter, this) }
+    public val driveMainIndex: DriveMainIndexWrapper by lazy { DriveMainIndexWrapper(driver, driveMainIndexAdapter, this) }
+    public val driveTagIndex: DriveTagIndexWrapper by lazy { DriveTagIndexWrapper(driver, driveTagIndexAdapter, this) }
+    public val driveLocalTagIndex: DriveLocalTagIndexWrapper by lazy { DriveLocalTagIndexWrapper(driver, driveLocalTagIndexAdapter, this) }
+    public val outbox: OutboxWrapper by lazy { OutboxWrapper(driver, outboxAdapter, this) }
+
     suspend fun <R> executeReadQuery(
         identifier: Int?,
         sql: String,
         mapper: (SqlCursor) -> QueryResult<R>,
         parameters: Int,
         binders: (SqlPreparedStatement.() -> Unit)? = null
-    ): QueryResult<R> = driver.executeQuery(identifier, sql, mapper, parameters, binders)
-
+    ): QueryResult<R> = withContext(dbDispatcher) {
+        try {
+            driver.executeQuery(identifier, sql, mapper, parameters, binders)
+        } catch (e: Exception) {
+            logger.e { "executeReadQuery failed: ${e.message}\nSQL: $sql\nStack: ${e.stackTraceToString()}" }
+            throw e  // Rethrow if you want the caller to handle, or return a fallback QueryResult
+        }
+    }
     suspend fun withWriteTransaction(block: (OdinDatabase) -> Unit) {
         withContext(dbDispatcher) {
             database.transaction { block(database) }

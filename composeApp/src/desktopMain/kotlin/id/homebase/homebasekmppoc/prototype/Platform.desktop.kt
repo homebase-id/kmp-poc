@@ -9,7 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
 class JVMPlatform : Platform {
-    override val name: String = "Java ${System.getProperty("java.version")}"
+    override val name: PlatformType = PlatformType.JVM
 }
 
 actual fun getPlatform(): Platform = JVMPlatform()

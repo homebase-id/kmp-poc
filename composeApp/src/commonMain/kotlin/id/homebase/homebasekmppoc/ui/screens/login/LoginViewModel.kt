@@ -8,6 +8,9 @@ import id.homebase.homebasekmppoc.lib.youauth.TargetDriveAccessRequest
 import id.homebase.homebasekmppoc.lib.youauth.UsernameStorage
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthState
+import id.homebase.homebasekmppoc.prototype.Platform
+import id.homebase.homebasekmppoc.prototype.PlatformType
+import id.homebase.homebasekmppoc.prototype.getPlatform
 import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
 import id.homebase.homebasekmppoc.prototype.lib.http.CreateHttpClientOptions
 import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
@@ -123,7 +126,9 @@ class LoginViewModel(
     }
 
     private fun handleAppResumed() {
-        viewModelScope.launch { youAuthFlowManager.onAppResumed() }
+        viewModelScope.launch {
+            if (getPlatform().name != PlatformType.IOS)
+            youAuthFlowManager.onAppResumed() }
     }
 
     private fun checkExistingSession() {
