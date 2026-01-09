@@ -1,4 +1,4 @@
-    package id.homebase.homebasekmppoc.prototype.ui.driveFetch
+package id.homebase.homebasekmppoc.prototype.ui.driveFetch
 
 import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.lib.database.Outbox
@@ -52,17 +52,21 @@ class OutboxSync(
             } finally {
                 // After loop, check if this is the final thread
                 var nextSend : UnixTimeUtc? = null
-                counterMutex.withLock {
-                    if (activeThreads.decrementAndGet() == 0) {
-                        val n = totalSent.getAndSet(0)
-                        nextSend = databaseManager.outbox.nextScheduled()
-                        EventBusFlow.emit(BackendEvent.OutboxUpdate.Completed(n))
+                try {
+                    counterMutex.withLock {
+                        if (activeThreads.decrementAndGet() == 0) {
+                            val n = totalSent.getAndSet(0)
+                            nextSend = databaseManager.outbox.nextScheduled()
+                            EventBusFlow.emit(BackendEvent.OutboxUpdate.Completed(n))
+                        }
                     }
                 }
-                semaphore.release()
+                finally {
+                    semaphore.release()
+                }
                 if (nextSend != null)
                 {
-                    val delay = nextSend.milliseconds - UnixTimeUtc.now().milliseconds
+                    val delay = nextSend!!.milliseconds - UnixTimeUtc.now().milliseconds
                     delay(delay) // Put the thread to sleep
                 }
             }
