@@ -105,7 +105,7 @@ class OutboxSync(
                 totalSent.incrementAndGet()
             } catch (e: Exception) {
                 val n = 30*outboxRecord.checkOutCount
-                Logger.e("Failed upload for ${outboxRecord.fileId}, retry in $n seconds (attempt ${outboxRecord.checkOutCount + 1})", e)
+                Logger.w("Failed upload for ${outboxRecord.fileId}, retry in $n seconds (attempt ${outboxRecord.checkOutCount + 1})", e)
                 databaseManager.outbox.checkInFailed(outboxRecord.checkOutStamp!!,
                     UnixTimeUtc.now().addSeconds(n.toLong()).seconds )
                 EventBusFlow.emit(BackendEvent.OutboxUpdate.Failed(e.message ?: "Unknown error"))

@@ -12,6 +12,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
+import kotlin.test.assertNotEquals
 import kotlin.uuid.Uuid
 
 class OutboxTest {
@@ -50,13 +51,19 @@ class OutboxTest {
             val checkoutResult = dbm.outbox.checkout(checkOutStamp = checkOutStamp)
             assertNotNull(checkoutResult, "Should successfully checkout the item")
 
+            // Verify the retrieved item
+            assertNotNull(checkoutResult, "Should retrieve the inserted item")
+            assertEquals(0, checkoutResult.lastAttempt, "Last attempt should be zero")
+            assertEquals(0, checkoutResult.checkOutCount, "Check out count should match")
+
+
             // Select the checked out item
             val nextItem = dbm.outbox.selectCheckedOut(checkOutStamp.milliseconds)
             assertNotNull(nextItem, "Should retrieve the checked out item")
 
             // Verify the retrieved item
             assertNotNull(nextItem, "Should retrieve the inserted item")
-            assertEquals(0, nextItem.lastAttempt, "Last attempt should match")
+            assertEquals(0, nextItem.lastAttempt, "Last attempt should be zero")
             assertEquals(0, nextItem.checkOutCount, "Check out count should match")
             assertEquals(
                 data.contentToString(),
