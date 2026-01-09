@@ -5,14 +5,14 @@ import id.homebase.homebasekmppoc.prototype.lib.core.time.UnixTimeUtc
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import kotlinx.atomicfu.atomic
-import kotlinx.coroutines.sync.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.sync.*
 
 class OutboxSync(
-    private val driveQueryProvider: DriveQueryProvider, // TODO: <- can we get rid of this?
     private val databaseManager: DatabaseManager
 ) {
     private val MAX_SENDING_THREADS = 3
@@ -47,7 +47,13 @@ class OutboxSync(
                 counterMutex.withLock {
                     if (activeThreads.decrementAndGet() == 0) {
                         val n = totalSent.getAndSet(0)
+                        val nextSend = databaseManager.outbox.nextScheduled()
                         EventBusFlow.emit(BackendEvent.OutboxUpdate.Completed(n))
+                        if (nextSend != null)
+                        {
+                            val delay = nextSend.milliseconds - UnixTimeUtc.now().milliseconds
+                            delay(delay) // Put the thread to sleep
+                        }
                     }
                 }
                 semaphore.release()

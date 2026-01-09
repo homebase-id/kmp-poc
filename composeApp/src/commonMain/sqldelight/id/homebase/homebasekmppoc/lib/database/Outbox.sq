@@ -9,11 +9,12 @@ CREATE TABLE IF NOT EXISTS Outbox(
    lastAttempt INTEGER NOT NULL, -- UnixTimeUtc
    nextRunTime INTEGER NOT NULL, -- UnixTimeUtc
    checkOutCount INTEGER NOT NULL,
-   checkOutStamp INTEGER, -- Allow NULL, type ?
+   checkOutStamp INTEGER, -- Allow NULL
    uploadType INTEGER NOT NULL,
    json BLOB NOT NULL,
    files BLOB,
 
+   -- TODO: Is it unique? How about the same file queued many times?
    UNIQUE(driveId,fileId)
 );
 

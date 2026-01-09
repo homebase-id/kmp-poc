@@ -24,25 +24,12 @@ class OutboxWrapper(
         return databaseManager.withWriteValue { delegate.checkout(checkOutStamp.milliseconds, UnixTimeUtc.now().milliseconds).executeAsOneOrNull() }
     }
 
-    fun nextScheduled(): Long? = delegate.nextScheduled().executeAsOneOrNull()
+    fun nextScheduled(): UnixTimeUtc?
+    {
+        val n = delegate.nextScheduled().executeAsOneOrNull()
 
-    fun <T : Any> selectCheckedOut(
-        checkOutStamp: Long,
-        mapper: (
-            rowId: Long,
-            driveId: Uuid,
-            fileId: Uuid,
-            dependencyFileId: Uuid?,
-            priority: Long,
-            lastAttempt: Long,
-            nextRunTime: Long,
-            checkOutCount: Long,
-            checkOutStamp: Long?,
-            uploadType: Long,
-            json: ByteArray,
-            files: ByteArray?,
-        ) -> T,
-    ): T? = delegate.selectCheckedOut(checkOutStamp, mapper).executeAsOneOrNull()
+        return if (n == null) null else return UnixTimeUtc(n)
+    }
 
     fun selectCheckedOut(
         checkOutStamp: Long,
@@ -103,15 +90,6 @@ class OutboxWrapper(
     {
         return databaseManager.withWriteValue {
             delegate.deleteByRowId(rowId).value
-        }
-    }
-
-    suspend fun deleteBy(
-        driveId: Uuid,
-        fileId: Uuid,
-    ): Long {
-        return databaseManager.withWriteValue {
-            delegate.deleteBy(driveId, fileId).value
         }
     }
 }

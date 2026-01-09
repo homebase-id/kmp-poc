@@ -656,7 +656,7 @@ class OutboxTest {
 
                 // Next scheduled should be t3 (f3, no dependency)
                 var nextTime = dbm.outbox.nextScheduled()
-                assertEquals(t3, nextTime)
+                assertEquals(t3, nextTime!!.milliseconds)
 
                 // Checkout f3
                 val checkoutStamp1 = UnixTimeUtc(1L)
@@ -673,7 +673,7 @@ class OutboxTest {
 
                 // Now next should be t2 (f2, depends on f3 which is done)
                 nextTime = dbm.outbox.nextScheduled()
-                assertEquals(t2, nextTime)
+                assertEquals(t2, nextTime!!.milliseconds)
 
                 // Checkout f2
                 val checkoutStamp2 = UnixTimeUtc(2L)
@@ -690,7 +690,7 @@ class OutboxTest {
 
                 // Now next should be t4 (f4, depends on f2 which is done)
                 nextTime = dbm.outbox.nextScheduled()
-                assertEquals(t4, nextTime)
+                assertEquals(t4, nextTime!!.milliseconds)
 
                 // Checkout f4
                 val checkoutStamp3 = UnixTimeUtc(3L)
@@ -707,7 +707,7 @@ class OutboxTest {
 
                 // Now next should be t5 (f5, depends on f4 which is done)
                 nextTime = dbm.outbox.nextScheduled()
-                assertEquals(t5, nextTime)
+                assertEquals(t5, nextTime!!.milliseconds)
 
                 // Checkout f5
                 val checkoutStamp4 = UnixTimeUtc(4L)
@@ -724,7 +724,7 @@ class OutboxTest {
 
                 // Now next should be t1 (f1, depends on f5 which is done)
                 nextTime = dbm.outbox.nextScheduled()
-                assertEquals(t1, nextTime)
+                assertEquals(t1, nextTime!!.milliseconds)
 
                 // Checkout f1
                 val checkoutStamp5 = UnixTimeUtc(5L)
