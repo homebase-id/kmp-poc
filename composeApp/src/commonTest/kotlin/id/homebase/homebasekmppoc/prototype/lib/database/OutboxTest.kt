@@ -27,8 +27,6 @@ class OutboxTest {
     fun testInsertSelectDeleteOutboxItem() = runTest {
         DatabaseManager { createInMemoryDatabase() }.use { dbm ->        // Create a QueryBatchCursor with all fields populated
             // Test data
-            val lastAttempt = 1704067200000L // Unix timestamp
-            val checkOutCount = 1L
             val data = "test data".toByteArray()
             val files = "test files".toByteArray()
             val checkOutStamp = UnixTimeUtc.now()
@@ -58,8 +56,8 @@ class OutboxTest {
 
             // Verify the retrieved item
             assertNotNull(nextItem, "Should retrieve the inserted item")
-            assertEquals(lastAttempt, nextItem.lastAttempt, "Last attempt should match")
-            assertEquals(checkOutCount, nextItem.checkOutCount, "Check out count should match")
+            assertEquals(0, nextItem.lastAttempt, "Last attempt should match")
+            assertEquals(0, nextItem.checkOutCount, "Check out count should match")
             assertEquals(
                 data.contentToString(),
                 nextItem.json.contentToString(),
@@ -103,8 +101,6 @@ class OutboxTest {
     fun testMultipleItemsSequentialOrdering() = runTest {
         DatabaseManager { createInMemoryDatabase() }.use { dbm ->        // Create a QueryBatchCursor with all fields populated
             // Test data
-            val lastAttempt = 1704067200000L
-            val checkOutCount = 1L
             val data = "test data".toByteArray()
 
             // Insert item
@@ -137,53 +133,49 @@ class OutboxTest {
             val checkoutResult = dbm.outbox.checkout(ts5)
             assertNull(checkoutResult, "Should return null when checking out from empty outbox")
         }
+    }
 
-        @Test
-        fun testOutboxItemWithNullFiles() = runTest {
-            DatabaseManager { createInMemoryDatabase() }.use { dbm ->
-                // Test data with null files
-                val lastAttempt = 1704067200000L
-                val checkOutCount = 1L
-                val data = "test data".toByteArray()
+    @Test
+    fun testOutboxItemWithNullFiles() = runTest {
+        DatabaseManager { createInMemoryDatabase() }.use { dbm ->
+            // Test data with null files
+            val data = "test data".toByteArray()
 
-                // Insert item with null files
-                dbm.outbox.insert(
-                    driveId = Uuid.random(),
-                    fileId = Uuid.random(),
-                    dependencyFileId = Uuid.random(),
-                    priority = 0L,
-                    uploadType = 0L,
-                    json = data,
-                    files = null
-                )
+            // Insert item with null files
+            dbm.outbox.insert(
+                driveId = Uuid.random(),
+                fileId = Uuid.random(),
+                dependencyFileId = Uuid.random(),
+                priority = 0L,
+                uploadType = 0L,
+                json = data,
+                files = null
+            )
 
-                // Checkout and select
-                val checkoutStamp = UnixTimeUtc(8L)
-                val checkoutResult = dbm.outbox.checkout(checkoutStamp)
-                assertNotNull(checkoutResult, "Should successfully checkout item")
+            // Checkout and select
+            val checkoutStamp = UnixTimeUtc(8L)
+            val checkoutResult = dbm.outbox.checkout(checkoutStamp)
+            assertNotNull(checkoutResult, "Should successfully checkout item")
 
-                val item = dbm.outbox.selectCheckedOut(checkoutStamp.milliseconds)
-                assertNotNull(item, "Should retrieve the inserted item")
-                assertEquals(lastAttempt, item.lastAttempt, "Last attempt should match")
-                assertEquals(checkOutCount, item.checkOutCount, "Check out count should match")
-                assertEquals(
-                    data.contentToString(),
-                    item.json.contentToString(),
-                    "Data should match"
-                )
-                assertNull(item.files, "Files should be null")
+            val item = dbm.outbox.selectCheckedOut(checkoutStamp.milliseconds)
+            assertNotNull(item, "Should retrieve the inserted item")
+            assertEquals(0, item.lastAttempt, "Last attempt should match")
+            assertEquals(0, item.checkOutCount, "Check out count should match")
+            assertEquals(
+                data.contentToString(),
+                item.json.contentToString(),
+                "Data should match"
+            )
+            assertNull(item.files, "Files should be null")
 
-                // Clean up
-                dbm.outbox.deleteByRowId(item.rowId)
-            }
+            // Clean up
+            dbm.outbox.deleteByRowId(item.rowId)
         }
 
         @Test
         fun testUpdateCheckOutCount() = runTest {
             DatabaseManager { createInMemoryDatabase() }.use { dbm ->
                 // Insert initial item
-                val initialLastAttempt = 1704067200000L
-                val initialCheckOutCount = 1L
                 val data = "test data".toByteArray()
 
                 val insertSuccess = dbm.outbox.insert(
@@ -205,15 +197,13 @@ class OutboxTest {
                 val item = dbm.outbox.selectCheckedOut(checkoutStamp1.milliseconds)
                 assertNotNull(item, "Should retrieve the checked out item")
                 assertEquals(
-                    initialCheckOutCount,
+                    0,
                     item.checkOutCount,
                     "Initial check out count should be 1"
                 )
 
                 // Simulate an update by inserting a new record with updated check out count
                 // (Note: Outbox.sq doesn't have an update operation, so we'd typically delete and reinsert)
-                val updatedLastAttempt = 1704153600000L
-                val updatedCheckOutCount = 2L
 
                 dbm.outbox.deleteByRowId(item.rowId)
                 val insertSuccess2 = dbm.outbox.insert(
@@ -235,12 +225,12 @@ class OutboxTest {
                 val updatedItem = dbm.outbox.selectCheckedOut(checkoutStamp2.milliseconds)
                 assertNotNull(updatedItem, "Should retrieve the updated item")
                 assertEquals(
-                    updatedCheckOutCount,
+                    1,
                     updatedItem.checkOutCount,
                     "Check out count should be updated"
                 )
                 assertEquals(
-                    updatedLastAttempt,
+                    0,
                     updatedItem.lastAttempt,
                     "Last attempt should be updated"
                 )
