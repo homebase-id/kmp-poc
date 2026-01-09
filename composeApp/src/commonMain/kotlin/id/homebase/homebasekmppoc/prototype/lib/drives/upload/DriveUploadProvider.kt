@@ -66,6 +66,14 @@ private data class UpdateLocalMetadataContentRequest(
     val content: String?
 )
 
+data class UploadFileRequest(
+    val instructions: UploadInstructionSet,
+    val metadata: UploadFileMetadata,
+    val payloads: List<PayloadFile>? = null,
+    val thumbnails: List<ThumbnailFile>? = null
+)
+
+
 /** Provider for drive upload and update operations. Ported from JS/TS odin-js UploadProvider. */
 @OptIn(ExperimentalEncodingApi::class)
 class DriveUploadProvider(
@@ -83,6 +91,40 @@ class DriveUploadProvider(
 
     // ==================== HIGH-LEVEL UPLOAD METHODS ====================
 
+    suspend fun uploadFile(
+        request: UploadFileRequest,
+        onVersionConflict: (suspend () -> CreateFileResult?)? = null
+    ): CreateFileResult? {
+
+        // Build manifest based on already-prepared inputs
+        val manifest =
+            UploadManifest.build(
+                payloads = request.payloads,
+                thumbnails = request.thumbnails,
+                generateIv = request.metadata.isEncrypted
+            )
+
+        val serializableInstructions = request.instructions.toSerializable(manifest)
+
+        val data =
+            buildFormData(
+                instructionSet = serializableInstructions,
+                encryptedDescriptor = null, // <-- encryption handled elsewhere
+                payloads = request.payloads,
+                thumbnails = request.thumbnails,
+                keyHeader = null,
+                manifest = manifest
+            )
+
+        // Upload only
+        return pureUpload(
+            data = data,
+            fileSystemType = request.instructions.systemFileType,
+            onVersionConflict = onVersionConflict
+        )
+    }
+
+
     /**
      * Uploads a file with optional encryption.
      *
@@ -95,6 +137,8 @@ class DriveUploadProvider(
      * @param aesKey Optional pre-existing AES key to use
      * @return The upload result with keyHeader, or null if handled by conflict callback
      */
+    // TODO: need to add a large class here that holds all needed to preform the CREATE (same for PATCH)
+
     suspend fun uploadFile(
         instructions: UploadInstructionSet,
         metadata: UploadFileMetadata,

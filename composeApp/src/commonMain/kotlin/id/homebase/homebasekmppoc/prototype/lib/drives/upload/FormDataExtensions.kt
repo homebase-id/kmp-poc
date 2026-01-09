@@ -105,7 +105,7 @@ suspend fun buildFormData(
 ): MultiPartFormDataContent =
     buildFormDataInternal(
         instructionSet = instructionSet,
-        encryptedDescriptor = encryptedDescriptor,
+        encryptedMetadataDescriptor = encryptedDescriptor,
         payloads = payloads,
         thumbnails = thumbnails,
         keyHeader = keyHeader,
@@ -134,7 +134,7 @@ suspend fun buildFormData(
 ): MultiPartFormDataContent =
     buildFormDataInternal(
         instructionSet = instructionSet,
-        encryptedDescriptor = encryptedDescriptor,
+        encryptedMetadataDescriptor = encryptedDescriptor,
         payloads = payloads,
         thumbnails = thumbnails,
         keyHeader = keyHeader,
@@ -163,7 +163,7 @@ suspend fun buildFormData(
 ): MultiPartFormDataContent =
     buildFormDataInternal(
         instructionSet = instructionSet,
-        encryptedDescriptor = encryptedDescriptor,
+        encryptedMetadataDescriptor = encryptedDescriptor,
         payloads = payloads,
         thumbnails = thumbnails,
         keyHeader = keyHeader,
@@ -177,7 +177,7 @@ suspend fun buildFormData(
  */
 private suspend inline fun <reified T> buildFormDataInternal(
     instructionSet: T,
-    encryptedDescriptor: ByteArray?,
+    encryptedMetadataDescriptor: ByteArray?,
     payloads: List<PayloadFile>?,
     thumbnails: List<ThumbnailFile>?,
     keyHeader: KeyHeader?,
@@ -223,10 +223,10 @@ private suspend inline fun <reified T> buildFormDataInternal(
             )
 
             // Append encrypted metadata if present
-            if (encryptedDescriptor != null) {
+            if (encryptedMetadataDescriptor != null) {
                 append(
                     "metadata",
-                    encryptedDescriptor,
+                    encryptedMetadataDescriptor,
                     Headers.build {
                         append(
                             HttpHeaders.ContentType,
