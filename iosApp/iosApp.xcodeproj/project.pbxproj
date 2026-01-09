@@ -6,7 +6,55 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		4336F5E02F114C3000013FC1 /* libavdevice.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4336F5D82F114C3000013FC1 /* libavdevice.xcframework */; };
+		4336F5E12F114C3000013FC1 /* libavdevice.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 4336F5D82F114C3000013FC1 /* libavdevice.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		4336F5E22F114C3000013FC1 /* libswscale.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4336F5D92F114C3000013FC1 /* libswscale.xcframework */; };
+		4336F5E32F114C3000013FC1 /* libswscale.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 4336F5D92F114C3000013FC1 /* libswscale.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		4336F5E42F114C3000013FC1 /* libavformat.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4336F5DA2F114C3000013FC1 /* libavformat.xcframework */; };
+		4336F5E52F114C3000013FC1 /* libavformat.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 4336F5DA2F114C3000013FC1 /* libavformat.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		4336F5E62F114C3000013FC1 /* libavfilter.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4336F5DB2F114C3000013FC1 /* libavfilter.xcframework */; };
+		4336F5E72F114C3000013FC1 /* libavfilter.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 4336F5DB2F114C3000013FC1 /* libavfilter.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		4336F5E82F114C3000013FC1 /* libswresample.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4336F5DC2F114C3000013FC1 /* libswresample.xcframework */; };
+		4336F5E92F114C3000013FC1 /* libswresample.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 4336F5DC2F114C3000013FC1 /* libswresample.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		4336F5EA2F114C3000013FC1 /* libavcodec.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4336F5DD2F114C3000013FC1 /* libavcodec.xcframework */; };
+		4336F5EB2F114C3000013FC1 /* libavcodec.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 4336F5DD2F114C3000013FC1 /* libavcodec.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		4336F5EC2F114C3000013FC1 /* ffmpegkit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4336F5DE2F114C3000013FC1 /* ffmpegkit.xcframework */; };
+		4336F5ED2F114C3000013FC1 /* ffmpegkit.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 4336F5DE2F114C3000013FC1 /* ffmpegkit.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		4336F5EE2F114C3000013FC1 /* libavutil.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4336F5DF2F114C3000013FC1 /* libavutil.xcframework */; };
+		4336F5EF2F114C3000013FC1 /* libavutil.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 4336F5DF2F114C3000013FC1 /* libavutil.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		4336F5F02F114C3000013FC1 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				4336F5EF2F114C3000013FC1 /* libavutil.xcframework in Embed Frameworks */,
+				4336F5E32F114C3000013FC1 /* libswscale.xcframework in Embed Frameworks */,
+				4336F5EB2F114C3000013FC1 /* libavcodec.xcframework in Embed Frameworks */,
+				4336F5E92F114C3000013FC1 /* libswresample.xcframework in Embed Frameworks */,
+				4336F5ED2F114C3000013FC1 /* ffmpegkit.xcframework in Embed Frameworks */,
+				4336F5E52F114C3000013FC1 /* libavformat.xcframework in Embed Frameworks */,
+				4336F5E72F114C3000013FC1 /* libavfilter.xcframework in Embed Frameworks */,
+				4336F5E12F114C3000013FC1 /* libavdevice.xcframework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		4336F5D82F114C3000013FC1 /* libavdevice.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = libavdevice.xcframework; path = "../composeApp/libs/ffmpegkit-bundled.xcframework/libavdevice.xcframework"; sourceTree = "<group>"; };
+		4336F5D92F114C3000013FC1 /* libswscale.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = libswscale.xcframework; path = "../composeApp/libs/ffmpegkit-bundled.xcframework/libswscale.xcframework"; sourceTree = "<group>"; };
+		4336F5DA2F114C3000013FC1 /* libavformat.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = libavformat.xcframework; path = "../composeApp/libs/ffmpegkit-bundled.xcframework/libavformat.xcframework"; sourceTree = "<group>"; };
+		4336F5DB2F114C3000013FC1 /* libavfilter.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = libavfilter.xcframework; path = "../composeApp/libs/ffmpegkit-bundled.xcframework/libavfilter.xcframework"; sourceTree = "<group>"; };
+		4336F5DC2F114C3000013FC1 /* libswresample.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = libswresample.xcframework; path = "../composeApp/libs/ffmpegkit-bundled.xcframework/libswresample.xcframework"; sourceTree = "<group>"; };
+		4336F5DD2F114C3000013FC1 /* libavcodec.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = libavcodec.xcframework; path = "../composeApp/libs/ffmpegkit-bundled.xcframework/libavcodec.xcframework"; sourceTree = "<group>"; };
+		4336F5DE2F114C3000013FC1 /* ffmpegkit.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = ffmpegkit.xcframework; path = "../composeApp/libs/ffmpegkit-bundled.xcframework/ffmpegkit.xcframework"; sourceTree = "<group>"; };
+		4336F5DF2F114C3000013FC1 /* libavutil.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = libavutil.xcframework; path = "../composeApp/libs/ffmpegkit-bundled.xcframework/libavutil.xcframework"; sourceTree = "<group>"; };
 		80C6BD71F2EAC1FB177DBD2E /* HomebaseKmpPoc.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HomebaseKmpPoc.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -21,17 +69,17 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		05FC010D6BF819919F79D09A /* Configuration */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Configuration;
+			sourceTree = "<group>";
+		};
 		6AF84C0B72F43482597F21BF /* iosApp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				B28EB20AD01E2ED78ED30EEC /* Exceptions for "iosApp" folder in "iosApp" target */,
 			);
 			path = iosApp;
-			sourceTree = "<group>";
-		};
-		05FC010D6BF819919F79D09A /* Configuration */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Configuration;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -41,19 +89,33 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4336F5EE2F114C3000013FC1 /* libavutil.xcframework in Frameworks */,
+				4336F5E22F114C3000013FC1 /* libswscale.xcframework in Frameworks */,
+				4336F5EA2F114C3000013FC1 /* libavcodec.xcframework in Frameworks */,
+				4336F5E82F114C3000013FC1 /* libswresample.xcframework in Frameworks */,
+				4336F5EC2F114C3000013FC1 /* ffmpegkit.xcframework in Frameworks */,
+				4336F5E42F114C3000013FC1 /* libavformat.xcframework in Frameworks */,
+				4336F5E62F114C3000013FC1 /* libavfilter.xcframework in Frameworks */,
+				4336F5E02F114C3000013FC1 /* libavdevice.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		D64428D2D77CBE87A34620FA = {
+		4336F5D72F114C3000013FC1 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				05FC010D6BF819919F79D09A /* Configuration */,
-				6AF84C0B72F43482597F21BF /* iosApp */,
-				D1F465382B764F79FF77FC83 /* Products */,
+				4336F5DE2F114C3000013FC1 /* ffmpegkit.xcframework */,
+				4336F5DD2F114C3000013FC1 /* libavcodec.xcframework */,
+				4336F5D82F114C3000013FC1 /* libavdevice.xcframework */,
+				4336F5DB2F114C3000013FC1 /* libavfilter.xcframework */,
+				4336F5DA2F114C3000013FC1 /* libavformat.xcframework */,
+				4336F5DF2F114C3000013FC1 /* libavutil.xcframework */,
+				4336F5DC2F114C3000013FC1 /* libswresample.xcframework */,
+				4336F5D92F114C3000013FC1 /* libswscale.xcframework */,
 			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 		D1F465382B764F79FF77FC83 /* Products */ = {
@@ -62,6 +124,16 @@
 				80C6BD71F2EAC1FB177DBD2E /* HomebaseKmpPoc.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		D64428D2D77CBE87A34620FA = {
+			isa = PBXGroup;
+			children = (
+				05FC010D6BF819919F79D09A /* Configuration */,
+				6AF84C0B72F43482597F21BF /* iosApp */,
+				4336F5D72F114C3000013FC1 /* Frameworks */,
+				D1F465382B764F79FF77FC83 /* Products */,
+			);
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -75,6 +147,7 @@
 				5BA5B5CA064E344666E47603 /* Sources */,
 				9696005C91B82FB1A98E4C3D /* Frameworks */,
 				8087B6FB5C17A27CD974DFBE /* Resources */,
+				4336F5F02F114C3000013FC1 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -167,6 +240,62 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
+		47B514A680EDF6E58FCE2496 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
+				DEVELOPMENT_TEAM = "${TEAM_ID}";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = iosApp/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		5FBEE8975500D77A2CE13959 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
+				DEVELOPMENT_TEAM = "${TEAM_ID}";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = iosApp/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		C3884757FDCE85DA9C0D2BE2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReferenceAnchor = 05FC010D6BF819919F79D09A /* Configuration */;
@@ -290,79 +419,23 @@
 			};
 			name = Release;
 		};
-		47B514A680EDF6E58FCE2496 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ARCHS = arm64;
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
-				DEVELOPMENT_TEAM = "${TEAM_ID}";
-				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = iosApp/Info.plist;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		5FBEE8975500D77A2CE13959 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ARCHS = arm64;
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
-				DEVELOPMENT_TEAM = "${TEAM_ID}";
-				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = iosApp/Info.plist;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		E6DD183717D4913C904C0EE9 /* Build configuration list for PBXProject "iosApp" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				C3884757FDCE85DA9C0D2BE2 /* Debug */,
-				E3014116DEB86AC0A72E1C47 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		2F785D2F193A2BA1D5260C7D /* Build configuration list for PBXNativeTarget "iosApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				47B514A680EDF6E58FCE2496 /* Debug */,
 				5FBEE8975500D77A2CE13959 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E6DD183717D4913C904C0EE9 /* Build configuration list for PBXProject "iosApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C3884757FDCE85DA9C0D2BE2 /* Debug */,
+				E3014116DEB86AC0A72E1C47 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

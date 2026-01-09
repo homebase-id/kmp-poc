@@ -65,10 +65,54 @@ kotlin {
         iosArm64(),
         iosSimulatorArm64()
     ).forEach { iosTarget ->
+        iosTarget.compilations.getByName("main") {
+            val ffmpegKitCinterop by cinterops.creating {
+                defFile("src/nativeInterop/cinterop/ffmpegkit.def")
+                packageName("id.homebase.homebasekmppoc.media.ffmpegkit")
+                
+                // Determine which architecture content to use for headers (headers are usually same)
+                val frameworkArch = if (iosTarget.konanTarget.name.contains("simulator")) {
+                    "ios-arm64_x86_64-simulator"
+                } else {
+                    "ios-arm64_arm64e"
+                }
+                
+                val libsDir = project.file("libs/ffmpegkit-bundled.xcframework").absolutePath
+                val includeDirs = listOf(
+                    "ffmpegkit.xcframework", "libavcodec.xcframework", "libavdevice.xcframework",
+                    "libavfilter.xcframework", "libavformat.xcframework", "libavutil.xcframework",
+                    "libswresample.xcframework", "libswscale.xcframework"
+                ).map { framework ->
+                    "-F$libsDir/$framework/$frameworkArch"
+                }
+                
+                compilerOpts(includeDirs)
+            }
+        }
+
         iosTarget.binaries.framework {
             baseName = "ComposeApp"
             isStatic = true
             linkerOpts("-lsqlite3")
+            linkerOpts("-lz", "-lbz2", "-liconv") // FFmpeg dependencies
+            
+            // Link against the frameworks
+            val libsDir = project.file("libs/ffmpegkit-bundled.xcframework").absolutePath
+             val frameworkArch = if (iosTarget.konanTarget.name.contains("simulator")) {
+                "ios-arm64_x86_64-simulator"
+            } else {
+                "ios-arm64_arm64e"
+            }
+            
+            val frameworks = listOf(
+                "ffmpegkit", "libavcodec", "libavdevice", "libavfilter", 
+                "libavformat", "libavutil", "libswresample", "libswscale"
+            )
+            
+            frameworks.forEach { fw ->
+                linkerOpts("-F$libsDir/$fw.xcframework/$frameworkArch", "-framework", fw)
+            }
+            
             freeCompilerArgs += listOf("-Xbinary=bundleId=id.homebase.homebasekmppoc")
         }
     }

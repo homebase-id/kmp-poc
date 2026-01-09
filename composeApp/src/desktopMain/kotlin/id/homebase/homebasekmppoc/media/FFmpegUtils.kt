@@ -20,4 +20,8 @@ actual object FFmpegUtils {
     actual suspend fun segmentVideo(inputPath: String): Pair<String, String>? {
         return null // Not implemented
     }
+
+    actual suspend fun cacheInputVideo(fileName: String, data: ByteArray): String {
+        return "stub_path"
+    }
 }

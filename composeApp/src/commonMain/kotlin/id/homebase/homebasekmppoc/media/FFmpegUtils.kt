@@ -10,4 +10,6 @@ expect object FFmpegUtils {
     suspend fun compressVideo(inputPath: String, onProgress: ((Float) -> Unit)? = null): String?
 
     suspend fun segmentVideo(inputPath: String): Pair<String, String>?
+
+    suspend fun cacheInputVideo(fileName: String, data: ByteArray): String
 }

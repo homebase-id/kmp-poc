@@ -192,4 +192,12 @@ actual object FFmpegUtils {
                     return@withContext null
                 }
             }
+
+    actual suspend fun cacheInputVideo(fileName: String, data: ByteArray): String =
+            withContext(Dispatchers.IO) {
+                val context = ActivityProvider.requireActivity().applicationContext
+                val cacheFile = File(context.cacheDir, "input_$fileName")
+                cacheFile.writeBytes(data)
+                return@withContext cacheFile.absolutePath
+            }
 }
