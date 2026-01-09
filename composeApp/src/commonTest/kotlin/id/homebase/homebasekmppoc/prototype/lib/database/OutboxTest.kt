@@ -12,6 +12,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
+import kotlin.test.assertNotEquals
 import kotlin.uuid.Uuid
 
 class OutboxTest {
@@ -27,8 +28,6 @@ class OutboxTest {
     fun testInsertSelectDeleteOutboxItem() = runTest {
         DatabaseManager { createInMemoryDatabase() }.use { dbm ->        // Create a QueryBatchCursor with all fields populated
             // Test data
-            val lastAttempt = 1704067200000L // Unix timestamp
-            val checkOutCount = 1L
             val data = "test data".toByteArray()
             val files = "test files".toByteArray()
             val checkOutStamp = UnixTimeUtc.now()
@@ -39,10 +38,6 @@ class OutboxTest {
                 fileId = Uuid.random(),
                 dependencyFileId = Uuid.random(),
                 priority = 0L,
-                lastAttempt = lastAttempt,
-                nextRunTime = lastAttempt,
-                checkOutCount = checkOutCount,
-                checkOutStamp = null,
                 uploadType = 0L,
                 json = data,
                 files = files
@@ -56,14 +51,20 @@ class OutboxTest {
             val checkoutResult = dbm.outbox.checkout(checkOutStamp = checkOutStamp)
             assertNotNull(checkoutResult, "Should successfully checkout the item")
 
+            // Verify the retrieved item
+            assertNotNull(checkoutResult, "Should retrieve the inserted item")
+            assertEquals(0, checkoutResult.lastAttempt, "Last attempt should be zero")
+            assertEquals(0, checkoutResult.checkOutCount, "Check out count should match")
+
+
             // Select the checked out item
             val nextItem = dbm.outbox.selectCheckedOut(checkOutStamp.milliseconds)
             assertNotNull(nextItem, "Should retrieve the checked out item")
 
             // Verify the retrieved item
             assertNotNull(nextItem, "Should retrieve the inserted item")
-            assertEquals(lastAttempt, nextItem.lastAttempt, "Last attempt should match")
-            assertEquals(checkOutCount, nextItem.checkOutCount, "Check out count should match")
+            assertEquals(0, nextItem.lastAttempt, "Last attempt should be zero")
+            assertEquals(0, nextItem.checkOutCount, "Check out count should match")
             assertEquals(
                 data.contentToString(),
                 nextItem.json.contentToString(),
@@ -107,8 +108,6 @@ class OutboxTest {
     fun testMultipleItemsSequentialOrdering() = runTest {
         DatabaseManager { createInMemoryDatabase() }.use { dbm ->        // Create a QueryBatchCursor with all fields populated
             // Test data
-            val lastAttempt = 1704067200000L
-            val checkOutCount = 1L
             val data = "test data".toByteArray()
 
             // Insert item
@@ -117,10 +116,6 @@ class OutboxTest {
                 fileId = Uuid.random(),
                 dependencyFileId = Uuid.random(),
                 priority = 0L,
-                lastAttempt = lastAttempt,
-                nextRunTime = lastAttempt,
-                checkOutCount = checkOutCount,
-                checkOutStamp = null,
                 uploadType = 0L,
                 json = data,
                 files = null
@@ -145,57 +140,49 @@ class OutboxTest {
             val checkoutResult = dbm.outbox.checkout(ts5)
             assertNull(checkoutResult, "Should return null when checking out from empty outbox")
         }
+    }
 
-        @Test
-        fun testOutboxItemWithNullFiles() = runTest {
-            DatabaseManager { createInMemoryDatabase() }.use { dbm ->
-                // Test data with null files
-                val lastAttempt = 1704067200000L
-                val checkOutCount = 1L
-                val data = "test data".toByteArray()
+    @Test
+    fun testOutboxItemWithNullFiles() = runTest {
+        DatabaseManager { createInMemoryDatabase() }.use { dbm ->
+            // Test data with null files
+            val data = "test data".toByteArray()
 
-                // Insert item with null files
-                dbm.outbox.insert(
-                    driveId = Uuid.random(),
-                    fileId = Uuid.random(),
-                    dependencyFileId = Uuid.random(),
-                    priority = 0L,
-                    lastAttempt = lastAttempt,
-                    nextRunTime = lastAttempt,
-                    checkOutCount = checkOutCount,
-                    checkOutStamp = null,
-                    uploadType = 0L,
-                    json = data,
-                    files = null
-                )
+            // Insert item with null files
+            dbm.outbox.insert(
+                driveId = Uuid.random(),
+                fileId = Uuid.random(),
+                dependencyFileId = Uuid.random(),
+                priority = 0L,
+                uploadType = 0L,
+                json = data,
+                files = null
+            )
 
-                // Checkout and select
-                val checkoutStamp = UnixTimeUtc(8L)
-                val checkoutResult = dbm.outbox.checkout(checkoutStamp)
-                assertNotNull(checkoutResult, "Should successfully checkout item")
+            // Checkout and select
+            val checkoutStamp = UnixTimeUtc(8L)
+            val checkoutResult = dbm.outbox.checkout(checkoutStamp)
+            assertNotNull(checkoutResult, "Should successfully checkout item")
 
-                val item = dbm.outbox.selectCheckedOut(checkoutStamp.milliseconds)
-                assertNotNull(item, "Should retrieve the inserted item")
-                assertEquals(lastAttempt, item.lastAttempt, "Last attempt should match")
-                assertEquals(checkOutCount, item.checkOutCount, "Check out count should match")
-                assertEquals(
-                    data.contentToString(),
-                    item.json.contentToString(),
-                    "Data should match"
-                )
-                assertNull(item.files, "Files should be null")
+            val item = dbm.outbox.selectCheckedOut(checkoutStamp.milliseconds)
+            assertNotNull(item, "Should retrieve the inserted item")
+            assertEquals(0, item.lastAttempt, "Last attempt should match")
+            assertEquals(0, item.checkOutCount, "Check out count should match")
+            assertEquals(
+                data.contentToString(),
+                item.json.contentToString(),
+                "Data should match"
+            )
+            assertNull(item.files, "Files should be null")
 
-                // Clean up
-                dbm.outbox.deleteByRowId(item.rowId)
-            }
+            // Clean up
+            dbm.outbox.deleteByRowId(item.rowId)
         }
 
         @Test
         fun testUpdateCheckOutCount() = runTest {
             DatabaseManager { createInMemoryDatabase() }.use { dbm ->
                 // Insert initial item
-                val initialLastAttempt = 1704067200000L
-                val initialCheckOutCount = 1L
                 val data = "test data".toByteArray()
 
                 val insertSuccess = dbm.outbox.insert(
@@ -203,10 +190,6 @@ class OutboxTest {
                     fileId = Uuid.random(),
                     dependencyFileId = Uuid.random(),
                     priority = 0L,
-                    lastAttempt = initialLastAttempt,
-                    nextRunTime = initialLastAttempt,
-                    checkOutCount = initialCheckOutCount,
-                    checkOutStamp = null,
                     uploadType = 0L,
                     json = data,
                     files = null
@@ -221,15 +204,13 @@ class OutboxTest {
                 val item = dbm.outbox.selectCheckedOut(checkoutStamp1.milliseconds)
                 assertNotNull(item, "Should retrieve the checked out item")
                 assertEquals(
-                    initialCheckOutCount,
+                    0,
                     item.checkOutCount,
                     "Initial check out count should be 1"
                 )
 
                 // Simulate an update by inserting a new record with updated check out count
                 // (Note: Outbox.sq doesn't have an update operation, so we'd typically delete and reinsert)
-                val updatedLastAttempt = 1704153600000L
-                val updatedCheckOutCount = 2L
 
                 dbm.outbox.deleteByRowId(item.rowId)
                 val insertSuccess2 = dbm.outbox.insert(
@@ -237,10 +218,6 @@ class OutboxTest {
                     fileId = Uuid.random(),
                     dependencyFileId = Uuid.random(),
                     priority = 0L,
-                    lastAttempt = updatedLastAttempt,
-                    nextRunTime = updatedLastAttempt,
-                    checkOutCount = updatedCheckOutCount,
-                    checkOutStamp = null,
                     uploadType = 0L,
                     json = data,
                     files = null
@@ -255,12 +232,12 @@ class OutboxTest {
                 val updatedItem = dbm.outbox.selectCheckedOut(checkoutStamp2.milliseconds)
                 assertNotNull(updatedItem, "Should retrieve the updated item")
                 assertEquals(
-                    updatedCheckOutCount,
+                    1,
                     updatedItem.checkOutCount,
                     "Check out count should be updated"
                 )
                 assertEquals(
-                    updatedLastAttempt,
+                    0,
                     updatedItem.lastAttempt,
                     "Last attempt should be updated"
                 )
@@ -287,10 +264,6 @@ class OutboxTest {
                         fileId = fileIds[index],
                         dependencyFileId = null,
                         priority = priority,
-                        lastAttempt = 1704067200000L,
-                        nextRunTime = 1704067200000L,
-                        checkOutCount = 0L,
-                        checkOutStamp = null,
                         uploadType = 0L,
                         json = values[index],
                         files = null
@@ -341,10 +314,6 @@ class OutboxTest {
                         fileId = fileIds[index],
                         dependencyFileId = null,
                         priority = priority,
-                        lastAttempt = 1704067200000L,
-                        nextRunTime = 1704067200000L,
-                        checkOutCount = 0L,
-                        checkOutStamp = null,
                         uploadType = 0L,
                         json = values[index],
                         files = null
@@ -398,10 +367,6 @@ class OutboxTest {
                         fileId = fileId,
                         dependencyFileId = null,
                         priority = 0L,
-                        lastAttempt = baseTime,
-                        nextRunTime = nextRunTime,
-                        checkOutCount = 0L,
-                        checkOutStamp = null,
                         uploadType = 0L,
                         json = "$recipient-data".toByteArray(), // Use recipient in data for identification
                         files = null
@@ -447,10 +412,6 @@ class OutboxTest {
                         f2,
                         f3,
                         0L,
-                        1704067200000L,
-                        1704067200000L,
-                        0L,
-                        null,
                         0L,
                         values[1],
                         null
@@ -462,10 +423,6 @@ class OutboxTest {
                         f3,
                         null,
                         0L,
-                        1704067200000L,
-                        1704067200000L,
-                        0L,
-                        null,
                         0L,
                         values[2],
                         null
@@ -477,10 +434,6 @@ class OutboxTest {
                         f4,
                         f2,
                         0L,
-                        1704067200000L,
-                        1704067200000L,
-                        0L,
-                        null,
                         0L,
                         values[3],
                         null
@@ -492,10 +445,6 @@ class OutboxTest {
                         f5,
                         f4,
                         0L,
-                        1704067200000L,
-                        1704067200000L,
-                        0L,
-                        null,
                         0L,
                         values[4],
                         null
@@ -507,10 +456,6 @@ class OutboxTest {
                         f1,
                         f5,
                         0L,
-                        1704067200000L,
-                        1704067200000L,
-                        0L,
-                        null,
                         0L,
                         values[0],
                         null
@@ -584,10 +529,6 @@ class OutboxTest {
                         f2,
                         f3,
                         0L,
-                        t1,
-                        t2,
-                        0L,
-                        null,
                         0L,
                         values[1],
                         null
@@ -599,10 +540,6 @@ class OutboxTest {
                         f3,
                         null,
                         0L,
-                        t1,
-                        t3,
-                        0L,
-                        null,
                         0L,
                         values[2],
                         null
@@ -614,10 +551,6 @@ class OutboxTest {
                         f4,
                         f2,
                         0L,
-                        t1,
-                        t4,
-                        0L,
-                        null,
                         0L,
                         values[3],
                         null
@@ -629,10 +562,6 @@ class OutboxTest {
                         f5,
                         f4,
                         0L,
-                        t1,
-                        t5,
-                        0L,
-                        null,
                         0L,
                         values[4],
                         null
@@ -644,10 +573,6 @@ class OutboxTest {
                         f1,
                         f5,
                         0L,
-                        t1,
-                        t1,
-                        0L,
-                        null,
                         0L,
                         values[0],
                         null

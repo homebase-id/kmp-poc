@@ -2,6 +2,7 @@ import id.homebase.homebasekmppoc.prototype.ui.driveFetch.BackendEvent
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 object EventBusFlow {
     private val _events = MutableSharedFlow<BackendEvent>(replay = 1, extraBufferCapacity = 10)
@@ -9,5 +10,10 @@ object EventBusFlow {
 
     suspend fun emit(event: BackendEvent) {
         _events.emit(event)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun resetForTests() {
+        _events.resetReplayCache()   // Clears the replay cache → new collectors get nothing old
     }
 }
