@@ -19,7 +19,7 @@ class OutboxWrapper(
 
     suspend fun checkout(
         checkOutStamp: UnixTimeUtc
-    ): Checkout?
+    ): Outbox?
     {
         return databaseManager.withWriteValue { delegate.checkout(checkOutStamp.milliseconds, UnixTimeUtc.now().milliseconds).executeAsOneOrNull() }
     }
@@ -33,19 +33,20 @@ class OutboxWrapper(
             driveId: Uuid,
             fileId: Uuid,
             dependencyFileId: Uuid?,
+            priority: Long,
             lastAttempt: Long,
             nextRunTime: Long,
             checkOutCount: Long,
             checkOutStamp: Long?,
-            priority: Long,
-            data: ByteArray,
+            uploadType: Long,
+            json: ByteArray,
             files: ByteArray?,
         ) -> T,
     ): T? = delegate.selectCheckedOut(checkOutStamp, mapper).executeAsOneOrNull()
 
     fun selectCheckedOut(
         checkOutStamp: Long,
-    ): SelectCheckedOut? = delegate.selectCheckedOut(checkOutStamp).executeAsOneOrNull()
+    ): Outbox? = delegate.selectCheckedOut(checkOutStamp).executeAsOneOrNull()
 
     fun count(): Long = delegate.count().executeAsOne()
 
@@ -53,12 +54,13 @@ class OutboxWrapper(
         driveId: Uuid,
         fileId: Uuid,
         dependencyFileId: Uuid?,
+        priority: Long,
         lastAttempt: Long,
         nextRunTime: Long,
         checkOutCount: Long,
         checkOutStamp: Long?,
-        priority: Long,
-        data: ByteArray,
+        uploadType: Long,
+        json: ByteArray,
         files: ByteArray?,
     ): Long {
         return databaseManager.withWriteValue {
@@ -66,12 +68,13 @@ class OutboxWrapper(
                 driveId,
                 fileId,
                 dependencyFileId,
+                priority,
                 lastAttempt,
                 nextRunTime,
                 checkOutCount,
                 checkOutStamp,
-                priority,
-                data,
+                uploadType,
+                json,
                 files
             ).value
         }

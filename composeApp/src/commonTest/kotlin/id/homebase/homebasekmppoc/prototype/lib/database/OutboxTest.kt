@@ -38,12 +38,13 @@ class OutboxTest {
                 driveId = Uuid.random(),
                 fileId = Uuid.random(),
                 dependencyFileId = Uuid.random(),
+                priority = 0L,
                 lastAttempt = lastAttempt,
                 nextRunTime = lastAttempt,
                 checkOutCount = checkOutCount,
                 checkOutStamp = null,
-                priority = 0L,
-                data = data,
+                uploadType = 0L,
+                json = data,
                 files = files
             )
 
@@ -65,7 +66,7 @@ class OutboxTest {
             assertEquals(checkOutCount, nextItem.checkOutCount, "Check out count should match")
             assertEquals(
                 data.contentToString(),
-                nextItem.data_.contentToString(),
+                nextItem.json.contentToString(),
                 "Data should match"
             )
             assertEquals(
@@ -115,12 +116,13 @@ class OutboxTest {
                 driveId = Uuid.random(),
                 fileId = Uuid.random(),
                 dependencyFileId = Uuid.random(),
+                priority = 0L,
                 lastAttempt = lastAttempt,
                 nextRunTime = lastAttempt,
                 checkOutCount = checkOutCount,
                 checkOutStamp = null,
-                priority = 0L,
-                data = data,
+                uploadType = 0L,
+                json = data,
                 files = null
             )
 
@@ -133,7 +135,7 @@ class OutboxTest {
             dbm.outbox.checkout(ts4)
             val item = dbm.outbox.selectCheckedOut(ts4.milliseconds)
             assertEquals(
-                data.contentToString(), item!!.data_.contentToString(),
+                data.contentToString(), item!!.json.contentToString(),
                 "Item should be the inserted one"
             )
 
@@ -157,12 +159,13 @@ class OutboxTest {
                     driveId = Uuid.random(),
                     fileId = Uuid.random(),
                     dependencyFileId = Uuid.random(),
+                    priority = 0L,
                     lastAttempt = lastAttempt,
                     nextRunTime = lastAttempt,
                     checkOutCount = checkOutCount,
                     checkOutStamp = null,
-                    priority = 0L,
-                    data = data,
+                    uploadType = 0L,
+                    json = data,
                     files = null
                 )
 
@@ -177,7 +180,7 @@ class OutboxTest {
                 assertEquals(checkOutCount, item.checkOutCount, "Check out count should match")
                 assertEquals(
                     data.contentToString(),
-                    item.data_.contentToString(),
+                    item.json.contentToString(),
                     "Data should match"
                 )
                 assertNull(item.files, "Files should be null")
@@ -199,12 +202,13 @@ class OutboxTest {
                     driveId = Uuid.random(),
                     fileId = Uuid.random(),
                     dependencyFileId = Uuid.random(),
+                    priority = 0L,
                     lastAttempt = initialLastAttempt,
                     nextRunTime = initialLastAttempt,
                     checkOutCount = initialCheckOutCount,
                     checkOutStamp = null,
-                    priority = 0L,
-                    data = data,
+                    uploadType = 0L,
+                    json = data,
                     files = null
                 )
                 assertTrue(insertSuccess > 0, "Insert should succeed")
@@ -232,12 +236,13 @@ class OutboxTest {
                     driveId = Uuid.random(),
                     fileId = Uuid.random(),
                     dependencyFileId = Uuid.random(),
+                    priority = 0L,
                     lastAttempt = updatedLastAttempt,
                     nextRunTime = updatedLastAttempt,
                     checkOutCount = updatedCheckOutCount,
                     checkOutStamp = null,
-                    priority = 0L,
-                    data = data,
+                    uploadType = 0L,
+                    json = data,
                     files = null
                 )
                 assertTrue(insertSuccess2 > 0, "Second insert should succeed")
@@ -261,7 +266,7 @@ class OutboxTest {
                 )
                 assertEquals(
                     data.contentToString(),
-                    updatedItem.data_.contentToString(),
+                    updatedItem.json.contentToString(),
                     "Data should remain the same"
                 )
             }
@@ -281,12 +286,13 @@ class OutboxTest {
                         driveId = driveId,
                         fileId = fileIds[index],
                         dependencyFileId = null,
+                        priority = priority,
                         lastAttempt = 1704067200000L,
                         nextRunTime = 1704067200000L,
                         checkOutCount = 0L,
                         checkOutStamp = null,
-                        priority = priority,
-                        data = values[index],
+                        uploadType = 0L,
+                        json = values[index],
                         files = null
                     )
                     assertTrue(insertSuccess > 0, "Insert should succeed")
@@ -306,7 +312,7 @@ class OutboxTest {
                     assertEquals(expectedPriority, item.priority, "Priority should match")
                     assertEquals(
                         values[index].contentToString(),
-                        item.data_.contentToString(),
+                        item.json.contentToString(),
                         "Data should match"
                     )
 
@@ -334,12 +340,13 @@ class OutboxTest {
                         driveId = driveId,
                         fileId = fileIds[index],
                         dependencyFileId = null,
+                        priority = priority,
                         lastAttempt = 1704067200000L,
                         nextRunTime = 1704067200000L,
                         checkOutCount = 0L,
                         checkOutStamp = null,
-                        priority = priority,
-                        data = values[index],
+                        uploadType = 0L,
+                        json = values[index],
                         files = null
                     )
                     assertTrue(insertSuccess > 0, "Insert should succeed")
@@ -390,12 +397,13 @@ class OutboxTest {
                         driveId = driveId,
                         fileId = fileId,
                         dependencyFileId = null,
+                        priority = 0L,
                         lastAttempt = baseTime,
                         nextRunTime = nextRunTime,
                         checkOutCount = 0L,
                         checkOutStamp = null,
-                        priority = 0L,
-                        data = "$recipient-data".toByteArray(), // Use recipient in data for identification
+                        uploadType = 0L,
+                        json = "$recipient-data".toByteArray(), // Use recipient in data for identification
                         files = null
                     )
                     assertTrue(insertSuccess > 0, "Insert should succeed")
@@ -411,7 +419,7 @@ class OutboxTest {
                     assertNotNull(item, "Should retrieve checked out item")
                     assertEquals(
                         "$expectedRecipient-data".toByteArray().contentToString(),
-                        item.data_.contentToString(),
+                        item.json.contentToString(),
                         "Should checkout $expectedRecipient"
                     )
 
@@ -438,6 +446,7 @@ class OutboxTest {
                         driveId,
                         f2,
                         f3,
+                        0L,
                         1704067200000L,
                         1704067200000L,
                         0L,
@@ -452,6 +461,7 @@ class OutboxTest {
                         driveId,
                         f3,
                         null,
+                        0L,
                         1704067200000L,
                         1704067200000L,
                         0L,
@@ -466,6 +476,7 @@ class OutboxTest {
                         driveId,
                         f4,
                         f2,
+                        0L,
                         1704067200000L,
                         1704067200000L,
                         0L,
@@ -480,6 +491,7 @@ class OutboxTest {
                         driveId,
                         f5,
                         f4,
+                        0L,
                         1704067200000L,
                         1704067200000L,
                         0L,
@@ -494,6 +506,7 @@ class OutboxTest {
                         driveId,
                         f1,
                         f5,
+                        0L,
                         1704067200000L,
                         1704067200000L,
                         0L,
@@ -570,6 +583,7 @@ class OutboxTest {
                         driveId,
                         f2,
                         f3,
+                        0L,
                         t1,
                         t2,
                         0L,
@@ -584,6 +598,7 @@ class OutboxTest {
                         driveId,
                         f3,
                         null,
+                        0L,
                         t1,
                         t3,
                         0L,
@@ -598,6 +613,7 @@ class OutboxTest {
                         driveId,
                         f4,
                         f2,
+                        0L,
                         t1,
                         t4,
                         0L,
@@ -612,6 +628,7 @@ class OutboxTest {
                         driveId,
                         f5,
                         f4,
+                        0L,
                         t1,
                         t5,
                         0L,
@@ -626,6 +643,7 @@ class OutboxTest {
                         driveId,
                         f1,
                         f5,
+                        0L,
                         t1,
                         t1,
                         0L,

@@ -2,60 +2,61 @@ package id.homebase.homebasekmppoc.prototype.ui.driveFetch
 
 import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.prototype.lib.core.time.UnixTimeUtc
-import id.homebase.homebasekmppoc.prototype.lib.database.MainIndexMetaHelpers
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
-import id.homebase.homebasekmppoc.prototype.lib.drives.query.FileQueryParams
-import id.homebase.homebasekmppoc.prototype.lib.drives.FileState
-import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchRequest
-import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResponse
-import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResultOptionsRequest
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
-import id.homebase.homebasekmppoc.prototype.lib.drives.query.QueryBatchCursor
-import kotlin.time.measureTimedValue
+import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.sync.*
-import kotlin.uuid.Uuid
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
-import kotlin.IllegalArgumentException
 
 class OutboxSync(
     private val driveQueryProvider: DriveQueryProvider, // TODO: <- can we get rid of this?
     private val databaseManager: DatabaseManager
 ) {
-    private val mutex = Mutex()
+    private val MAX_SENDING_THREADS = 3
+    private val semaphore = Semaphore(MAX_SENDING_THREADS)
+    private val activeThreads = atomic(0)
+    private val totalSent = atomic(0)
+    private val counterMutex = Mutex()
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     //TODO: Consider having a (readable) "last modified" which holds the largest timestamp of last-modified
-
-    init {
-    }
 
     // The send() function spawns a thread when it acquires the lock.
     // Then send() returns true if it begins processing in a thread, and false if
     // another thread is already processing.
     // Then the call immediately knows if a worker thread has been spawned.
     //
-    fun send(): Boolean {
-        if (!mutex.tryLock()) {
+    suspend fun send(): Boolean {
+        if (!semaphore.tryAcquire()) {
             return false
         }
+
         scope.launch {
             try {
+                counterMutex.withLock {
+                    if (activeThreads.incrementAndGet() == 1) {
+                        EventBusFlow.emit(BackendEvent.OutboxUpdate.ProcessingStarted);
+                    }
+                }
                 outboxSend()
             } finally {
-                mutex.unlock()
+                // After loop, check if this is the final thread
+                counterMutex.withLock {
+                    if (activeThreads.decrementAndGet() == 0) {
+                        val n = totalSent.getAndSet(0)
+                        EventBusFlow.emit(BackendEvent.OutboxUpdate.Completed(n))
+                    }
+                }
+                semaphore.release()
             }
         }
         return true
     }
 
     private suspend fun outboxSend() {
-        var totalCount = 0
-
-        EventBusFlow.emit(BackendEvent.OutboxUpdate.ProcessingStarted);
-
         while (true) {
             Logger.i("Popping Outbox")
 
@@ -64,7 +65,6 @@ class OutboxSync(
 
             if (outboxRecord == null) {
                 Logger.i("No more items in outbox")
-                EventBusFlow.emit(BackendEvent.OutboxUpdate.Completed(totalCount));
                 break;
             }
 
@@ -80,11 +80,10 @@ class OutboxSync(
 
                 // We sent the item, send an event
                 EventBusFlow.emit(BackendEvent.OutboxUpdate.Sent(outboxRecord.driveId, outboxRecord.fileId))
-                totalCount++
+                totalSent.incrementAndGet()
             } catch (e: Exception) {
                 Logger.e("Outbox sending failed", e)
                 EventBusFlow.emit(BackendEvent.OutboxUpdate.Failed(e.message ?: "Unknown error"))
-                throw e
             }
         }
     }
