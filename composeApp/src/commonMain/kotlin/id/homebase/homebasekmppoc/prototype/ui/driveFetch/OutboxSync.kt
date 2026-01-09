@@ -68,6 +68,10 @@ class OutboxSync(
                 break;
             }
 
+            // Doesn't matter if it's not fully thread safe, semaphore ultimate guard
+            if (activeThreads.value < MAX_SENDING_THREADS)
+                this.send() // Try to spawn a thread for parallel outbox processing
+
             try {
                 // We sent the item, send an event
                 EventBusFlow.emit(BackendEvent.OutboxUpdate.Sending(outboxRecord.driveId, outboxRecord.fileId))
@@ -82,7 +86,10 @@ class OutboxSync(
                 EventBusFlow.emit(BackendEvent.OutboxUpdate.Sent(outboxRecord.driveId, outboxRecord.fileId))
                 totalSent.incrementAndGet()
             } catch (e: Exception) {
-                Logger.e("Outbox sending failed", e)
+                val n = 30*outboxRecord.checkOutCount
+                Logger.e("Failed upload for ${outboxRecord.fileId}, retry in $n seconds (attempt ${outboxRecord.checkOutCount + 1})", e)
+                databaseManager.outbox.checkInFailed(outboxRecord.checkOutStamp!!,
+                    UnixTimeUtc.now().addSeconds(n.toLong()).seconds )
                 EventBusFlow.emit(BackendEvent.OutboxUpdate.Failed(e.message ?: "Unknown error"))
             }
         }
