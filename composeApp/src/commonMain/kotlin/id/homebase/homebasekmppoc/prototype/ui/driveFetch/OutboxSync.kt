@@ -27,12 +27,11 @@ class OutboxSync(
     private val scope: CoroutineScope = CoroutineScope(dispatcher + SupervisorJob()))
 {
     private val MAX_SENDING_THREADS = 3
+    private val WAIT_INCREMENT_SECONDS = 30
     private val semaphore = Semaphore(MAX_SENDING_THREADS)
     private val activeThreads = atomic(0)
     private val totalSent = atomic(0)
     private val counterMutex = Mutex()
-
-    //TODO: Consider having a (readable) "last modified" which holds the largest timestamp of last-modified
 
     // The send() function spawns a thread when it acquires the lock.
     // Then send() returns true if it begins processing in a thread, and false if
@@ -71,6 +70,7 @@ class OutboxSync(
                 {
                     val delay = nextSend!!.milliseconds - UnixTimeUtc.now().milliseconds
                     delay(delay) // Put the thread to sleep
+                    send()
                 }
             }
         }
@@ -107,7 +107,7 @@ class OutboxSync(
                 eventBus.emit(BackendEvent.OutboxUpdate.Sent(outboxRecord.driveId, outboxRecord.fileId))
                 totalSent.incrementAndGet()
             } catch (e: Exception) {
-                val n = 30*outboxRecord.checkOutCount
+                val n = WAIT_INCREMENT_SECONDS*outboxRecord.checkOutCount
                 Logger.w("Failed upload for ${outboxRecord.fileId}, retry in $n seconds (attempt ${outboxRecord.checkOutCount + 1})", e)
                 databaseManager.outbox.checkInFailed(outboxRecord.checkOutStamp!!,
                     UnixTimeUtc.now().addSeconds(n.toLong()).seconds )
