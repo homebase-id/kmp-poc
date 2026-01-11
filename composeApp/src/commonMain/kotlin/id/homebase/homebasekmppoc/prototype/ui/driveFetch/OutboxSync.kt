@@ -98,7 +98,7 @@ class OutboxSync(
                 eventBus.emit(BackendEvent.OutboxEvent.ItemStarted(outboxRecord.driveId, outboxRecord.fileId))
                 Logger.i("Log the data from the outboxRecord here...")
 
-                uploader.upload(outboxRecord)
+                uploader.upload(outboxRecord, eventBus)
 
                 // if successful we remove it from the database
                 databaseManager.outbox.deleteByRowId(outboxRecord.rowId)
