@@ -10,7 +10,7 @@ sealed interface  BackendEvent {
         WebSocket
     }
 
-    // A DriveSyncUpdate event happens on a drive when either sync() has received a batch of data
+    // A DriveEvent event happens on a drive when either sync() has received a batch of data
     // from the host, or when the websocket listener has received some data.
     sealed interface DriveEvent : BackendEvent {
         val driveId: Uuid  // Common property for all sync events (implement in each data class)
