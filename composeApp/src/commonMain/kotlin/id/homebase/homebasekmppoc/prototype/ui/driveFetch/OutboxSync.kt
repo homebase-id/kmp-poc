@@ -16,7 +16,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.sync.*
 
 interface OutboxUploader {
-    suspend fun upload(outboxRecord: Outbox): Unit
+    suspend fun upload(outboxRecord: Outbox, eventBus : EventBus): Unit
 }
 
 class OutboxSync(

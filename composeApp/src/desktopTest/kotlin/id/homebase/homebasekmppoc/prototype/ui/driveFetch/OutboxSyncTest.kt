@@ -25,10 +25,14 @@ class TestUploader : OutboxUploader {
     private val currentActive = atomic(0)
     var maxActive = 0
 
-    override suspend fun upload(outboxRecord: Outbox) {
+    override suspend fun upload(outboxRecord: Outbox, eventBus : EventBus) {
         Logger.i("Uploading item")
+
         val current = currentActive.incrementAndGet()
         maxActive = maxOf(maxActive, current)
+
+        eventBus.emit(BackendEvent.OutboxEvent.ItemProgress(outboxRecord.driveId,
+            outboxRecord.fileId, 0.5F))
 
         if (shouldFail) {
             currentActive.decrementAndGet()

@@ -10,8 +10,8 @@ sealed interface  BackendEvent {
         WebSocket
     }
 
-    // A SyncUpdate event happens on a drive when either sync() has received a batch of data from
-    // the host, or when the websocket listener has received some data.
+    // A DriveSyncUpdate event happens on a drive when either sync() has received a batch of data
+    // from the host, or when the websocket listener has received some data.
     sealed interface DriveSyncEvent : BackendEvent {
         val driveId: Uuid  // Common property for all sync events (implement in each data class)
 
@@ -49,18 +49,17 @@ sealed interface  BackendEvent {
         ) : OutboxEvent  // Only raised by Drive.sync()
 
         data class Failed(
-            val errorMessage: String?,  // Or add throwable: Throwable
-            val driveId: Uuid? = null,
-            val fileId: Uuid? = null
+            val errorMessage: String?  // Or add throwable: Throwable
         ) : OutboxEvent
 
-        // Events for individual items
+        // When beginning to send an item we guarantee itemStarted event (0%)
         data class ItemStarted(
             val driveId : Uuid,
             val fileId : Uuid,
             val totalBytes: Long? = null
         ) : OutboxEvent  // Only raised by Drive.sync()
 
+        // Progress during the sending of an item ]0..100[ %
         data class ItemProgress(
             val driveId: Uuid,
             val fileId: Uuid,
@@ -68,6 +67,7 @@ sealed interface  BackendEvent {
             val bytesSent: Long? = null
         ) : OutboxEvent  // New: For ongoing upload progress updates
 
+        // When the item has been delivered we guarantee itemCompleted event (100%)
         data class ItemCompleted(
             val driveId : Uuid,
             val fileId : Uuid
