@@ -9,9 +9,10 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.FileState
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchRequest
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResponse
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResultOptionsRequest
-import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.QueryBatchCursor
+import id.homebase.homebasekmppoc.prototype.lib.eventbus.BackendEvent
+import id.homebase.homebasekmppoc.prototype.lib.eventbus.EventBus
 import kotlin.time.measureTimedValue
 import kotlinx.coroutines.sync.*
 import kotlin.uuid.Uuid
@@ -26,7 +27,8 @@ class DriveSync(
     private val identityId: Uuid,
     private val driveId: Uuid,
     private val driveQueryProvider: DriveQueryProvider, // TODO: <- can we get rid of this?
-    private val databaseManager: DatabaseManager
+    private val databaseManager: DatabaseManager,
+    private val eventBus: EventBus
 ) {
     private var cursor: QueryBatchCursor?
     private val mutex = Mutex()
@@ -80,7 +82,7 @@ class DriveSync(
         var queryBatchResponse: QueryBatchResponse? = null
         var keepGoing = true
 
-        EventBusFlow.emit(BackendEvent.SyncUpdate.SyncStarted(driveId));
+        eventBus.emit(BackendEvent.SyncUpdate.SyncStarted(driveId))
 
         while (keepGoing) {
             Logger.i("Querying host for ${batchSize} rows")
@@ -127,7 +129,8 @@ class DriveSync(
 
                         val latestModified = searchResults.last().fileMetadata.updated
 
-                        EventBusFlow.emit(BackendEvent.SyncUpdate.BatchReceived(
+                        eventBus.emit(
+                            BackendEvent.SyncUpdate.BatchReceived(
                             driveId = driveId,
                             totalCount = totalCount,
                             batchCount = recordsRead,
@@ -139,7 +142,7 @@ class DriveSync(
                     // TODO: The BE should return the moreRows boolean from QueryBatch.
                     keepGoing = searchResults.size >= batchSize
                 } catch (e: Exception) {
-                    EventBusFlow.emit(BackendEvent.SyncUpdate.Failed(driveId, "Sync failed: ${e.message}"))
+                    eventBus.emit(BackendEvent.SyncUpdate.Failed(driveId, "Sync failed: ${e.message}"))
                     keepGoing = false
                 }
             }
@@ -157,6 +160,6 @@ class DriveSync(
             }
         }
 
-        EventBusFlow.emit(BackendEvent.SyncUpdate.Completed(driveId, totalCount))
+        eventBus.emit(BackendEvent.SyncUpdate.Completed(driveId, totalCount))
     }
 }

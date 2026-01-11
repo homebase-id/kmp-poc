@@ -4,6 +4,8 @@ import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.lib.database.Outbox
 import id.homebase.homebasekmppoc.prototype.lib.core.time.UnixTimeUtc
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
+import id.homebase.homebasekmppoc.prototype.lib.eventbus.BackendEvent
+import id.homebase.homebasekmppoc.prototype.lib.eventbus.EventBus
 import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -20,6 +22,7 @@ interface OutboxUploader {
 class OutboxSync(
     private val databaseManager: DatabaseManager,
     private val uploader: OutboxUploader,
+    private val eventBus: EventBus,
     private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
     private val scope: CoroutineScope = CoroutineScope(dispatcher + SupervisorJob()))
 {
@@ -45,7 +48,7 @@ class OutboxSync(
             try {
                 counterMutex.withLock {
                     if (activeThreads.incrementAndGet() == 1) {
-                        EventBusFlow.emit(BackendEvent.OutboxUpdate.ProcessingStarted);
+                        eventBus.emit(BackendEvent.OutboxUpdate.ProcessingStarted)
                     }
                 }
                 outboxSend()
@@ -57,7 +60,7 @@ class OutboxSync(
                         if (activeThreads.decrementAndGet() == 0) {
                             val n = totalSent.getAndSet(0)
                             nextSend = databaseManager.outbox.nextScheduled()
-                            EventBusFlow.emit(BackendEvent.OutboxUpdate.Completed(n))
+                            eventBus.emit(BackendEvent.OutboxUpdate.Completed(n))
                         }
                     }
                 }
@@ -92,7 +95,7 @@ class OutboxSync(
 
             try {
                 // We sent the item, send an event
-                EventBusFlow.emit(BackendEvent.OutboxUpdate.Sending(outboxRecord.driveId, outboxRecord.fileId))
+                eventBus.emit(BackendEvent.OutboxUpdate.Sending(outboxRecord.driveId, outboxRecord.fileId))
                 Logger.i("Log the data from the outboxRecord here...")
 
                 uploader.upload(outboxRecord)
@@ -101,14 +104,14 @@ class OutboxSync(
                 databaseManager.outbox.deleteByRowId(outboxRecord.rowId)
 
                 // We sent the item, send an event
-                EventBusFlow.emit(BackendEvent.OutboxUpdate.Sent(outboxRecord.driveId, outboxRecord.fileId))
+                eventBus.emit(BackendEvent.OutboxUpdate.Sent(outboxRecord.driveId, outboxRecord.fileId))
                 totalSent.incrementAndGet()
             } catch (e: Exception) {
                 val n = 30*outboxRecord.checkOutCount
                 Logger.w("Failed upload for ${outboxRecord.fileId}, retry in $n seconds (attempt ${outboxRecord.checkOutCount + 1})", e)
                 databaseManager.outbox.checkInFailed(outboxRecord.checkOutStamp!!,
                     UnixTimeUtc.now().addSeconds(n.toLong()).seconds )
-                EventBusFlow.emit(BackendEvent.OutboxUpdate.Failed(e.message ?: "Unknown error"))
+                eventBus.emit(BackendEvent.OutboxUpdate.Failed(e.message ?: "Unknown error"))
             }
         }
     }

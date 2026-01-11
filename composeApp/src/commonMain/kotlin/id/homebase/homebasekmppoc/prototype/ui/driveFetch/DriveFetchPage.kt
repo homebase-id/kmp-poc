@@ -24,7 +24,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,6 +37,8 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortField
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortOrder
 import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
+import id.homebase.homebasekmppoc.prototype.lib.eventbus.BackendEvent
+import id.homebase.homebasekmppoc.prototype.lib.eventbus.appEventBus
 import id.homebase.homebasekmppoc.ui.screens.login.publicPostsDriveId
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.compose.koinInject
@@ -79,7 +80,9 @@ fun DriveFetchPage(
 
     // Create driveSynchronizer once
     val driveSynchronizer = remember(driveQueryProvider) {
-        driveQueryProvider?.let { DriveSync(identityId, driveId, it, DatabaseManager.appDb) }
+        driveQueryProvider?.let { DriveSync(identityId, driveId, it, DatabaseManager.appDb,
+            appEventBus
+        ) }
     }
 
     fun triggerFetch(withProgress: Boolean) {
@@ -124,7 +127,7 @@ fun DriveFetchPage(
 
     // New: Collect events from the bus once, filter by driveId
     LaunchedEffect(Unit) {
-        EventBusFlow.events.collectLatest { event ->
+        appEventBus.events.collectLatest { event ->
             when (event) {
                 is BackendEvent.SyncUpdate.BatchReceived -> {
                     if (event.driveId == driveId) {

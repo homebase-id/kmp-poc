@@ -4,6 +4,8 @@ import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.lib.database.Outbox
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
 import id.homebase.homebasekmppoc.prototype.lib.database.createInMemoryDatabase
+import id.homebase.homebasekmppoc.prototype.lib.eventbus.BackendEvent
+import id.homebase.homebasekmppoc.prototype.lib.eventbus.EventBus
 import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
@@ -44,70 +46,66 @@ class TestUploader : OutboxUploader {
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class OutboxSyncTest {
-    @BeforeTest  // or @Before if using JUnit
-    fun setup() {
-        EventBusFlow.resetForTests()
 
-        // In the long term we should make the event bus injectable it seems
-        // and have a global one val appEventBus = EventBus()
-    }
 
     @Test
-    fun testSuccessfulSend()
-    {
+    fun testSuccessfulSend() {
         val db = DatabaseManager { createInMemoryDatabase() }
 
         runTest {
+            val eventBus = EventBus()  // Fresh instance per test
+
             // We cannot use "use" in these tests since it'll mess up waiting for threads
-             val uploader = TestUploader()
-                val testDispatcher = UnconfinedTestDispatcher(testScheduler)
-                val sync = OutboxSync(
-                    databaseManager = db,
-                    uploader = uploader,
-                    dispatcher = testDispatcher,
-                    scope = this
-                )
+            val uploader = TestUploader()
+            val testDispatcher = UnconfinedTestDispatcher(testScheduler)
+            val sync = OutboxSync(
+                databaseManager = db,
+                uploader = uploader,
+                eventBus = eventBus,
+                dispatcher = testDispatcher,
+                scope = this
+            )
 
-                // This will count total number of items sent via the events.
-                // It's necessary to ensure all threads are finished.
-                // This must be setup in the beginning of the test before we send()
-                val completedDeferred = async {
-                    EventBusFlow.events.filterIsInstance<BackendEvent.OutboxUpdate.Completed>()
-                        .first().totalCount
-                }
-                // Kick off the async collector before we send
-                testScheduler.runCurrent()
+            // This will count total number of items sent via the events.
+            // It's necessary to ensure all threads are finished.
+            // This must be setup in the beginning of the test before we send()
+            val completedDeferred = async {
+                eventBus.events.filterIsInstance<BackendEvent.OutboxUpdate.Completed>()
+                    .first().totalCount
+            }
+            // Kick off the async collector before we send
+            testScheduler.runCurrent()
 
-                // Insert a record
-                val driveId = Uuid.random()
-                val fileId = Uuid.random()
-                db.outbox.insert(
-                    driveId = driveId,
-                    fileId = fileId,
-                    dependencyFileId = null,
-                    priority = 0,
-                    uploadType = 0,
-                    json = byteArrayOf(),
-                    files = null
-                )
+            // Insert a record
+            val driveId = Uuid.random()
+            val fileId = Uuid.random()
+            db.outbox.insert(
+                driveId = driveId,
+                fileId = fileId,
+                dependencyFileId = null,
+                priority = 0,
+                uploadType = 0,
+                json = byteArrayOf(),
+                files = null
+            )
 
-                // Trigger send
-                val started = sync.send()
-                assertTrue(started, "Should start sending")
+            // Trigger send
+            val started = sync.send()
+            assertTrue(started, "Should start sending")
 
-                // Advance time to let coroutines complete
-                advanceUntilIdle()
+            // Advance time to let coroutines complete
+            advanceUntilIdle()
 
-                // Wait for the final events too
-                val completedCount = completedDeferred.await()
+            // Wait for the final events too
+            val completedCount = completedDeferred.await()
 
-                // Assertions
-                assertEquals(1, completedCount)
-                assertEquals(1, uploader.uploaded.size)
-                assertEquals(driveId, uploader.uploaded[0].driveId)
-                assertEquals(fileId, uploader.uploaded[0].fileId)
-                // Check that item was deleted
-                assertEquals(0L, db.outbox.count())
+            // Assertions
+            assertEquals(1, completedCount)
+            assertEquals(1, uploader.uploaded.size)
+            assertEquals(driveId, uploader.uploaded[0].driveId)
+            assertEquals(fileId, uploader.uploaded[0].fileId)
+            // Check that item was deleted
+            assertEquals(0L, db.outbox.count())
         }
         db.close()
     }
@@ -118,18 +116,21 @@ class OutboxSyncTest {
         val db = DatabaseManager { createInMemoryDatabase() }
 
         runTest {
+            val eventBus = EventBus()  // Fresh instance per test
+
             val uploader = TestUploader()
             uploader.shouldFail = true
             val testDispatcher = UnconfinedTestDispatcher(testScheduler)
             val sync = OutboxSync(
                 databaseManager = db,
                 uploader = uploader,
+                eventBus = eventBus,
                 dispatcher = testDispatcher,
                 scope = this
             )
 
             val completedDeferred = async {
-                EventBusFlow.events.filterIsInstance<BackendEvent.OutboxUpdate.Completed>()
+                eventBus.events.filterIsInstance<BackendEvent.OutboxUpdate.Completed>()
                     .first().totalCount
             }
             testScheduler.runCurrent() // Kick off the async collector
@@ -168,17 +169,20 @@ class OutboxSyncTest {
         val db = DatabaseManager { createInMemoryDatabase() }
 
         runTest {
+            val eventBus = EventBus()  // Fresh instance per test
+
             val uploader = TestUploader()
             val testDispatcher = UnconfinedTestDispatcher(testScheduler)
             val sync = OutboxSync(
                 databaseManager = db,
                 uploader = uploader,
+                eventBus = eventBus,
                 dispatcher = testDispatcher,
                 scope = this
             )
 
             val completedDeferred = async {
-                EventBusFlow.events.filterIsInstance<BackendEvent.OutboxUpdate.Completed>()
+                eventBus.events.filterIsInstance<BackendEvent.OutboxUpdate.Completed>()
                     .first().totalCount
             }
             testScheduler.runCurrent() // Kick off the async collector
@@ -226,17 +230,20 @@ class OutboxSyncTest {
         val db = DatabaseManager { createInMemoryDatabase() }
 
         runTest {
+            val eventBus = EventBus()  // Fresh instance per test
+
             val uploader = TestUploader()
             val testDispatcher = UnconfinedTestDispatcher(testScheduler)
             val sync = OutboxSync(
                 databaseManager = db,
                 uploader = uploader,
+                eventBus = eventBus,
                 dispatcher = testDispatcher,
                 scope = this
             )
 
             val completedDeferred = async {
-                EventBusFlow.events.filterIsInstance<BackendEvent.OutboxUpdate.Completed>()
+                eventBus.events.filterIsInstance<BackendEvent.OutboxUpdate.Completed>()
                     .first().totalCount
             }
             testScheduler.runCurrent() // Kick off the async collector
