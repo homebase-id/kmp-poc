@@ -163,6 +163,11 @@ kotlin {
     }
 }
 
+compose.resources {
+    publicResClass = true
+    generateResClass = always
+}
+
 // Disable allWarningsAsErrors for metadata compilation tasks only
 // This works around KLIB duplicate unique_name warnings (known KMP issue: KT-66568)
 // https://youtrack.jetbrains.com/issue/KT-66568
@@ -200,6 +205,15 @@ compose.desktop {
     application {
         mainClass = "id.homebase.homebasekmppoc.MainKt"
         nativeDistributions {
+            macOS {
+                iconFile.set(project.file("icons/icon.icns"))  // Path to your .icns file
+            }
+            windows {
+                iconFile.set(project.file("icons/icon.ico"))  // Path to your .ico file
+            }
+            linux {
+                iconFile.set(project.file("icons/icon.png"))  // Path to your .png file
+            }
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "Odin KMP"
             packageVersion = "1.0.0"
