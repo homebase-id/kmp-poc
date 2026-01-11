@@ -12,23 +12,23 @@ sealed interface  BackendEvent {
 
     // A DriveSyncUpdate event happens on a drive when either sync() has received a batch of data
     // from the host, or when the websocket listener has received some data.
-    sealed interface DriveSyncEvent : BackendEvent {
+    sealed interface DriveEvent : BackendEvent {
         val driveId: Uuid  // Common property for all sync events (implement in each data class)
 
         data class Started(
             override val driveId : Uuid,
-        ) : DriveSyncEvent // Only raised by Drive.sync()
+        ) : DriveEvent // Only raised by Drive.sync()
 
         data class Completed(
             override val driveId: Uuid,
             val totalCount: Int
-        ) : DriveSyncEvent  // Only raised by Drive.sync()
+        ) : DriveEvent  // Only raised by Drive.sync()
 
         data class Failed(
             override val driveId: Uuid,
             val errorMessage: String,  // Or add throwable: Throwable
             val source: SyncSource = SyncSource.DriveSync
-        ) : DriveSyncEvent
+        ) : DriveEvent
 
         data class BatchReceived(
             override val driveId : Uuid,
@@ -37,7 +37,7 @@ sealed interface  BackendEvent {
             val latestModified: UnixTimeUtc?,
             val batchData: List<SharedSecretEncryptedFileHeader>,
             val source: SyncSource = SyncSource.DriveSync
-        ) : DriveSyncEvent
+        ) : DriveEvent
     }
 
 

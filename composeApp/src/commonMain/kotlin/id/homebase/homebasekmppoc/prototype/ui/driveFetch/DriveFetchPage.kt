@@ -129,13 +129,13 @@ fun DriveFetchPage(
     LaunchedEffect(Unit) {
         appEventBus.events.collectLatest { event ->
             when (event) {
-                is BackendEvent.DriveSyncEvent.BatchReceived -> {
+                is BackendEvent.DriveEvent.BatchReceived -> {
                     if (event.driveId == driveId) {
                         syncProgress = event
                     }
                 }
 
-                is BackendEvent.DriveSyncEvent.Completed -> {
+                is BackendEvent.DriveEvent.Completed -> {
                     if (event.driveId == driveId) {
                         syncProgress = event
                         // Fetch local results as before
@@ -154,7 +154,7 @@ fun DriveFetchPage(
                     }
                 }
 
-                is BackendEvent.DriveSyncEvent.Failed -> {
+                is BackendEvent.DriveEvent.Failed -> {
                     if (event.driveId == driveId) {
                         errorMessage = event.errorMessage
                         isLoading = false
@@ -162,7 +162,7 @@ fun DriveFetchPage(
                     }
                 }
 
-                is BackendEvent.DriveSyncEvent.Started -> {
+                is BackendEvent.DriveEvent.Started -> {
                     if (event.driveId == driveId) {
                         isLoading = true
                         syncProgress = null
@@ -202,8 +202,8 @@ fun DriveFetchPage(
                         )
                     }
                     // Numerical progress
-                    if (syncProgress is BackendEvent.DriveSyncEvent.BatchReceived) {
-                        val progress = syncProgress as BackendEvent.DriveSyncEvent.BatchReceived
+                    if (syncProgress is BackendEvent.DriveEvent.BatchReceived) {
+                        val progress = syncProgress as BackendEvent.DriveEvent.BatchReceived
                         Text(
                             text = "${progress.totalCount}",
                             style = MaterialTheme.typography.bodyMedium,
