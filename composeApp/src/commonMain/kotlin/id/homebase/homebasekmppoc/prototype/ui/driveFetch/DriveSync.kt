@@ -82,7 +82,7 @@ class DriveSync(
         var queryBatchResponse: QueryBatchResponse? = null
         var keepGoing = true
 
-        eventBus.emit(BackendEvent.SyncUpdate.SyncStarted(driveId))
+        eventBus.emit(BackendEvent.DriveSyncEvent.Started(driveId))
 
         while (keepGoing) {
             Logger.i("Querying host for ${batchSize} rows")
@@ -130,7 +130,7 @@ class DriveSync(
                         val latestModified = searchResults.last().fileMetadata.updated
 
                         eventBus.emit(
-                            BackendEvent.SyncUpdate.BatchReceived(
+                            BackendEvent.DriveSyncEvent.BatchReceived(
                             driveId = driveId,
                             totalCount = totalCount,
                             batchCount = recordsRead,
@@ -142,7 +142,7 @@ class DriveSync(
                     // TODO: The BE should return the moreRows boolean from QueryBatch.
                     keepGoing = searchResults.size >= batchSize
                 } catch (e: Exception) {
-                    eventBus.emit(BackendEvent.SyncUpdate.Failed(driveId, "Sync failed: ${e.message}"))
+                    eventBus.emit(BackendEvent.DriveSyncEvent.Failed(driveId, "Sync failed: ${e.message}"))
                     keepGoing = false
                 }
             }
@@ -160,6 +160,6 @@ class DriveSync(
             }
         }
 
-        eventBus.emit(BackendEvent.SyncUpdate.Completed(driveId, totalCount))
+        eventBus.emit(BackendEvent.DriveSyncEvent.Completed(driveId, totalCount))
     }
 }

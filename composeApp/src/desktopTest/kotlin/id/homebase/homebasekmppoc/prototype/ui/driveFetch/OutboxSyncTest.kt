@@ -70,7 +70,7 @@ class OutboxSyncTest {
             // It's necessary to ensure all threads are finished.
             // This must be setup in the beginning of the test before we send()
             val completedDeferred = async {
-                eventBus.events.filterIsInstance<BackendEvent.OutboxUpdate.Completed>()
+                eventBus.events.filterIsInstance<BackendEvent.OutboxEvent.Completed>()
                     .first().totalCount
             }
             // Kick off the async collector before we send
@@ -130,7 +130,7 @@ class OutboxSyncTest {
             )
 
             val completedDeferred = async {
-                eventBus.events.filterIsInstance<BackendEvent.OutboxUpdate.Completed>()
+                eventBus.events.filterIsInstance<BackendEvent.OutboxEvent.Completed>()
                     .first().totalCount
             }
             testScheduler.runCurrent() // Kick off the async collector
@@ -182,7 +182,7 @@ class OutboxSyncTest {
             )
 
             val completedDeferred = async {
-                eventBus.events.filterIsInstance<BackendEvent.OutboxUpdate.Completed>()
+                eventBus.events.filterIsInstance<BackendEvent.OutboxEvent.Completed>()
                     .first().totalCount
             }
             testScheduler.runCurrent() // Kick off the async collector
@@ -243,7 +243,7 @@ class OutboxSyncTest {
             )
 
             val completedDeferred = async {
-                eventBus.events.filterIsInstance<BackendEvent.OutboxUpdate.Completed>()
+                eventBus.events.filterIsInstance<BackendEvent.OutboxEvent.Completed>()
                     .first().totalCount
             }
             testScheduler.runCurrent() // Kick off the async collector

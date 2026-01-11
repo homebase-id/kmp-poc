@@ -47,7 +47,7 @@ class OutboxSync(
             try {
                 counterMutex.withLock {
                     if (activeThreads.incrementAndGet() == 1) {
-                        eventBus.emit(BackendEvent.OutboxUpdate.ProcessingStarted)
+                        eventBus.emit(BackendEvent.OutboxEvent.Started)
                     }
                 }
                 outboxSend()
@@ -59,7 +59,7 @@ class OutboxSync(
                         if (activeThreads.decrementAndGet() == 0) {
                             val n = totalSent.getAndSet(0)
                             nextSend = databaseManager.outbox.nextScheduled()
-                            eventBus.emit(BackendEvent.OutboxUpdate.Completed(n))
+                            eventBus.emit(BackendEvent.OutboxEvent.Completed(n))
                         }
                     }
                 }
@@ -95,7 +95,7 @@ class OutboxSync(
 
             try {
                 // We sent the item, send an event
-                eventBus.emit(BackendEvent.OutboxUpdate.Sending(outboxRecord.driveId, outboxRecord.fileId))
+                eventBus.emit(BackendEvent.OutboxEvent.ItemStarted(outboxRecord.driveId, outboxRecord.fileId))
                 Logger.i("Log the data from the outboxRecord here...")
 
                 uploader.upload(outboxRecord)
@@ -104,14 +104,14 @@ class OutboxSync(
                 databaseManager.outbox.deleteByRowId(outboxRecord.rowId)
 
                 // We sent the item, send an event
-                eventBus.emit(BackendEvent.OutboxUpdate.Sent(outboxRecord.driveId, outboxRecord.fileId))
+                eventBus.emit(BackendEvent.OutboxEvent.ItemCompleted(outboxRecord.driveId, outboxRecord.fileId))
                 totalSent.incrementAndGet()
             } catch (e: Exception) {
                 val n = WAIT_INCREMENT_SECONDS*outboxRecord.checkOutCount
                 Logger.w("Failed upload for ${outboxRecord.fileId}, retry in $n seconds (attempt ${outboxRecord.checkOutCount + 1})", e)
                 databaseManager.outbox.checkInFailed(outboxRecord.checkOutStamp!!,
                     UnixTimeUtc.now().addSeconds(n.toLong()).seconds )
-                eventBus.emit(BackendEvent.OutboxUpdate.Failed(e.message ?: "Unknown error"))
+                eventBus.emit(BackendEvent.OutboxEvent.Failed(e.message ?: "Unknown error"))
             }
         }
     }

@@ -129,13 +129,13 @@ fun DriveFetchPage(
     LaunchedEffect(Unit) {
         appEventBus.events.collectLatest { event ->
             when (event) {
-                is BackendEvent.SyncUpdate.BatchReceived -> {
+                is BackendEvent.DriveSyncEvent.BatchReceived -> {
                     if (event.driveId == driveId) {
                         syncProgress = event
                     }
                 }
 
-                is BackendEvent.SyncUpdate.Completed -> {
+                is BackendEvent.DriveSyncEvent.Completed -> {
                     if (event.driveId == driveId) {
                         syncProgress = event
                         // Fetch local results as before
@@ -154,7 +154,7 @@ fun DriveFetchPage(
                     }
                 }
 
-                is BackendEvent.SyncUpdate.Failed -> {
+                is BackendEvent.DriveSyncEvent.Failed -> {
                     if (event.driveId == driveId) {
                         errorMessage = event.errorMessage
                         isLoading = false
@@ -162,7 +162,7 @@ fun DriveFetchPage(
                     }
                 }
 
-                is BackendEvent.SyncUpdate.SyncStarted -> {
+                is BackendEvent.DriveSyncEvent.Started -> {
                     if (event.driveId == driveId) {
                         isLoading = true
                         syncProgress = null
@@ -202,8 +202,8 @@ fun DriveFetchPage(
                         )
                     }
                     // Numerical progress
-                    if (syncProgress is BackendEvent.SyncUpdate.BatchReceived) {
-                        val progress = syncProgress as BackendEvent.SyncUpdate.BatchReceived
+                    if (syncProgress is BackendEvent.DriveSyncEvent.BatchReceived) {
+                        val progress = syncProgress as BackendEvent.DriveSyncEvent.BatchReceived
                         Text(
                             text = "${progress.totalCount}",
                             style = MaterialTheme.typography.bodyMedium,

@@ -12,8 +12,23 @@ sealed interface  BackendEvent {
 
     // A SyncUpdate event happens on a drive when either sync() has received a batch of data from
     // the host, or when the websocket listener has received some data.
-    sealed interface SyncUpdate : BackendEvent {
+    sealed interface DriveSyncEvent : BackendEvent {
         val driveId: Uuid  // Common property for all sync events (implement in each data class)
+
+        data class Started(
+            override val driveId : Uuid,
+        ) : DriveSyncEvent // Only raised by Drive.sync()
+
+        data class Completed(
+            override val driveId: Uuid,
+            val totalCount: Int
+        ) : DriveSyncEvent  // Only raised by Drive.sync()
+
+        data class Failed(
+            override val driveId: Uuid,
+            val errorMessage: String,  // Or add throwable: Throwable
+            val source: SyncSource = SyncSource.DriveSync
+        ) : DriveSyncEvent
 
         data class BatchReceived(
             override val driveId : Uuid,
@@ -22,44 +37,42 @@ sealed interface  BackendEvent {
             val latestModified: UnixTimeUtc?,
             val batchData: List<SharedSecretEncryptedFileHeader>,
             val source: SyncSource = SyncSource.DriveSync
-        ) : SyncUpdate
-
-        data class SyncStarted(
-            override val driveId : Uuid,
-        ) : SyncUpdate // Only raised by Drive.sync()
-
-        data class Completed(
-            override val driveId: Uuid,
-            val totalCount: Int
-        ) : SyncUpdate  // Only raised by Drive.sync()
-
-        data class Failed(
-            override val driveId: Uuid,
-            val errorMessage: String,  // Or add throwable: Throwable
-            val source: SyncSource = SyncSource.DriveSync
-        ) : SyncUpdate
+        ) : DriveSyncEvent
     }
 
-    sealed interface OutboxUpdate : BackendEvent {
-        data object ProcessingStarted : OutboxUpdate
 
-        data class Sending(
-            val driveId : Uuid,
-            val fileId : Uuid
-        ) : OutboxUpdate  // Only raised by Drive.sync()
-
-        data class Sent(
-            val driveId : Uuid,
-            val fileId : Uuid
-        ) : OutboxUpdate  // Only raised by Drive.sync()
+    sealed interface OutboxEvent : BackendEvent {
+        data object Started : OutboxEvent
 
         data class Completed(
             val totalCount: Int
-        ) : OutboxUpdate  // Only raised by Drive.sync()
+        ) : OutboxEvent  // Only raised by Drive.sync()
 
         data class Failed(
-            val errorMessage: String?  // Or add throwable: Throwable
-        ) : OutboxUpdate
+            val errorMessage: String?,  // Or add throwable: Throwable
+            val driveId: Uuid? = null,
+            val fileId: Uuid? = null
+        ) : OutboxEvent
+
+        // Events for individual items
+        data class ItemStarted(
+            val driveId : Uuid,
+            val fileId : Uuid,
+            val totalBytes: Long? = null
+        ) : OutboxEvent  // Only raised by Drive.sync()
+
+        data class ItemProgress(
+            val driveId: Uuid,
+            val fileId: Uuid,
+            val progress: Float,  // 0.0 to 1.0
+            val bytesSent: Long? = null
+        ) : OutboxEvent  // New: For ongoing upload progress updates
+
+        data class ItemCompleted(
+            val driveId : Uuid,
+            val fileId : Uuid
+        ) : OutboxEvent  // Only raised by Drive.sync()
+
     }
     // Add sealed interface UploadUpdate for Outbox / upload status
     // Add sealed interface VideoUpdate (or WorkUpdate) compression & segmentation & encryption
