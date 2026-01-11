@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS Outbox(
    lastAttempt INTEGER NOT NULL, -- UnixTimeUtc
    nextRunTime INTEGER NOT NULL, -- UnixTimeUtc
    checkOutCount INTEGER NOT NULL,
-   checkOutStamp INTEGER, -- Allow NULL
+   checkOutStamp INTEGER UNIQUE, -- Allow NULL
    uploadType INTEGER NOT NULL,
    json BLOB NOT NULL,
    files BLOB,
