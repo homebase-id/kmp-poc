@@ -18,3 +18,8 @@ captures
 **/xcshareddata/WorkspaceSettings.xcsettings
 node_modules/
 CLAUDE.md
+
+# FFmpeg build intermediates (source + build dirs, NOT the generated libs)
+.ffmpeg-source/
+.ffmpeg-build-ios/
+.ffmpeg-build-android/

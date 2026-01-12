@@ -66,27 +66,21 @@ kotlin {
         iosSimulatorArm64()
     ).forEach { iosTarget ->
         iosTarget.compilations.getByName("main") {
-            val ffmpegKitCinterop by cinterops.creating {
-                defFile("src/nativeInterop/cinterop/ffmpegkit.def")
-                packageName("id.homebase.homebasekmppoc.media.ffmpegkit")
+            val ffmpegCinterop by cinterops.creating {
+                defFile("src/nativeInterop/cinterop/ffmpeg.def")
+                packageName("id.homebase.homebasekmppoc.media.ffmpeg")
                 
-                // Determine which architecture content to use for headers (headers are usually same)
-                val frameworkArch = if (iosTarget.konanTarget.name.contains("simulator")) {
-                    "ios-arm64_x86_64-simulator"
+                // Use build directory for headers (has correct libavformat/avformat.h structure)
+                val buildSuffix = if (iosTarget.konanTarget.name.contains("simulator")) {
+                    "arm64-simulator"
                 } else {
-                    "ios-arm64_arm64e"
+                    "arm64"
                 }
                 
-                val libsDir = project.file("libs/ffmpegkit-bundled.xcframework").absolutePath
-                val includeDirs = listOf(
-                    "ffmpegkit.xcframework", "libavcodec.xcframework", "libavdevice.xcframework",
-                    "libavfilter.xcframework", "libavformat.xcframework", "libavutil.xcframework",
-                    "libswresample.xcframework", "libswscale.xcframework"
-                ).map { framework ->
-                    "-F$libsDir/$framework/$frameworkArch"
-                }
+                val buildDir = project.rootProject.file(".ffmpeg-build-ios")
+                val includeDir = "$buildDir/install-$buildSuffix/include"
                 
-                compilerOpts(includeDirs)
+                compilerOpts("-I$includeDir")
             }
         }
 
@@ -96,22 +90,33 @@ kotlin {
             linkerOpts("-lsqlite3")
             linkerOpts("-lz", "-lbz2", "-liconv") // FFmpeg dependencies
             
-            // Link against the frameworks
-            val libsDir = project.file("libs/ffmpegkit-bundled.xcframework").absolutePath
-             val frameworkArch = if (iosTarget.konanTarget.name.contains("simulator")) {
-                "ios-arm64_x86_64-simulator"
+            // Link against static libraries
+            val buildSuffix = if (iosTarget.konanTarget.name.contains("simulator")) {
+                "arm64-simulator"
             } else {
-                "ios-arm64_arm64e"
+                "arm64"
             }
             
-            val frameworks = listOf(
-                "ffmpegkit", "libavcodec", "libavdevice", "libavfilter", 
-                "libavformat", "libavutil", "libswresample", "libswscale"
+            val buildDir = project.rootProject.file(".ffmpeg-build-ios")
+            val libDir = "$buildDir/install-$buildSuffix/lib"
+            
+            // Link static libraries
+            linkerOpts(
+                "$libDir/libavformat.a",
+                "$libDir/libavcodec.a",
+                "$libDir/libavfilter.a",
+                "$libDir/libswscale.a",
+                "$libDir/libswresample.a",
+                "$libDir/libavutil.a"
             )
             
-            frameworks.forEach { fw ->
-                linkerOpts("-F$libsDir/$fw.xcframework/$frameworkArch", "-framework", fw)
-            }
+            // iOS frameworks required by FFmpeg
+            linkerOpts("-framework", "VideoToolbox")
+            linkerOpts("-framework", "AudioToolbox")
+            linkerOpts("-framework", "CoreMedia")
+            linkerOpts("-framework", "CoreVideo")
+            linkerOpts("-framework", "CoreFoundation")
+            linkerOpts("-framework", "Security")
             
             freeCompilerArgs += listOf("-Xbinary=bundleId=id.homebase.homebasekmppoc")
         }
@@ -131,7 +136,7 @@ kotlin {
             implementation(libs.androidx.media3.ui)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.sqldelight.android.driver)
-            implementation(files("libs/ffmpeg-kit-lts-ndk-r25-16k.aar"))
+            // FFmpeg native libraries loaded via jniLibs
             implementation(libs.smart.exception.java)
         }
         commonMain.dependencies {
@@ -256,12 +261,42 @@ compose.desktop {
 android {
     namespace = "id.homebase.homebasekmppoc"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
+    ndkVersion = "29.0.13113456"
+    
     defaultConfig {
         applicationId = "id.homebase.homebasekmppoc"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
+        
+        // Configure NDK ABI filters
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
+        }
+        
+        // Configure CMake for JNI build
+        externalNativeBuild {
+            cmake {
+                cppFlags += ""
+                arguments += listOf("-DANDROID_STL=c++_shared")
+            }
+        }
+    }
+    
+    // Point to CMakeLists.txt for JNI build
+    externalNativeBuild {
+        cmake {
+            path = file("src/androidMain/jni/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
+    
+    // Include prebuilt jniLibs
+    sourceSets {
+        getByName("main") {
+            jniLibs.srcDirs("src/androidMain/jniLibs")
+        }
     }
     packaging {
         resources {

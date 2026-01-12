@@ -1,0 +1,3 @@
+language = C
+headers = libavformat/avformat.h libavcodec/avcodec.h libavutil/avutil.h libavutil/dict.h libavutil/frame.h libavutil/imgutils.h libswscale/swscale.h libswresample/swresample.h libavfilter/avfilter.h
+package = id.homebase.homebasekmppoc.media.ffmpeg
