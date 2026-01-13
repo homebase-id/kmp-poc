@@ -95,7 +95,7 @@ class OutboxSync(
                 val n = 30*outboxRecord.checkOutCount
                 Logger.e("Failed upload for ${outboxRecord.fileId}, retry in $n seconds (attempt ${outboxRecord.checkOutCount + 1})", e)
                 databaseManager.outbox.checkInFailed(outboxRecord.checkOutStamp!!,
-                    UnixTimeUtc.now().addSeconds(n.toLong()).seconds )
+                    UnixTimeUtc.now().addSeconds(n).seconds )
                 EventBusFlow.emit(BackendEvent.OutboxUpdate.Failed(e.message ?: "Unknown error"))
             }
         }
