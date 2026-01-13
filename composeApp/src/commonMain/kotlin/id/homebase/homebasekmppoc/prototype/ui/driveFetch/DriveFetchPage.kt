@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import id.homebase.homebasekmppoc.lib.config.publicPostsDriveId
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthState
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
@@ -40,28 +41,31 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.prototype.lib.eventbus.BackendEvent
 import id.homebase.homebasekmppoc.prototype.lib.eventbus.appEventBus
 import id.homebase.homebasekmppoc.ui.screens.login.publicPostsDriveId
+import kotlin.uuid.Uuid
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
-import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun DriveFetchPage(
-    youAuthFlowManager: YouAuthFlowManager, onNavigateBack: () -> Unit,
-    onNavigateToFileDetail: (String, String) -> Unit,
-    viewModel: DriveFetchViewModel = koinViewModel()
+        youAuthFlowManager: YouAuthFlowManager,
+        onNavigateBack: () -> Unit,
+        onNavigateToFileDetail: (String, String) -> Unit,
+        viewModel: DriveFetchViewModel = koinViewModel()
 ) {
     val authState by youAuthFlowManager.authState.collectAsState()
-    var localQueryResults by remember { mutableStateOf<List<SharedSecretEncryptedFileHeader>?>(null) }
+    var localQueryResults by remember {
+        mutableStateOf<List<SharedSecretEncryptedFileHeader>?>(null)
+    }
     var isLoading by remember { mutableStateOf(false) }
     var isRefreshing by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var syncProgress by remember { mutableStateOf<BackendEvent?>(null) }
     var isOnline by remember { mutableStateOf(true) } // Assume online by default
     val identityId =
-        Uuid.parse("7b1be23b-48bb-4304-bc7b-db5910c09a92") // TODO: <- get the real identityId
-    val driveId = publicPostsDriveId;
+            Uuid.parse("7b1be23b-48bb-4304-bc7b-db5910c09a92") // TODO: <- get the real identityId
+    val driveId = publicPostsDriveId
 
     // Inject DriveQueryProvider from Koin
     val driveQueryProvider: DriveQueryProvider? = koinInject()
@@ -70,10 +74,8 @@ fun DriveFetchPage(
         viewModel.uiEvent.collect { event ->
             when (event) {
                 is DriveFetchUiEvent.NavigateToFileDetail ->
-                    onNavigateToFileDetail(event.driveId, event.fileId)
-
-                DriveFetchUiEvent.NavigateBack ->
-                    onNavigateBack()
+                        onNavigateToFileDetail(event.driveId, event.fileId)
+                DriveFetchUiEvent.NavigateBack -> onNavigateBack()
             }
         }
     }
@@ -104,17 +106,16 @@ fun DriveFetchPage(
         }
     }
 
-
     val pullRefreshState =
-        rememberPullRefreshState(
-            isRefreshing,
-            {
-                if (authState is YouAuthState.Authenticated) {
-                    isRefreshing = true
-                    triggerFetch(false)
-                }
-            }
-        )
+            rememberPullRefreshState(
+                    isRefreshing,
+                    {
+                        if (authState is YouAuthState.Authenticated) {
+                            isRefreshing = true
+                            triggerFetch(false)
+                        }
+                    }
+            )
 
     // Reset state when auth changes
     LaunchedEffect(authState) {
@@ -139,15 +140,17 @@ fun DriveFetchPage(
                     if (event.driveId == driveId) {
                         syncProgress = event
                         // Fetch local results as before
-                        val localResult = QueryBatch(identityId).queryBatchAsync(
-                            DatabaseManager.appDb,
-                            driveId,
-                            1000,
-                            null,
-                            QueryBatchSortOrder.OldestFirst,
-                            QueryBatchSortField.AnyChangeDate,
-                            fileSystemType = 0
-                        )
+                        val localResult =
+                                QueryBatch(identityId)
+                                        .queryBatchAsync(
+                                                DatabaseManager.appDb,
+                                                driveId,
+                                                1000,
+                                                null,
+                                                QueryBatchSortOrder.OldestFirst,
+                                                QueryBatchSortField.AnyChangeDate,
+                                                fileSystemType = 0
+                                        )
                         localQueryResults = localResult.records
                         isLoading = false
                         isRefreshing = false
@@ -168,15 +171,12 @@ fun DriveFetchPage(
                         syncProgress = null
                     }
                 }
-
                 is BackendEvent.GoingOnline -> {
                     isOnline = true
                 }
-
                 is BackendEvent.GoingOffline -> {
                     isOnline = false
                 }
-
                 else -> {
                     // Some other event... ?
                 }
@@ -220,19 +220,16 @@ fun DriveFetchPage(
         }
     ) { paddingValues ->
         Box(
-            modifier =
-                Modifier.fillMaxSize().padding(paddingValues).pullRefresh(pullRefreshState)
+                modifier =
+                        Modifier.fillMaxSize().padding(paddingValues).pullRefresh(pullRefreshState)
         ) {
             Column(
-                modifier = Modifier.fillMaxSize().padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    modifier = Modifier.fillMaxSize().padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 when (authState) {
                     is YouAuthState.Authenticated -> {
-                        Button(
-                            onClick = { triggerFetch(true) },
-                            enabled = !isLoading
-                        ) {
+                        Button(onClick = { triggerFetch(true) }, enabled = !isLoading) {
                             Text(if (isLoading) "Fetching..." else "Fetch Files")
                         }
 
@@ -240,35 +237,35 @@ fun DriveFetchPage(
 
                         if (errorMessage != null) {
                             Text(
-                                text = "Error: $errorMessage",
-                                color = MaterialTheme.colorScheme.error
+                                    text = "Error: $errorMessage",
+                                    color = MaterialTheme.colorScheme.error
                             )
                         } else {
                             localQueryResults?.let { items ->
                                 DriveFetchList(
-                                    items = items,
-                                    onFileClicked = { driveId, fileId ->
-                                        viewModel.onAction(
-                                            DriveFetchUiAction.FileClicked(driveId, fileId)
-                                        )
-                                    })
+                                        items = items,
+                                        onFileClicked = { driveId, fileId ->
+                                            viewModel.onAction(
+                                                    DriveFetchUiAction.FileClicked(driveId, fileId)
+                                            )
+                                        }
+                                )
                             }
                         }
                     }
-
                     else -> {
                         Text(
-                            text = "Please authenticate in the App tab first.",
-                            style = MaterialTheme.typography.bodyLarge,
-                            textAlign = TextAlign.Center
+                                text = "Please authenticate in the App tab first.",
+                                style = MaterialTheme.typography.bodyLarge,
+                                textAlign = TextAlign.Center
                         )
                     }
                 }
             }
             PullRefreshIndicator(
-                refreshing = isRefreshing,
-                state = pullRefreshState,
-                modifier = Modifier.align(Alignment.TopCenter)
+                    refreshing = isRefreshing,
+                    state = pullRefreshState,
+                    modifier = Modifier.align(Alignment.TopCenter)
             )
         }
     }

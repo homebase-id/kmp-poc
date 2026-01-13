@@ -6,4 +6,22 @@ PRODUCT_BUNDLE_IDENTIFIER=id.homebase.homebasekmppoc.HomebaseKmpPoc$(TEAM_ID)
 CURRENT_PROJECT_VERSION=1
 MARKETING_VERSION=1.0
 
-OTHER_LDFLAGS = $(inherited) -lsqlite3
+// FFmpegKit Framework Configuration
+// Path to the FFmpegKit xcframework bundle (relative to iosApp folder)
+FFMPEG_LIBS_PATH = $(SRCROOT)/../composeApp/libs/ffmpegkit-bundled.xcframework
+
+// Simulator architecture
+FFMPEG_ARCH_SIM = ios-arm64_x86_64-simulator
+// Device architecture
+FFMPEG_ARCH_DEVICE = ios-arm64_arm64e
+
+// Use conditional logic to pick the right architecture based on SDK
+FFMPEG_ARCH = $(FFMPEG_ARCH_$(PLATFORM_NAME))
+FFMPEG_ARCH_iphonesimulator = $(FFMPEG_ARCH_SIM)
+FFMPEG_ARCH_iphoneos = $(FFMPEG_ARCH_DEVICE)
+
+// Framework Search Paths for all FFmpeg frameworks
+FRAMEWORK_SEARCH_PATHS = $(inherited) "$(FFMPEG_LIBS_PATH)/ffmpegkit.xcframework/$(FFMPEG_ARCH)" "$(FFMPEG_LIBS_PATH)/libavcodec.xcframework/$(FFMPEG_ARCH)" "$(FFMPEG_LIBS_PATH)/libavdevice.xcframework/$(FFMPEG_ARCH)" "$(FFMPEG_LIBS_PATH)/libavfilter.xcframework/$(FFMPEG_ARCH)" "$(FFMPEG_LIBS_PATH)/libavformat.xcframework/$(FFMPEG_ARCH)" "$(FFMPEG_LIBS_PATH)/libavutil.xcframework/$(FFMPEG_ARCH)" "$(FFMPEG_LIBS_PATH)/libswresample.xcframework/$(FFMPEG_ARCH)" "$(FFMPEG_LIBS_PATH)/libswscale.xcframework/$(FFMPEG_ARCH)"
+
+// Linker flags to link FFmpeg and system dependencies
+OTHER_LDFLAGS = $(inherited) -lsqlite3 -lz -lbz2 -liconv -framework ffmpegkit -framework libavcodec -framework libavdevice -framework libavfilter -framework libavformat -framework libavutil -framework libswresample -framework libswscale -framework AudioToolbox -framework VideoToolbox -framework CoreMedia -framework CoreVideo -framework Security

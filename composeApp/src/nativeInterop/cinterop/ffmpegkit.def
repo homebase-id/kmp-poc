@@ -1,0 +1,5 @@
+language = Objective-C
+headers = ffmpegkit/ReturnCode.h ffmpegkit/Session.h ffmpegkit/FFmpegSession.h ffmpegkit/FFprobeSession.h ffmpegkit/MediaInformation.h ffmpegkit/MediaInformationSession.h ffmpegkit/FFmpegKit.h ffmpegkit/FFprobeKit.h
+package = id.homebase.homebasekmppoc.media.ffmpegkit
+compilerOpts = -framework ffmpegkit -framework libavcodec -framework libavdevice -framework libavfilter -framework libavformat -framework libavutil -framework libswresample -framework libswscale
+linkerOpts = -framework ffmpegkit -framework libavcodec -framework libavdevice -framework libavfilter -framework libavformat -framework libavutil -framework libswresample -framework libswscale

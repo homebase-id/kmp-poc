@@ -7,11 +7,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,6 +53,8 @@ fun HomeScreen(state: HomeUiState, onAction: (HomeUiAction) -> Unit) {
 
             NavigationButton("Drive Upload") { onAction(HomeUiAction.DriveUploadClicked) }
 
+            NavigationButton("FFmpeg Test") { onAction(HomeUiAction.FFmpegTestClicked) }
+
             Spacer(modifier = Modifier.weight(1f))
 
             OutlinedButton(
@@ -59,9 +63,35 @@ fun HomeScreen(state: HomeUiState, onAction: (HomeUiAction) -> Unit) {
             ) { Text("Logout") }
         }
     }
+
+    // Show permission dialog if needed
+    if (state.showPermissionDialog) {
+        MissingPermissionDialog(
+                appName = state.appName,
+                onExtend = { onAction(HomeUiAction.ExtendPermissionsClicked) },
+                onDismiss = { onAction(HomeUiAction.DismissPermissionDialog) }
+        )
+    }
 }
 
 @Composable
 private fun NavigationButton(text: String, onClick: () -> Unit) {
     Button(onClick = onClick, modifier = Modifier.fillMaxWidth()) { Text(text) }
+}
+
+/** Dialog shown when the app is missing required permissions. */
+@Composable
+fun MissingPermissionDialog(appName: String, onExtend: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("Missing Permissions") },
+            text = {
+                Text(
+                        "The $appName app is missing permissions. Without the necessary permissions, " +
+                                "the functionality of $appName will be limited."
+                )
+            },
+            confirmButton = { Button(onClick = onExtend) { Text("Extend Permissions") } },
+            dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
 }
