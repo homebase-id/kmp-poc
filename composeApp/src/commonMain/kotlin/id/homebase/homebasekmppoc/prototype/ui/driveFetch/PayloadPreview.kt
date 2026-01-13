@@ -33,7 +33,9 @@ fun PayloadPreview(
 
         Spacer(Modifier.height(4.dp))
 
-        val contentType = if (payload.contentType.isNullOrEmpty()) "application/octet-stream" else bytes.contentType
+        val contentType = payload.contentType.takeIf { !it.isNullOrEmpty() }
+            ?: bytes.contentType.takeIf { it.isNotBlank() }
+            ?: "application/octet-stream"
 
         Text(
             text = contentType,
