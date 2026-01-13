@@ -44,6 +44,7 @@ data class NewMediaFile(
 data class PayloadFile(
         val key: String,
         val payload: ByteArray,
+//        val payload: String,
         val previewThumbnail: EmbeddedThumb? = null,
         val contentType: String = "",
         val descriptorContent: String? = null,

@@ -81,14 +81,12 @@ class FileDetailViewModel(
         viewModelScope.launch {
             try {
                 val rangeBytes =
-                    provider.getPayloadBytes(
+                    provider.getPayloadBytesDecrypted(
                         driveId = driveId,
                         fileId = fileId,
                         key = action.payloadKey,
-                        options = PayloadOperationOptions(
-                            chunkStart = action.start,
-                            chunkLength = action.length
-                        )
+                        chunkStart = action.start,
+                        chunkLength = action.length
                     )
 
                 if (rangeBytes != null) {
@@ -240,11 +238,10 @@ class FileDetailViewModel(
 
             try {
                 val bytes =
-                    provider.getPayloadBytes(
+                    provider.getPayloadBytesDecrypted(
                         driveId = driveId,
                         fileId = fileId,
-                        key = action.payloadKey,
-                        options = PayloadOperationOptions()
+                        key = action.payloadKey
                     )
 
                 if (bytes != null) {
@@ -272,13 +269,12 @@ class FileDetailViewModel(
         viewModelScope.launch {
             try {
                 val bytes =
-                    provider.getThumbBytes(
+                    provider.getThumbBytesDecrypted(
                         driveId = driveId,
                         fileId = fileId,
                         payloadKey = action.payloadKey,
                         width = action.width,
-                        height = action.height,
-                        options = FileOperationOptions(decrypt = true)
+                        height = action.height
                     )
 
                 if (bytes != null) {

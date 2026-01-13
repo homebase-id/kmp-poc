@@ -20,7 +20,6 @@ class DriveQueryProvider(
     suspend fun queryBatch(
         driveId: Uuid,
         request: QueryBatchRequest,
-        options: QueryBatchOptions? = null
     ): QueryBatchResponse {
 
         ValidationUtil.requireValidUuid(driveId, "driveId")
@@ -40,23 +39,9 @@ class DriveQueryProvider(
             secret = creds.secret
         )
 
-        // Optional: inspect response
-        if (apiResponse.status != 200) {
-            // map error / throw domain exception if needed
-        }
+        throwForFailure(apiResponse);
 
-        val response =
-            deserialize<QueryBatchResponse>(apiResponse.body)
-
-        return handleResponse(response, options)
-    }
-
-    private suspend fun handleResponse(
-        response: QueryBatchResponse,
-        options: QueryBatchOptions?
-    ): QueryBatchResponse {
-        // unchanged from your original
-        return response
+        return deserialize<QueryBatchResponse>(apiResponse.body)
     }
 }
 

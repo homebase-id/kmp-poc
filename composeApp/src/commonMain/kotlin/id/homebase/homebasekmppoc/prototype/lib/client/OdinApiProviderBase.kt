@@ -14,10 +14,20 @@ import io.ktor.client.request.get
 import io.ktor.client.request.patch
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.readRawBytes
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.content.TextContent
 import io.ktor.http.contentType
 
+
+data class ByteApiResponse(
+    val status: Int,
+    val headers: io.ktor.http.Headers,
+    val bytes: ByteArray,
+    val contentType: String
+)
 
 abstract class OdinApiProviderBase(
     protected val httpClient: HttpClient,
@@ -61,10 +71,32 @@ abstract class OdinApiProviderBase(
         return ApiResponse(
             status = response.status.value,
             headers = response.headers,
-            body = body,
-            isEncrypted = isEncrypted
+            body = body
         )
     }
+
+    protected suspend fun requestBytes(
+        block: suspend () -> HttpResponse
+    ): ByteApiResponse {
+
+        val response = block()
+        val bytes = response.readRawBytes()
+
+        val contentType =
+            response.headers["decryptedcontenttype"]
+                ?: response.headers[HttpHeaders.ContentType]
+                ?: "application/octet-stream"
+
+        return ByteApiResponse(
+            status = response.status.value,
+            headers = response.headers,
+            bytes = bytes,
+            contentType = contentType
+        )
+    }
+
+
+
 
     // ------------------------------------------------------------
     // Plain requests (JSON already serialized)
@@ -249,5 +281,46 @@ abstract class OdinApiProviderBase(
     protected inline fun <reified T> deserialize(json: String): T =
         OdinSystemSerializer.deserialize(json)
 
+    protected fun throwForFailure(response: ApiResponse) {
+        if (response.status in 200..299) return
 
+        when (response.status) {
+            400 -> {
+                val problem = deserialize<ProblemDetails>(response.body)
+                throw ClientException(
+                    status = 400,
+                    errorCode = problem.errorCode(),
+                    message = problem.title ?: "Invalid request",
+                    correlationId = problem.correlationId(),
+                    problem = problem
+                )
+            }
+
+            401 -> throw UnauthorizedException()
+
+            403 -> throw ForbiddenException()
+
+            404 -> throw NotFoundException()
+
+            in 500..599 -> {
+                val problem = runCatching {
+                    deserialize<ProblemDetails>(response.body)
+                }.getOrNull()
+
+                throw ServerException(
+                    status = response.status,
+                    correlationId = problem?.correlationId(),
+                    problem = problem
+                )
+            }
+
+            else -> {
+                throw ServerException(
+                    status = response.status,
+                    correlationId = null,
+                    problem = null
+                )
+            }
+        }
+    }
 }

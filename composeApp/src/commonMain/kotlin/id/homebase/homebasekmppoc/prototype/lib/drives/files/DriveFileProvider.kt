@@ -1,5 +1,9 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives.files
 
+import id.homebase.homebasekmppoc.prototype.lib.ApiServiceExample.CredentialsManager
+import id.homebase.homebasekmppoc.prototype.lib.client.ApiResponse
+import id.homebase.homebasekmppoc.prototype.lib.client.ByteApiResponse
+import id.homebase.homebasekmppoc.prototype.lib.client.OdinApiProviderBase
 import co.touchlab.kermit.Logger as KLogger
 import id.homebase.homebasekmppoc.prototype.lib.core.OdinClientErrorCode
 import id.homebase.homebasekmppoc.prototype.lib.core.OdinClientException
@@ -11,6 +15,7 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.FileSystemType
 import id.homebase.homebasekmppoc.prototype.lib.http.CreateHttpClientOptions
 import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
+import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.ServerResponseException
@@ -58,7 +63,10 @@ data class BytesResponse(val bytes: ByteArray, val contentType: String) {
 
 /** Provider for drive file operations. Ported from JS/TS odin-js DriveFileProvider. */
 @OptIn(ExperimentalEncodingApi::class)
-public class DriveFileProvider(private val odinClient: OdinClient) {
+public class DriveFileProvider(
+    httpClient: HttpClient,
+    credentialsManager: CredentialsManager
+) : OdinApiProviderBase(httpClient, credentialsManager) {
 
     companion object {
         private const val TAG = "DriveFileProvider"
@@ -77,243 +85,239 @@ public class DriveFileProvider(private val odinClient: OdinClient) {
 
     suspend fun getFileHeader(
         driveId: Uuid,
-        fileId: Uuid,
+        fileId: Uuid
     ): HomebaseFile? {
 
         ValidationUtil.requireValidUuid(driveId, "driveId")
         ValidationUtil.requireValidUuid(fileId, "fileId")
 
-        val httpClient = odinClient.createHttpClient(CreateHttpClientOptions())
+        val creds = requireCreds()
+        val url = apiUrl(
+            creds.domain,
+            "/drives/$driveId/files/$fileId/header"
+        )
 
-        return try {
-            val response = httpClient.get("drives/$driveId/files/$fileId/header")
-            if (response.status == HttpStatusCode.NotFound) {
-                null
-            } else {
-                response.body<HomebaseFile>()
-            }
-        } catch (e: ClientRequestException) {
-            if (e.response.status == HttpStatusCode.NotFound) {
-                null
-            } else {
-                throw e
-            }
+        val response = encryptedGet(
+            url = url,
+            token = creds.accessToken,
+            secret = creds.secret
+        )
+
+        // 👇 Intentional business rule
+        if (response.status == 404) {
+            return null
         }
+
+        // 👇 Centralized error handling for everything else
+        throwForFailure(response)
+
+        return deserialize<HomebaseFile>(response.body)
     }
 
-
-    /**
-     * Gets payload bytes with optional decryption and range support.
-     *
-     * @param driveId
-     * The target drive containing the file
-     * @param fileId The ID of the file
-     * @param key The payload key
-     * @param options Optional operation options with range support
-     * @return BytesResponse containing the payload bytes and content type, or null if not found
-     */
-    suspend fun getPayloadBytes(
+    suspend fun getPayloadBytesRaw(
         driveId: Uuid,
         fileId: Uuid,
         key: String,
         options: PayloadOperationOptions = PayloadOperationOptions()
-    ): BytesResponse? {
+    ): ByteApiResponse? {
 
         ValidationUtil.requireValidUuid(driveId, "driveId")
         ValidationUtil.requireValidUuid(fileId, "fileId")
-
         require(key.isNotBlank()) { "Key must be defined" }
 
-        val httpClient = odinClient.createHttpClient(CreateHttpClientOptions())
+        val creds = requireCreds()
 
         val queryParams =
             buildMap<String, String> {
-                if (options.lastModified != null) {
-                    put("lastModified", options.lastModified.toString())
+                options.lastModified?.let {
+                    put("lastModified", it.toString())
                 }
             }
 
-        val rangeResult = DriveFileHelpers.getRangeHeader(options.chunkStart, options.chunkLength)
+        val rangeResult =
+            DriveFileHelpers.getRangeHeader(
+                options.chunkStart,
+                options.chunkLength
+            )
 
         val path =
             if (options.chunkStart != null)
-                "drives/$driveId/files/$fileId/payload/$key/${options.chunkStart}/${options.chunkLength ?: ""}"
+                "/drives/$driveId/files/$fileId/payload/$key/${options.chunkStart}/${options.chunkLength ?: ""}"
             else
-                "drives/$driveId/files/$fileId/payload/$key"
+                "/drives/$driveId/files/$fileId/payload/$key"
 
+        val url = apiUrl(creds.domain, path)
 
-        try {
-            val response =
-                httpClient.get(path) {
-                    url {
-                        queryParams.forEach { (key, value) -> parameters.append(key, value) }
-                    }
-                    if (rangeResult.rangeHeader != null) {
-                        header(HttpHeaders.Range, rangeResult.rangeHeader)
-                    }
+        val response = requestBytes {
+            httpClient.get(url) {
+                bearerAuth(creds.accessToken)
+
+                queryParams.forEach { (k, v) ->
+                    url { parameters.append(k, v) }
                 }
 
-            if (response.status == HttpStatusCode.NotFound) {
-                return null
-            }
-
-            if (!response.status.isSuccess() && response.status != HttpStatusCode.PartialContent) {
-                KLogger.e(TAG) { "[odin-kt:getPayloadBytes] Request failed: ${response.status}" }
-                return null
-            }
-
-            val bytes = response.readRawBytes()
-            if (bytes.isEmpty()) return null
-
-            val contentType =
-                response.headers["decryptedcontenttype"]
-                    ?: response.contentType()?.toString() ?: "application/octet-stream"
-
-            val resultBytes =
-                if (!options.decrypt) {
-                    bytes
-                } else if (rangeResult.updatedChunkStart != null) {
-                    // Chunked decryption - decrypt and slice
-                    val decrypted = decryptChunkedBytes(
-                        response,
-                        bytes,
-                        startOffset = rangeResult.startOffset,
-                        chunkStart = (options.chunkStart ?: 0).toInt()
-                    )
-                    val sliceEnd =
-                        if (options.chunkLength != null && options.chunkStart != null) {
-                            (options.chunkLength - options.chunkStart).toInt()
-                        } else {
-                            decrypted.size
-                        }
-                    decrypted.sliceArray(0 until minOf(sliceEnd, decrypted.size))
-                } else {
-                    // Full decryption
-                    decryptBytes(response, bytes)
+                rangeResult.rangeHeader?.let {
+                    header(HttpHeaders.Range, it)
                 }
-
-            return BytesResponse(bytes = resultBytes, contentType = contentType)
-        } catch (e: Exception) {
-            if (e.message?.contains("404") == true) return null
-            KLogger.e(TAG) { "[odin-kt:getPayloadBytes] ${e.message}" }
-            return null
-        } finally {
-            // handled globally
-            // httpClient.close()
+            }
         }
+
+        if (response.status == 404) return null
+
+        if (response.status != 200 && response.status != 206) {
+            throwForFailure(
+                ApiResponse(
+                    status = response.status,
+                    headers = response.headers,
+                    body = ""
+                )
+            )
+        }
+
+        if (response.bytes.isEmpty()) return null
+
+        return response;
     }
 
-    /**
-     * Gets payload as parsed JSON object.
-     *
-     * @param driveId The target drive containing the file
-     * @param fileId The ID of the file
-     * @param key The payload key
-     * @param options Optional operation options
-     * @return The parsed JSON object or null if not found
-     */
-    suspend inline fun <reified T> getPayloadAsJson(
+    suspend fun getPayloadBytesDecrypted(
         driveId: Uuid,
         fileId: Uuid,
         key: String,
-        options: PayloadOperationOptions = PayloadOperationOptions()
-    ): T? {
-        ValidationUtil.requireValidUuid(driveId, "driveId")
-        ValidationUtil.requireValidUuid(fileId, "fileId")
+        chunkStart: Long? = null,
+        chunkLength: Long? = null
+    ): BytesResponse? {
 
-        val bytesResponse = getPayloadBytes(driveId, fileId, key, options) ?: return null
-        return DriveFileHelpers.parseBytesToObject<T>(
-            BytesWithContentType(bytesResponse.bytes, bytesResponse.contentType)
+        val raw =
+            getPayloadBytesRaw(
+                driveId = driveId,
+                fileId = fileId,
+                key = key,
+                options = PayloadOperationOptions(
+                    chunkStart = chunkStart,
+                    chunkLength = chunkLength,
+                    decrypt = false
+                )
+            ) ?: return null
+
+        val rangeResult =
+            DriveFileHelpers.getRangeHeader(chunkStart, chunkLength)
+
+        val decryptedBytes =
+            if (rangeResult.updatedChunkStart != null) {
+                val decrypted =
+                    decryptChunkedBytes(
+                        raw.headers,
+                        raw.bytes,
+                        startOffset = rangeResult.startOffset,
+                        chunkStart = (chunkStart ?: 0).toInt()
+                    )
+
+                val sliceEnd =
+                    if (chunkLength != null && chunkStart != null) {
+                        (chunkLength - chunkStart).toInt()
+                    } else {
+                        decrypted.size
+                    }
+
+                decrypted.sliceArray(0 until minOf(sliceEnd, decrypted.size))
+            } else {
+                decryptBytes(raw.headers, raw.bytes)
+            }
+
+        return BytesResponse(
+            bytes = decryptedBytes,
+            contentType = raw.contentType
         )
     }
 
-    /**
-     * Gets thumbnail bytes.
-     *
-     * @param driveId The target drive containing the file
-     * @param fileId The ID of the file
-     * @param payloadKey The payload key
-     * @param width Desired thumbnail width
-     * @param height Desired thumbnail height
-     * @param options Optional operation options
-     * @return BytesResponse containing the thumbnail bytes and content type, or null if not found
-     */
-    suspend fun getThumbBytes(
+
+    suspend fun getThumbBytesRaw(
         driveId: Uuid,
         fileId: Uuid,
         payloadKey: String,
         width: Int,
         height: Int,
-        options: FileOperationOptions = FileOperationOptions()
-    ): BytesResponse? {
+        lastModified: Long? = null
+    ): ByteApiResponse? {
+
         ValidationUtil.requireValidUuid(driveId, "driveId")
         ValidationUtil.requireValidUuid(fileId, "fileId")
-
         require(payloadKey.isNotBlank()) { "PayloadKey must be defined" }
         require(width > 0) { "Width must be positive" }
         require(height > 0) { "Height must be positive" }
 
-        val httpClient =
-            odinClient.createHttpClient(CreateHttpClientOptions(overrideEncryption = false))
+        val creds = requireCreds()
 
         val queryParams =
             buildMap<String, String> {
                 put("width", width.toString())
                 put("height", height.toString())
-                if (options.lastModified != null) {
-                    put("lastModified", options.lastModified.toString())
+                lastModified?.let {
+                    put("lastModified", it.toString())
                 }
             }
 
+        val url =
+            apiUrl(
+                creds.domain,
+                "/drives/$driveId/files/$fileId/payload/$payloadKey/thumb"
+            )
 
-        try {
-            val response =
-                httpClient.get("drives/${driveId}/files/${fileId}/payload/${payloadKey}/thumb") {
-                    url {
-                        queryParams.forEach { (key, value) -> parameters.append(key, value) }
-                    }
+        val response = requestBytes {
+            httpClient.get(url) {
+                bearerAuth(creds.accessToken)
+                queryParams.forEach { (k, v) ->
+                    url { parameters.append(k, v) }
                 }
-
-            if (response.status == HttpStatusCode.NotFound) {
-                return null
             }
-
-            if (!response.status.isSuccess()) {
-                KLogger.e(TAG) { "[odin-kt:getThumbBytes] Request failed: ${response.status}" }
-                return null
-            }
-
-            val bytes = response.readRawBytes()
-            if (bytes.isEmpty()) return null
-
-            val contentType =
-                response.headers["decryptedcontenttype"]
-                    ?: response.contentType()?.toString() ?: "image/jpeg"
-
-            val resultBytes =
-                if (options.decrypt) {
-                    decryptBytes(response, bytes)
-                } else {
-                    bytes
-                }
-
-            return BytesResponse(bytes = resultBytes, contentType = contentType)
-        } catch (e: ClientRequestException) {
-            // HTTP 4xx
-            if (e.response.status == HttpStatusCode.NotFound) {
-                return null
-            }
-            throw e
-        } catch (e: ServerResponseException) {
-            // HTTP 5xx → real server error
-            throw e
-        } catch (e: Exception) {
-            KLogger.e(TAG, e) { "[odin-kt:getThumbBytes] Unexpected failure" }
-            throw e
-        } finally {
-            // httpClient.close()
         }
+
+        if (response.status == 404) return null
+
+        if (response.status !in 200..299) {
+            throwForFailure(
+                ApiResponse(
+                    status = response.status,
+                    headers = response.headers,
+                    body = ""
+                )
+            )
+        }
+
+        if (response.bytes.isEmpty()) return null
+
+        return response;
     }
+
+    suspend fun getThumbBytesDecrypted(
+        driveId: Uuid,
+        fileId: Uuid,
+        payloadKey: String,
+        width: Int,
+        height: Int,
+        lastModified: Long? = null
+    ): BytesResponse? {
+
+        val raw =
+            getThumbBytesRaw(
+                driveId = driveId,
+                fileId = fileId,
+                payloadKey = payloadKey,
+                width = width,
+                height = height,
+                lastModified = lastModified
+            ) ?: return null
+
+        val decryptedBytes =
+            decryptBytes(raw.headers, raw.bytes)
+
+        return BytesResponse(
+            bytes = decryptedBytes,
+            contentType = raw.contentType
+        )
+    }
+
+
 
     /**
      * Gets transfer history for a file.
@@ -331,8 +335,6 @@ public class DriveFileProvider(private val odinClient: OdinClient) {
 
         ValidationUtil.requireValidUuid(driveId, "driveId")
         ValidationUtil.requireValidUuid(fileId, "fileId")
-
-        val httpClient = odinClient.createHttpClient(CreateHttpClientOptions())
 
         val queryParams = buildMap<String, String> { }
 
@@ -388,9 +390,6 @@ public class DriveFileProvider(private val odinClient: OdinClient) {
         ValidationUtil.requireValidUuid(driveId, "driveId")
         ValidationUtil.requireValidUuid(fileId, "fileId")
 
-        val httpClient =
-            odinClient.createHttpClient(CreateHttpClientOptions())
-
         val method = if (hardDelete) "hard-delete" else "delete"
         val endpoint = "drives/${driveId}/files/${fileId}/${method}"
 
@@ -428,9 +427,6 @@ public class DriveFileProvider(private val odinClient: OdinClient) {
     ): Boolean {
         ValidationUtil.requireValidUuid(driveId, "driveId")
         ValidationUtil.requireValidUuidList(fileIds, "fileIds")
-
-        val httpClient =
-            odinClient.createHttpClient(CreateHttpClientOptions())
 
         val request =
             DeleteFilesBatchRequest(
@@ -475,9 +471,6 @@ public class DriveFileProvider(private val odinClient: OdinClient) {
         ValidationUtil.requireValidUuid(driveId, "driveId")
         ValidationUtil.requireValidUuidList(groupIds, "groupIds")
 
-        val httpClient =
-            odinClient.createHttpClient(CreateHttpClientOptions())
-
         val request =
             DeleteByGroupIdBatchRequest(
                 requests =
@@ -515,8 +508,8 @@ public class DriveFileProvider(private val odinClient: OdinClient) {
 
     /** Decrypts the key header using the shared secret. */
     private suspend fun decryptKeyHeader(encryptedKeyHeader: EncryptedKeyHeader): KeyHeader? {
-        val sharedSecret = odinClient.getSharedSecret() ?: return null
-        return encryptedKeyHeader.decryptAesToKeyHeader(SecureByteArray(sharedSecret))
+        val sharedSecret = credentialsManager.getActiveCredentials()?.sharedSecret ?: return null
+        return encryptedKeyHeader.decryptAesToKeyHeader(sharedSecret)
     }
 
     /** Decrypts JSON content from file metadata. */
@@ -535,56 +528,53 @@ public class DriveFileProvider(private val odinClient: OdinClient) {
     }
 
     /**
-     * Decrypts bytes using the shared secret (for full payload/thumbnail decryption). Note: This is
-     * a placeholder - actual implementation depends on your encryption setup.
+     * Decrypts bytes using the shared secret (full payload/thumbnail decryption).
      */
     private suspend fun decryptBytes(
-        response: HttpResponse,
+        headers: Headers,
         bytes: ByteArray
     ): ByteArray {
 
         val payloadEncrypted =
-            response.headers["payloadencrypted"]?.equals("true", ignoreCase = true) == true
+            headers["payloadencrypted"]?.equals("true", ignoreCase = true) == true
 
-        val encryptedHeader64 = response.headers["sharedsecretencryptedheader64"]
+        val encryptedHeader64 =
+            headers["sharedsecretencryptedheader64"]
 
-        if (payloadEncrypted && encryptedHeader64 != null) {
+        return when {
+            payloadEncrypted && encryptedHeader64 != null -> {
+                val encryptedKeyHeader =
+                    EncryptedKeyHeader.fromBase64(encryptedHeader64)
 
-            val encryptedKeyHeader =
-                EncryptedKeyHeader.fromBase64(encryptedHeader64)
+                val keyHeader =
+                    decryptKeyHeader(encryptedKeyHeader)
+                        ?: error("Missing shared secret")
 
-            val keyHeader =
-                decryptKeyHeader(encryptedKeyHeader)
-                    ?: throw IllegalStateException("Missing shared secret")
+                decryptUsingKeyHeader(bytes, keyHeader)
+            }
 
-            return decryptUsingKeyHeader(bytes, keyHeader)
+            payloadEncrypted ->
+                error("Can't decrypt; missing keyheader")
 
-        } else if (payloadEncrypted) {
-
-            // Same behavior as TS
-            throw IllegalStateException("Can't decrypt; missing keyheader")
-
-        } else {
-
-            // Not encrypted → return as-is
-            return bytes
+            else ->
+                bytes
         }
     }
 
 
     /** Decrypts chunked bytes with offset handling. */
     suspend fun decryptChunkedBytes(
-        response: HttpResponse,
+        headers: Headers,
         responseBytes: ByteArray,
         startOffset: Int,
         chunkStart: Int
     ): ByteArray {
 
         val payloadEncrypted =
-            response.headers["payloadencrypted"]?.equals("True", ignoreCase = false) == true
+            headers["payloadencrypted"]?.equals("True", ignoreCase = false) == true
 
         val encryptedHeader64 =
-            response.headers["sharedsecretencryptedheader64"]
+            headers["sharedsecretencryptedheader64"]
 
         if (payloadEncrypted && encryptedHeader64 != null) {
 

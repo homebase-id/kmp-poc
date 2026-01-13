@@ -53,10 +53,7 @@ val appModule = module {
 
     factoryOf(::DriveUploadProvider)
 
-    factory<DriveFileProvider?> {
-        val odinClient: OdinClient? = get()
-        odinClient?.let { DriveFileProvider(it) }
-    }
+    factoryOf(::DriveFileProvider)
 
     /* ───────────────────────────
      * Services
