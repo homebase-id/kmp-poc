@@ -25,6 +25,7 @@ import id.homebase.homebasekmppoc.prototype.ui.driveUpload.DriveUploadUiEvent
 import id.homebase.homebasekmppoc.prototype.ui.driveUpload.DriveUploadViewModel
 import id.homebase.homebasekmppoc.prototype.ui.video.VideoPlayerTestPage
 import id.homebase.homebasekmppoc.prototype.ui.ws.WebsocketPage
+import id.homebase.homebasekmppoc.ui.FFmpegTestScreen
 import id.homebase.homebasekmppoc.ui.screens.home.HomeScreen
 import id.homebase.homebasekmppoc.ui.screens.home.HomeUiEvent
 import id.homebase.homebasekmppoc.ui.screens.home.HomeViewModel
@@ -104,6 +105,8 @@ fun AppNavHost(
                         is HomeUiEvent.NavigateToCdnTest -> navController.navigate(Route.CdnTest)
                         is HomeUiEvent.NavigateToDriveUpload ->
                                 navController.navigate(Route.DriveUpload)
+                        is HomeUiEvent.NavigateToFFmpegTest ->
+                                navController.navigate(Route.FFmpegTest)
                         is HomeUiEvent.NavigateToLogin -> {
                             navController.navigate(Route.Login) { popUpTo(0) { inclusive = true } }
                         }
@@ -117,6 +120,8 @@ fun AppNavHost(
                 HomeScreen(state = state, onAction = viewModel::onAction)
             }
         }
+
+        composable<Route.FFmpegTest> { FFmpegTestScreen(onBack = { navController.popBackStack() }) }
 
         // Protected DriveFetch route
         composable<Route.DriveFetch> {

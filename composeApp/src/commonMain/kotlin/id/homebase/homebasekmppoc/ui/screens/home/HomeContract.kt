@@ -16,6 +16,7 @@ sealed interface HomeUiAction {
     data object VideoClicked : HomeUiAction
     data object CdnTestClicked : HomeUiAction
     data object DriveUploadClicked : HomeUiAction
+    data object FFmpegTestClicked : HomeUiAction
     data object LogoutClicked : HomeUiAction
     data object ExtendPermissionsClicked : HomeUiAction
     data object DismissPermissionDialog : HomeUiAction
@@ -29,6 +30,7 @@ sealed interface HomeUiEvent {
     data object NavigateToVideo : HomeUiEvent
     data object NavigateToCdnTest : HomeUiEvent
     data object NavigateToDriveUpload : HomeUiEvent
+    data object NavigateToFFmpegTest : HomeUiEvent
     data object NavigateToLogin : HomeUiEvent
     data class OpenPermissionExtensionBrowser(val url: String) : HomeUiEvent
 }
