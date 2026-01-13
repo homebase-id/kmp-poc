@@ -108,11 +108,15 @@ class YouAuthFlowManager {
                 // We don't have the raw tokens here, but we know we're authenticated
                 client.getSharedSecret()?.let {
                     _authState.value =
-                        YouAuthState.Authenticated(
-                            identity = identity,
-                            clientAuthToken =  SecureStorage.get(YouAuthStorageKeys.CLIENT_AUTH_TOKEN) ?:  "" , // TODO: Remove this afterwards when seb decided to ditch the old http code Not needed since OdinClient is configured
-                            sharedSecret = Base64.encode( it)
-                        )
+                            YouAuthState.Authenticated(
+                                    identity = identity,
+                                    clientAuthToken =
+                                            SecureStorage.get(YouAuthStorageKeys.CLIENT_AUTH_TOKEN)
+                                                    ?: "", // TODO: Remove this afterwards when seb
+                                    // decided to ditch the old http code Not
+                                    // needed since OdinClient is configured
+                                    sharedSecret = Base64.encode(it)
+                            )
                 }
                 Logger.i(TAG) { "Session restored for $identity" }
                 return true
@@ -136,8 +140,8 @@ class YouAuthFlowManager {
             appId: String,
             appName: String,
             drives: List<TargetDriveAccessRequest> = emptyList(),
-            permissions: List<Int>? = null,
-            circlePermissions: List<Int>? = null,
+            permissions: List<AppPermissionType>? = null,
+            circlePermissions: List<AppCirclePermissionType>? = null,
             circleDrives: List<TargetDriveAccessRequest>? = null,
             circles: List<String>? = null,
             clientFriendlyName: String? = null
@@ -174,8 +178,8 @@ class YouAuthFlowManager {
                             drives = drives,
                             circleDrives = circleDrives,
                             circles = circles,
-                            permissions = permissions,
-                            circlePermissions = circlePermissions,
+                            permissions = permissions?.map { it.value },
+                            circlePermissions = circlePermissions?.map { it.value },
                             returnUrl = redirectUri
                     )
 
