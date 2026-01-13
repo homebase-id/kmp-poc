@@ -137,6 +137,21 @@ kotlin {
                 frameworks.forEach { fw ->
                     linkerOpts("-F$libsDir/$fw.xcframework/$frameworkArch", "-framework", fw)
                 }
+                
+                // Copy the frameworks to the output directory so dyld can find them
+                linkTask.doLast {
+                    val binary = this@all
+                    val outputDir = binary.outputDirectory
+                    
+                    frameworks.forEach { fw ->
+                        val srcFramework = file("$libsDir/$fw.xcframework/$frameworkArch/$fw.framework")
+                        val destFramework = file("$outputDir/$fw.framework")
+                        
+                        if (srcFramework.exists()) {
+                            srcFramework.copyRecursively(destFramework, overwrite = true)
+                        }
+                    }
+                }
             }
         }
     }
