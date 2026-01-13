@@ -1,15 +1,15 @@
 package id.homebase.homebasekmppoc.prototype.lib.http
 
 import co.touchlab.kermit.Logger
+import id.homebase.homebasekmppoc.lib.config.feedTargetDrive
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthState
 import id.homebase.homebasekmppoc.prototype.lib.core.SecureByteArray
 import id.homebase.homebasekmppoc.prototype.lib.crypto.CryptoHelper
 import id.homebase.homebasekmppoc.prototype.lib.crypto.KeyHeader
-import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadDescriptor
 import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
+import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadDescriptor
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import id.homebase.homebasekmppoc.prototype.lib.video.VideoMetaData
-import id.homebase.homebasekmppoc.ui.screens.login.feedTargetDrive
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.headers
@@ -17,15 +17,17 @@ import io.ktor.http.contentLength
 import kotlin.io.encoding.Base64
 
 class PayloadWrapper(
-    val authenticated: AuthState.Authenticated,
-    val header: SharedSecretEncryptedFileHeader,
-    val payloadDescriptor: PayloadDescriptor) {
+        val authenticated: AuthState.Authenticated,
+        val header: SharedSecretEncryptedFileHeader,
+        val payloadDescriptor: PayloadDescriptor
+) {
 
     //
 
     val headerWrapper = HeaderWrapper(authenticated, header)
 
-    val isEncrypted: Boolean get() = headerWrapper.isEncrypted
+    val isEncrypted: Boolean
+        get() = headerWrapper.isEncrypted
 
     //
 
@@ -35,9 +37,10 @@ class PayloadWrapper(
         }
 
         val sharedSecretBytes = Base64.decode(authenticated.sharedSecret)
-        val result =  header.sharedSecretEncryptedKeyHeader.decryptAesToKeyHeader(
-            SecureByteArray(sharedSecretBytes)
-        )
+        val result =
+                header.sharedSecretEncryptedKeyHeader.decryptAesToKeyHeader(
+                        SecureByteArray(sharedSecretBytes)
+                )
         return result
     }
 
@@ -54,11 +57,12 @@ class PayloadWrapper(
 
         // TODO: Seb - we need to get you converted to API v2
         val alias = header.driveId
-        val type = feedTargetDrive.type; // header.targetDrive.type
+        val type = feedTargetDrive.type // header.targetDrive.type
         val payloadKey = payloadDescriptor.key
 
         // calls backend DriveStorageControllerBase.GetPayloadStream
-        val uri = "https://${authenticated.identity}/api/$appOrOwner/v1/drive/files/payload?alias=$alias&type=$type&fileId=$fileId&key=$payloadKey&xfst=128"
+        val uri =
+                "https://${authenticated.identity}/api/$appOrOwner/v1/drive/files/payload?alias=$alias&type=$type&fileId=$fileId&key=$payloadKey&xfst=128"
 
         return uri
     }
@@ -79,11 +83,15 @@ class PayloadWrapper(
         Logger.d("PayloadPlayground") { "Making GET request to: $encryptedUri" }
 
         val client = createHttpClient()
-        val response = client.get(encryptedUri) {
-            headers {
-                append("Cookie", "${cookieNameFrom(appOrOwner)}=${authenticated.clientAuthToken}")
-            }
-        }
+        val response =
+                client.get(encryptedUri) {
+                    headers {
+                        append(
+                                "Cookie",
+                                "${cookieNameFrom(appOrOwner)}=${authenticated.clientAuthToken}"
+                        )
+                    }
+                }
 
         Logger.d("PayloadPlayground") { "Response length: ${response.contentLength()}" }
 
@@ -93,7 +101,8 @@ class PayloadWrapper(
         if (!isEncrypted) {
             return bytes
         } else {
-            val payloadIvBase64 = payloadDescriptor.iv ?: throw Exception("No IV found in payload descriptor")
+            val payloadIvBase64 =
+                    payloadDescriptor.iv ?: throw Exception("No IV found in payload descriptor")
             val keyHeader = decryptKeyHeader() ?: throw Exception("Failed to decrypt KeyHeader")
 
             // Decrypt the payload using the KeyHeader's AES key BUT the payload's IV
@@ -110,8 +119,9 @@ class PayloadWrapper(
     //
 
     fun getVideoMetaData(appOrOwner: AppOrOwner): VideoMetaData {
-        val playlistContent = payloadDescriptor.descriptorContent
-            ?: throw Exception("No descriptor content found in payload")
+        val playlistContent =
+                payloadDescriptor.descriptorContent
+                        ?: throw Exception("No descriptor content found in payload")
 
         val videoMetaData = OdinSystemSerializer.deserialize<VideoMetaData>(playlistContent)
         return videoMetaData
