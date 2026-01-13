@@ -11,8 +11,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
-data class VideoMetadata(val duration: Long, val width: Int, val height: Int, val rotation: Int)
-
 actual object FFmpegUtils {
     private const val TAG = "FFmpegUtils"
 
