@@ -117,34 +117,53 @@ actual object FFmpegUtils {
                 outputDir.mkdirs()
 
                 val playlistPath = File(outputDir, "index.m3u8").absolutePath
-                val segmentPattern = File(outputDir, "segment%03d.ts").absolutePath
+                val segmentPath = File(outputDir, "index.ts").absolutePath
 
-                val command =
-                        listOf(
-                                FFmpegBinaryManager.ffmpegPath(),
-                                "-y",
-                                "-i",
-                                inputPath,
-                                "-c:v",
-                                "libx264",
-                                "-preset",
-                                "veryfast",
-                                "-flags",
-                                "+cgop",
-                                "-g",
-                                "30",
-                                "-hls_time",
-                                "6",
-                                "-hls_list_size",
-                                "0",
-                                "-hls_segment_filename",
-                                segmentPattern,
-                                playlistPath
-                        )
+                val rotation = getRotationFromFile(inputPath)
+                val absRot = kotlin.math.abs(((rotation % 360) + 360) % 360)
+                val needsRotationFix = absRot == 90 || absRot == 270
+
+                val command = mutableListOf<String>()
+                command.add(FFmpegBinaryManager.ffmpegPath())
+                command.add("-y")
+                command.add("-i")
+                command.add(inputPath)
+
+                if (!needsRotationFix) {
+                    command.add("-codec:v")
+                    command.add("copy")
+                    command.add("-codec:a")
+                    command.add("copy")
+                } else {
+                    command.add("-c:v")
+                    command.add("libx264")
+                    command.add("-preset")
+                    command.add("veryfast")
+                    command.add("-crf")
+                    command.add("23")
+                    command.add("-g")
+                    command.add("30")
+                    command.add("-bf")
+                    command.add("2")
+                    command.add("-c:a")
+                    command.add("copy")
+                }
+
+                command.add("-hls_time")
+                command.add("6")
+                command.add("-hls_list_size")
+                command.add("0")
+                command.add("-hls_flags")
+                command.add("single_file")
+                command.add("-f")
+                command.add("hls")
+                command.add("-hls_segment_filename")
+                command.add(segmentPath)
+                command.add(playlistPath)
 
                 val exitCode = runProcess(command)
                 if (exitCode == 0 && File(playlistPath).exists()) {
-                    Pair(playlistPath, segmentPattern)
+                    Pair(playlistPath, segmentPath)
                 } else {
                     null
                 }

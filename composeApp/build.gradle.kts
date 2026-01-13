@@ -3,6 +3,7 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest
+import java.io.File
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -138,17 +139,27 @@ kotlin {
                     linkerOpts("-F$libsDir/$fw.xcframework/$frameworkArch", "-framework", fw)
                 }
                 
+
                 // Copy the frameworks to the output directory so dyld can find them
-                linkTask.doLast {
-                    val binary = this@all
-                    val outputDir = binary.outputDirectory
-                    
-                    frameworks.forEach { fw ->
-                        val srcFramework = file("$libsDir/$fw.xcframework/$frameworkArch/$fw.framework")
-                        val destFramework = file("$outputDir/$fw.framework")
+                // We resolve all paths outside doLast to avoid capturing 'project' or 'this' context which breaks Config Cache
+                val binary = this
+                val libsDirFile = project.file("libs/ffmpegkit-bundled.xcframework")
+                
+                linkTaskProvider.configure {
+                    doLast {
+                        val outputDir = binary.outputDirectory
+                        val frameworksDir = File(outputDir, "Frameworks")
+                        if (!frameworksDir.exists()) {
+                            frameworksDir.mkdirs()
+                        }
                         
-                        if (srcFramework.exists()) {
-                            srcFramework.copyRecursively(destFramework, overwrite = true)
+                        frameworks.forEach { fw ->
+                            val srcFramework = File(libsDirFile, "$fw.xcframework/$frameworkArch/$fw.framework")
+                            val destFramework = File(frameworksDir, "$fw.framework")
+                            
+                            if (srcFramework.exists()) {
+                                srcFramework.copyRecursively(destFramework, overwrite = true)
+                            }
                         }
                     }
                 }
@@ -170,7 +181,7 @@ kotlin {
             implementation(libs.androidx.media3.ui)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.sqldelight.android.driver)
-            implementation(files("libs/ffmpeg-kit-lts-ndk-r25-16k.aar"))
+            implementation(files("libs/ffmpeg-kit-lts-ndk-r27-16k.aar"))
             implementation(libs.smart.exception.java)
         }
         commonMain.dependencies {

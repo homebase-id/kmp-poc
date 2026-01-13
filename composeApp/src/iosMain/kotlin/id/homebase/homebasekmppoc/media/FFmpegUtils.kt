@@ -155,11 +155,21 @@ actual object FFmpegUtils {
                 }
 
                 val indexPath = "$outputDir/index.m3u8"
-                val segmentPath = "$outputDir/segment%03d.ts"
+                val segmentPath = "$outputDir/index.ts"
 
-                // -i input -c:v h264 -flags +cgop -g 30 -hls_time 1 index.m3u8
+                val rotation = getRotationFromFile(inputPath)
+                val absRot = kotlin.math.abs(((rotation % 360) + 360) % 360)
+                val needsRotationFix = absRot == 90 || absRot == 270
+
+                val baseCommand =
+                        if (!needsRotationFix) {
+                            "-i \"$inputPath\" -codec:v copy -codec:a copy"
+                        } else {
+                            "-i \"$inputPath\" -c:v libx264 -preset veryfast -crf 23 -g 30 -bf 2 -c:a copy"
+                        }
+
                 val command =
-                        "-i \"$inputPath\" -c:v libx264 -preset veryfast -flags +cgop -g 30 -hls_time 1 -hls_list_size 0 -hls_segment_filename \"$segmentPath\" \"$indexPath\""
+                        "$baseCommand -hls_time 6 -hls_list_size 0 -hls_flags single_file -f hls -hls_segment_filename \"$segmentPath\" \"$indexPath\""
 
                 val session = FFmpegKit.execute(command)
 

@@ -149,11 +149,13 @@ actual object FFmpegUtils {
                 commandArgs.add(inputPath)
 
                 if (!needsRotationFix) {
+                    // Pure copy — fastest, no rotation needed
                     commandArgs.add("-codec:v")
                     commandArgs.add("copy")
                     commandArgs.add("-codec:a")
                     commandArgs.add("copy")
                 } else {
+                    // Re-encode only when rotated → preserves rotation + smaller file
                     commandArgs.add("-c:v")
                     commandArgs.add("libx264")
                     commandArgs.add("-preset")
