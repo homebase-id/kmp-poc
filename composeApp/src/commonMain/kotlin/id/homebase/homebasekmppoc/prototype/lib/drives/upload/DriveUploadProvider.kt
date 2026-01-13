@@ -71,7 +71,7 @@ data class UploadFileRequest(
     val metadata: UploadFileMetadata,
     val payloads: List<PayloadFile>? = null,
     val thumbnails: List<ThumbnailFile>? = null,
-    val fileSystemType: FileSystemType?
+    val fileSystemType: FileSystemType? = null
 )
 
 
@@ -110,7 +110,7 @@ class DriveUploadProvider(
 
         val sharedSecret = client.getSharedSecret()
 
-        val encryptedDescriptor =
+        val sharedSecretEncryptedDescriptor =
             if (sharedSecret != null) {
                 buildEncryptedDescriptor(
                     keyHeader,
@@ -125,11 +125,9 @@ class DriveUploadProvider(
         val data =
             buildUploadFormData(
                 instructionSet = serializableInstructions,
-                encryptedDescriptor = encryptedDescriptor,
+                sharedSecretEncryptedDescriptor = sharedSecretEncryptedDescriptor,
                 payloads = request.payloads,
-                thumbnails = request.thumbnails,
-                keyHeader = keyHeader,
-                manifest = manifest
+                thumbnails = request.thumbnails
             )
 
         val result =
@@ -141,100 +139,6 @@ class DriveUploadProvider(
 
         return result
     }
-
-
-    /**
-     * Uploads a file with optional encryption.
-     *
-     * @param instructions The upload instruction set
-     * @param metadata The file metadata
-     * @param payloads Optional list of payload files
-     * @param thumbnails Optional list of thumbnail files
-     * @param encrypt Whether to encrypt the file (default true)
-     * @param onVersionConflict Optional callback for version conflict handling
-     * @param aesKey Optional pre-existing AES key to use
-     * @return The upload result with keyHeader, or null if handled by conflict callback
-     */
-    // TODO: need to add a large class here that holds all needed to preform the CREATE (same for PATCH)
-
-//    suspend fun uploadFile(
-//        instructions: UploadInstructionSet,
-//        metadata: UploadFileMetadata,
-//        payloads: List<PayloadFile>? = null,
-//        thumbnails: List<ThumbnailFile>? = null,
-//        encrypt: Boolean = true,
-//        onVersionConflict: (suspend () -> CreateFileResult?)? = null,
-//        aesKey: ByteArray? = null,
-//        fileSystemType: FileSystemType?
-//    ): CreateFileResult? {
-//        // Validate version tag usage
-//
-//
-//        // Force isEncrypted on metadata to match encrypt flag
-//        val shouldEncrypt = encrypt || aesKey != null
-//        val baseMetadata = metadata.copy(isEncrypted = shouldEncrypt)
-//
-//        // Generate key header if encrypting
-//        val keyHeader =
-//            if (shouldEncrypt) {
-//                if (aesKey != null) {
-//                    KeyHeader(
-//                        iv = ByteArrayUtil.getRndByteArray(16),
-//                        aesKey = SecureByteArray(aesKey)
-//                    )
-//                } else {
-//                    KeyHeader.newRandom16()
-//                }
-//            } else {
-//                null
-//            }
-//
-//        // Encrypt metadata content using UploadFileMetadata.encryptContent()
-//        val encryptedMetadata = baseMetadata.encryptContent(keyHeader)
-//
-//        // Build manifest
-//        val manifest = UploadManifest.build(payloads, thumbnails, shouldEncrypt)
-//
-//        // Create serializable instruction set with manifest (matches TypeScript
-//        // instructionsWithManifest)
-//        val serializableInstructions = instructions.toSerializable(manifest)
-//
-//        // Get shared secret for encrypting key header
-//        val sharedSecret = client.getSharedSecret()
-//
-//        // Build encrypted descriptor (encrypted key header + encrypted metadata + all encrypted
-//        // with sharedSecret)
-//        val encryptedDescriptor =
-//            if (sharedSecret != null) {
-//                buildEncryptedDescriptor(
-//                    keyHeader,
-//                    encryptedMetadata,
-//                    sharedSecret,
-//                    serializableInstructions.transferIv
-//                )
-//            } else {
-//                null
-//            }
-//
-//        // Build form data
-//        val data =
-//            buildUploadFormData(
-//                instructionSet = serializableInstructions,
-//                encryptedDescriptor = encryptedDescriptor,
-//                payloads = payloads,
-//                thumbnails = thumbnails,
-//                keyHeader = keyHeader,
-//                manifest = manifest
-//            )
-//
-//        // Upload
-//        val result = pureUpload(data, fileSystemType, onVersionConflict)
-//
-//        if (result != null) {
-//            result.keyHeader = keyHeader
-//        }
-//        return result
-//    }
 
     /**
      * Patches (updates) an existing file.
@@ -298,7 +202,7 @@ class DriveUploadProvider(
         val sharedSecret = client.getSharedSecret()
 
         // Build encrypted descriptor
-        val encryptedDescriptor =
+        val sharedSecretEncryptedDescriptor =
             if (updatedKeyHeader != null && sharedSecret != null) {
                 buildEncryptedDescriptor(
                     updatedKeyHeader,
@@ -314,11 +218,9 @@ class DriveUploadProvider(
         val data =
             buildUpdateFormData(
                 instructionSet = serializableInstructions,
-                encryptedDescriptor = encryptedDescriptor,
+                sharedSecretEncryptedDescriptor = sharedSecretEncryptedDescriptor,
                 payloads = payloads,
-                thumbnails = thumbnails,
-                keyHeader = updatedKeyHeader,
-                manifest = manifest
+                thumbnails = thumbnails
             )
 
         // Update
@@ -504,7 +406,12 @@ class DriveUploadProvider(
                     formData = data
                 )
 
-            return handleUploadResponse(response, onVersionConflict)
+            if (response.status in 200..299) {
+                return OdinSystemSerializer.deserialize(response.body)
+            }
+
+            return handleErrorResponse(response, onVersionConflict) { it() }
+
         } catch (e: OdinClientException) {
             throw e
         } catch (e: Exception) {
@@ -589,19 +496,6 @@ class DriveUploadProvider(
         return AesCbc.encrypt(descriptorBytes, sharedSecret, transferIv)
     }
 
-    private suspend fun handleUploadResponse(
-        response: ApiResponse,
-        onVersionConflict: (suspend () -> CreateFileResult?)? = null
-    ): CreateFileResult? {
-        return when {
-            response.status in 200..299 -> {
-                OdinSystemSerializer.deserialize<CreateFileResult>(response.body)
-            }
-
-            else -> handleErrorResponse(response, onVersionConflict) { it() }
-        }
-    }
-
     private suspend fun handleUpdateResponse(
         response: ApiResponse,
         onVersionConflict: (suspend () -> UpdateFileResult?)? = null
@@ -624,7 +518,7 @@ class DriveUploadProvider(
         val errorResponse =
             try {
                 OdinSystemSerializer.json.decodeFromString<OdinErrorResponse>(errorBody)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 null
             }
 
@@ -647,50 +541,28 @@ class DriveUploadProvider(
         invokeCallback: suspend ((suspend () -> T?)) -> T?
     ): T? {
 
-        val body = response.body
-
         val errorResponse =
-            try {
-                OdinSystemSerializer.deserialize<OdinErrorResponse>(body)
-            } catch (e: Exception) {
-                null
-            }
+            runCatching {
+                OdinSystemSerializer.deserialize<OdinErrorResponse>(response.body)
+            }.getOrNull()
 
+        if (
+            errorResponse?.errorCode == OdinClientErrorCode.VersionTagMismatch &&
+            onVersionConflict != null
+        ) {
+            return invokeCallback(onVersionConflict)
+        }
+
+        // Optional warning if handler not provided
         if (errorResponse?.errorCode == OdinClientErrorCode.VersionTagMismatch) {
-            if (onVersionConflict == null) {
-                KLogger.w(TAG) {
-                    "VersionTagMismatch, to avoid this, add an onVersionConflict handler"
-                }
-            } else {
-                return invokeCallback(onVersionConflict)
+            KLogger.w(TAG) {
+                "VersionTagMismatch encountered with no onVersionConflict handler"
             }
         }
 
-        when (response.status) {
-            400 -> KLogger.d(TAG) { "Bad Request: $body" }
-            else ->
-                KLogger.d(TAG) {
-                    "Request failed with status ${response.status}: $body"
-                }
-        }
-
-        val clientErrorCode =
-            errorResponse?.errorCode
-                ?: when (response.status) {
-                    400 -> OdinClientErrorCode.ArgumentError
-                    401, 403 -> OdinClientErrorCode.InvalidAuthToken
-                    404 -> OdinClientErrorCode.FileNotFound
-                    in 500..599 ->
-                        OdinClientErrorCode.RemoteServerReturnedInternalServerError
-
-                    else -> OdinClientErrorCode.UnhandledScenario
-                }
-
-        throw OdinClientException(
-            errorResponse?.message
-                ?: "Request failed with status ${response.status}",
-            clientErrorCode
-        )
+        throwForFailure(response)
+        return null
     }
+
 
 }

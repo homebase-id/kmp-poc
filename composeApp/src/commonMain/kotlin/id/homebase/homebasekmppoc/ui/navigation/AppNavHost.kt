@@ -34,6 +34,7 @@ import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.openFilePicker
 import io.github.vinceglb.filekit.name
+import io.github.vinceglb.filekit.path
 import io.github.vinceglb.filekit.readBytes
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -183,7 +184,7 @@ fun AppNavHost(
                                     if (file != null) {
                                         viewModel.onAction(
                                             DriveUploadUiAction.ImagePicked(
-                                                bytes = file.readBytes(),
+                                                filePath = file.path,
                                                 name = file.name
                                             )
                                         )

@@ -289,7 +289,7 @@ abstract class OdinApiProviderBase(
                 val problem = deserialize<ProblemDetails>(response.body)
                 throw ClientException(
                     status = 400,
-                    errorCode = problem.errorCode(),
+                    errorCode = problem.errorCodeEnumOrUnhandled(),
                     message = problem.title ?: "Invalid request",
                     correlationId = problem.correlationId(),
                     problem = problem

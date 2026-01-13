@@ -80,7 +80,7 @@ data class UploadManifest(
                         payloadKey = payload.key,
                         descriptorContent = payload.descriptorContent,
                         previewThumbnail = payload.previewThumbnail,
-                        contentType = payload.contentType.ifEmpty { detectFormat(payload.filePath) },
+                        contentType = payload.contentType,
                         thumbnails =
                             thumbnails
                                 ?.filter { it.key == payload.key }

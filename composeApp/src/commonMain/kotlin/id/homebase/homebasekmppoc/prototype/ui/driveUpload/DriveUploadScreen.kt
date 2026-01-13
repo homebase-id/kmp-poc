@@ -132,7 +132,7 @@ fun DriveUploadScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text =
-                                "Selected: $name (${state.selectedImageBytes?.size ?: 0} bytes)",
+                                "Selected: $name",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -143,7 +143,7 @@ fun DriveUploadScreen(
                     // Upload image button
                     Button(
                         onClick = { onAction(DriveUploadUiAction.UploadImageClicked) },
-                        enabled = state.selectedImageBytes != null && !isAnyOperationInProgress
+                        enabled = state.selectImageFilePath != null && !isAnyOperationInProgress
                     ) {
                         if (state.isUploadingImage) {
                             CircularProgressIndicator(

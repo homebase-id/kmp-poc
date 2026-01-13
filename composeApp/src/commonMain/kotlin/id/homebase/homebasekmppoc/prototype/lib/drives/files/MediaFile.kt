@@ -2,6 +2,8 @@ package id.homebase.homebasekmppoc.prototype.lib.drives.files
 
 import id.homebase.homebasekmppoc.lib.image.ImageSize
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.EmbeddedThumb
+import io.ktor.client.request.forms.InputProvider
+
 import kotlinx.serialization.Serializable
 
 /** Media file reference for existing files. Ported from TypeScript MediaFile interface. */
@@ -11,9 +13,9 @@ data class MediaFile(val fileId: String? = null, val key: String, val contentTyp
 /** New media file for upload. Note: payload uses ByteArray instead of File/Blob. */
 @Serializable
 data class NewMediaFile(
-        val key: String? = null,
-        val payload: ByteArray,
-        val thumbnailKey: String? = null
+    val key: String? = null,
+    val payload: ByteArray,
+    val thumbnailKey: String? = null
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -43,13 +45,15 @@ data class NewMediaFile(
 @Serializable
 data class PayloadFile(
     val key: String,
+    // Per GPT - There is no single stream abstraction that works across JVM, Android, iOS, and JS and is safe to serialize or reuse.
+    // So filePath is the only way to hand in a payload
     val filePath: String,
     val previewThumbnail: EmbeddedThumb? = null,
     val contentType: String = "",
     val descriptorContent: String? = null,
     val skipEncryption: Boolean = false,
     /** IV for manual encryption mode (when skipEncryption = true). */
-        val iv: ByteArray? = null
+    val iv: ByteArray? = null
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -84,11 +88,12 @@ data class PayloadFile(
 data class ThumbnailFile(
     val pixelWidth: Int,
     val pixelHeight: Int,
+    // Per GPT - There is no single stream abstraction that works across JVM, Android, iOS, and JS and is safe to serialize or reuse.
+    // So filePath is the only way to hand in a thumbnail
     val filePath: String,
     val key: String,
     val contentType: String = "image/webp",
-    val quality: Int = 76,
-    val skipEncryption: Boolean = false
+    val quality: Int = 76
 ) {
     // Convenience property to match test expectations
     val imageSize: ImageSize
@@ -106,7 +111,6 @@ data class ThumbnailFile(
         if (key != other.key) return false
         if (contentType != other.contentType) return false
         if (quality != other.quality) return false
-        if (skipEncryption != other.skipEncryption) return false
 
         return true
     }
@@ -118,31 +122,30 @@ data class ThumbnailFile(
         result = 31 * result + key.hashCode()
         result = 31 * result + contentType.hashCode()
         result = 31 * result + quality
-        result = 31 * result + skipEncryption.hashCode()
         return result
     }
 }
 
 @Serializable
 data class ThumbnailDescriptor(
-        val pixelWidth: Int? = null,
-        val pixelHeight: Int? = null,
-        val contentType: String? = null,
-        val content: String? = null,
-        val bytesWritten: Long? = null
+    val pixelWidth: Int? = null,
+    val pixelHeight: Int? = null,
+    val contentType: String? = null,
+    val content: String? = null,
+    val bytesWritten: Long? = null
 )
 
 @Serializable
 data class PayloadDescriptor(
-        val key: String,
-        val contentType: String? = null,
-        val thumbnails: List<ThumbnailDescriptor>? = null,
-        val iv: String? = null,
-        val bytesWritten: Long? = null,
-        val lastModified: Long? = null,
-        val descriptorContent: String? = null,
-        val previewThumbnail: ThumbnailDescriptor? = null,
-        val uid: Long? = null
+    val key: String,
+    val contentType: String? = null,
+    val thumbnails: List<ThumbnailDescriptor>? = null,
+    val iv: String? = null,
+    val bytesWritten: Long? = null,
+    val lastModified: Long? = null,
+    val descriptorContent: String? = null,
+    val previewThumbnail: ThumbnailDescriptor? = null,
+    val uid: Long? = null
 // Add fields as needed
 ) {
     fun keyEquals(otherKey: String): Boolean {

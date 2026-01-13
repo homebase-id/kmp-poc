@@ -7,25 +7,18 @@ import id.homebase.homebasekmppoc.prototype.lib.client.OdinApiProviderBase
 import co.touchlab.kermit.Logger as KLogger
 import id.homebase.homebasekmppoc.prototype.lib.core.OdinClientErrorCode
 import id.homebase.homebasekmppoc.prototype.lib.core.OdinClientException
-import id.homebase.homebasekmppoc.prototype.lib.core.SecureByteArray
 import id.homebase.homebasekmppoc.prototype.lib.crypto.AesCbc
 import id.homebase.homebasekmppoc.prototype.lib.crypto.EncryptedKeyHeader
 import id.homebase.homebasekmppoc.prototype.lib.crypto.KeyHeader
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileSystemType
-import id.homebase.homebasekmppoc.prototype.lib.http.CreateHttpClientOptions
-import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import io.ktor.client.HttpClient
-import io.ktor.client.call.body
-import io.ktor.client.plugins.ClientRequestException
-import io.ktor.client.plugins.ServerResponseException
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlinx.serialization.Serializable
-import kotlin.coroutines.cancellation.CancellationException
 import kotlin.uuid.Uuid
 
 /** Options for file operations. */
@@ -61,7 +54,6 @@ data class BytesResponse(val bytes: ByteArray, val contentType: String) {
     }
 }
 
-/** Provider for drive file operations. Ported from JS/TS odin-js DriveFileProvider. */
 @OptIn(ExperimentalEncodingApi::class)
 public class DriveFileProvider(
     httpClient: HttpClient,
@@ -316,8 +308,6 @@ public class DriveFileProvider(
             contentType = raw.contentType
         )
     }
-
-
 
     /**
      * Gets transfer history for a file.

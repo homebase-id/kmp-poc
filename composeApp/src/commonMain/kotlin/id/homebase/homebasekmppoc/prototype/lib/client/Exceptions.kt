@@ -1,29 +1,47 @@
 package id.homebase.homebasekmppoc.prototype.lib.client
+import id.homebase.homebasekmppoc.prototype.lib.core.OdinClientErrorCode
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 
+@Serializable
 data class ProblemDetails(
     val status: Int? = null,
     val title: String? = null,
     val type: String? = null,
-    val extensions: Map<String, Any?> = emptyMap()
+    val extensions: Map<String, JsonElement> = emptyMap()
 )
 
-@Suppress("UNCHECKED_CAST")
 fun ProblemDetails.errorCode(): String? =
-    extensions["errorCode"] as? String
+    extensions["errorCode"]?.jsonPrimitive?.contentOrNull
 
-@Suppress("UNCHECKED_CAST")
 fun ProblemDetails.correlationId(): String? =
-    extensions["correlationId"] as? String
+    extensions["correlationId"]?.jsonPrimitive?.contentOrNull
+
+fun ProblemDetails.errorCodeEnum(): OdinClientErrorCode? {
+    val raw =
+        extensions["errorCode"]
+            ?.jsonPrimitive
+            ?.contentOrNull
+            ?: return null
+
+    return OdinClientErrorCode.fromString(raw)
+}
+
+fun ProblemDetails.errorCodeEnumOrUnhandled(): OdinClientErrorCode =
+    errorCodeEnum() ?: OdinClientErrorCode.UnhandledScenario
+
 
 
 class ClientException(
     status: Int,
-    val errorCode: String?,
+    val errorCode: OdinClientErrorCode = OdinClientErrorCode.UnhandledScenario,
     message: String,
     correlationId: String?,
-    problem: ProblemDetails
+    problem: ProblemDetails,
+    cause: Throwable? = null
 ) : OdinApiException(status, message, correlationId, problem)
-
 
 class UnauthorizedException :
     OdinApiException(401, "Unauthorized")

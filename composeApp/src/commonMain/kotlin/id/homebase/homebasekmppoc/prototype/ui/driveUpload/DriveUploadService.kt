@@ -22,6 +22,7 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UploadAppFileMetaD
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UploadFileMetadata
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UploadInstructionSet
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.CreateFileResult
+import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UploadFileRequest
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -99,12 +100,12 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
                     )
             )
 
-        val result =
-            driveUploadProvider.uploadFile(
-                instructions = instructions,
-                metadata = metadata,
-                encrypt = encrypt
-            )
+        val request = UploadFileRequest(
+            instructions = instructions,
+            metadata = metadata
+        )
+
+        val result = driveUploadProvider.uploadFile(request)
 
         KLogger.i(TAG) { "Text post uploaded successfully: ${result?.fileId}" }
 
@@ -118,7 +119,7 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
      * Uploads an image to the drive.
      *
      * @param driveId The target drive to upload to
-     * @param imageBytes The raw image bytes
+     * @param filePath The raw image bytes
      * @param payloadKey The key for the payload (default "pst_mdi")
      * @param uniqueId Optional unique ID for the file (auto-generated if not provided)
      * @param fileType The file type (default: MEDIA file type)
@@ -128,7 +129,7 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
      */
     suspend fun uploadImage(
         driveId: Uuid,
-        imageBytes: ByteArray,
+        filePath: String,
         payloadKey: String = "pst_mdia",
         uniqueId: String? = null,
         fileType: Int = FILE_TYPE_MEDIA,
@@ -137,7 +138,7 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
     ): ImageUploadResult {
         val actualUniqueId = uniqueId ?: Uuid.random().toString()
         KLogger.d(TAG) {
-            "Uploading image with uniqueId: $actualUniqueId, size: ${imageBytes.size}"
+            "Uploading image with uniqueId: $actualUniqueId, file: ${filePath}"
         }
 
         val instructions =
@@ -156,7 +157,7 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
         val post = createSamplePostContent();
         val contentJson = OdinSystemSerializer.serialize(post)
         val (imageSize, previewThumb, thumbnails) = createThumbnails(
-            imageBytes,
+            filePath,
             payloadKey = payloadKey
         );
 
@@ -182,20 +183,25 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
         val payloads = listOf(
             PayloadFile(
                 key = payloadKey,
-                filePath = imageBytes,
+                filePath = filePath,
                 previewThumbnail = previewThumb,
 //                contentType = "image/jpeg"
             )
         )
 
-        val result =
-            driveUploadProvider.uploadFile(
-                instructions = instructions,
-                metadata = metadata,
-                payloads = payloads,
-                thumbnails,
-                encrypt = encrypt
-            )
+        val request = UploadFileRequest(
+            instructions = instructions,
+            metadata = metadata,
+            payloads = payloads,
+            thumbnails,
+        )
+
+//        if (encrypt) {
+//            throw NotImplementedError("todo: handle encryption")
+//        }
+
+
+        val result = driveUploadProvider.uploadFile(request)
 
         KLogger.i(TAG) { "Image uploaded successfully: ${result?.fileId.toString()}" }
 
@@ -228,12 +234,18 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
     ): CreateFileResult? {
         val instructions = UploadInstructionSet(storageOptions = StorageOptions(driveId = driveId))
 
-        return driveUploadProvider.uploadFile(
+        if (encrypt) {
+            throw NotImplementedError("need to handle encryption")
+        }
+
+        val request = UploadFileRequest(
             instructions = instructions,
             metadata = metadata,
             payloads = payloads,
             thumbnails = thumbnails,
-            encrypt = encrypt,
+        )
+        return driveUploadProvider.uploadFile(
+            request,
             onVersionConflict = onVersionConflict
         )
     }
