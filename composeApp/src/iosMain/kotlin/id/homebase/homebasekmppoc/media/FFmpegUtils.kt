@@ -130,8 +130,9 @@ actual object FFmpegUtils {
                 }
 
                 // Use libx264 with same settings as Android/Desktop for consistency
+                // Note: FFmpegKit parses the command string, so we avoid single quotes in filters
                 val command =
-                        "-y -i \"$inputPath\" -c:v libx264 -b:v 3000k -vf scale='min(1280,iw)':-2 -preset fast \"$outputPath\""
+                        "-y -i \"$inputPath\" -c:v libx264 -b:v 3000k -vf scale=min(1280\\,iw):-2 -preset fast \"$outputPath\""
 
                 val session = FFmpegKit.execute(command)
 
