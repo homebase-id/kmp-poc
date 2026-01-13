@@ -4,10 +4,21 @@ import id.homebase.homebasekmppoc.prototype.lib.crypto.KeyHeader
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.ThumbnailFile
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
+import io.ktor.client.request.forms.InputProvider
 import io.ktor.client.request.forms.MultiPartFormDataContent
 import io.ktor.client.request.forms.formData
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
+import io.ktor.http.content.InputProvider
+import io.ktor.utils.io.ByteReadChannel
+import io.ktor.utils.io.readChannel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.withContext
+import kotlinx.io.files.Path
+import kotlin.io.path.Path
+import kotlin.io.path.inputStream
+
 
 /** Common interface for payload descriptors that have an IV field. */
 interface PayloadDescriptorWithIv {
@@ -95,7 +106,7 @@ private data class ProcessedThumbnail(
  * @param manifest Optional manifest for payload descriptor IVs (for encryption)
  * @return MultiPartFormDataContent ready for HTTP upload
  */
-suspend fun buildFormData(
+suspend fun buildUploadFormData(
     instructionSet: SerializableUploadInstructionSet,
     encryptedDescriptor: ByteArray? = null,
     payloads: List<PayloadFile>? = null,
@@ -124,7 +135,7 @@ suspend fun buildFormData(
  * @param manifest Optional manifest for payload descriptor IVs (for encryption)
  * @return MultiPartFormDataContent ready for HTTP update
  */
-suspend fun buildFormData(
+suspend fun buildUpdateFormData(
     instructionSet: SerializableUpdateLocalInstructionSet,
     encryptedDescriptor: ByteArray? = null,
     payloads: List<PayloadFile>? = null,
@@ -153,7 +164,7 @@ suspend fun buildFormData(
  * @param manifest Optional manifest containing payload descriptors with IVs
  * @return MultiPartFormDataContent ready for HTTP update
  */
-suspend fun buildFormData(
+suspend fun buildUpdateFormData(
     instructionSet: UpdatePeerInstructionSet,
     encryptedDescriptor: ByteArray? = null,
     payloads: List<PayloadFile>? = null,
@@ -179,98 +190,67 @@ private suspend inline fun <reified T> buildFormDataInternal(
     instructionSet: T,
     encryptedMetadataDescriptor: ByteArray?,
     payloads: List<PayloadFile>?,
-    thumbnails: List<ThumbnailFile>?,
-    keyHeader: KeyHeader?,
-    payloadDescriptors: List<PayloadDescriptorWithIv>?
+    thumbnails: List<ThumbnailFile>?
 ): MultiPartFormDataContent {
-    // Pre-compute all encrypted payloads
-    val processedPayloads =
-        payloads?.map { payload ->
-            ProcessedPayload(
-                key = payload.key,
-                contentType = payload.contentType,
-                data = processPayload(payload, keyHeader, payloadDescriptors)
-            )
-        }
 
-    // Pre-compute all encrypted thumbnails
-    val processedThumbnails =
-        thumbnails?.map { thumbnail ->
-            ProcessedThumbnail(
-                filename = "${thumbnail.key}${thumbnail.pixelWidth}",
-                contentType = thumbnail.contentType,
-                data = processThumbnail(thumbnail, keyHeader, payloadDescriptors)
-            )
-        }
-
-    // Serialize instructions
     val instructionsJson =
         OdinSystemSerializer.json.encodeToString(instructionSet).encodeToByteArray()
 
     return MultiPartFormDataContent(
         formData {
-            // Append instructions as JSON blob
+
+            // Instructions
             append(
                 "instructions",
                 instructionsJson,
                 Headers.build {
                     append(HttpHeaders.ContentType, "application/json")
-                    append(
-                        HttpHeaders.ContentDisposition,
-                        "form-data; name=\"instructions\""
-                    )
+                    append(HttpHeaders.ContentDisposition, "form-data; name=\"instructions\"")
                 }
             )
 
-            // Append encrypted metadata if present
+            // Encrypted metadata
             if (encryptedMetadataDescriptor != null) {
                 append(
                     "metadata",
                     encryptedMetadataDescriptor,
                     Headers.build {
-                        append(
-                            HttpHeaders.ContentType,
-                            "application/octet-stream"
-                        )
-                        append(
-                            HttpHeaders.ContentDisposition,
-                            "form-data; name=\"metadata\""
-                        )
+                        append(HttpHeaders.ContentType, "application/octet-stream")
+                        append(HttpHeaders.ContentDisposition, "form-data; name=\"metadata\"")
                     }
                 )
             }
 
-            // Append pre-processed payloads
-            processedPayloads?.forEach { payload ->
+            // Payloads (streamed)
+            payloads?.forEach { payload ->
                 append(
                     "payload",
-                    payload.data,
+                    InputProvider {
+                        withContext(Dispatchers.IO) {
+                            Path(payload.filePath).inputStream()
+                        }
+                    },
                     Headers.build {
-                        append(
-                            HttpHeaders.ContentType,
-                            payload.contentType
-                        )
+                        append(HttpHeaders.ContentType, payload.contentType)
                         append(
                             HttpHeaders.ContentDisposition,
                             "form-data; name=\"payload\"; filename=\"${payload.key}\""
                         )
                     }
                 )
+
             }
 
-            // Append pre-processed thumbnails
-            processedThumbnails?.forEach { thumbnail ->
+            // Thumbnails (streamed)
+            thumbnails?.forEach { thumbnail ->
                 append(
                     "thumbnail",
-                    thumbnail.data,
+                    InputProvider { File(thumbnail.filePath).inputStream() },
                     Headers.build {
-                        append(
-                            HttpHeaders.ContentType,
-                            thumbnail.contentType
-                        )
+                        append(HttpHeaders.ContentType, thumbnail.contentType)
                         append(
                             HttpHeaders.ContentDisposition,
-                            "form-data; name=\"thumbnail\"; filename=\"${thumbnail.filename}\""
+                            "form-data; name=\"thumbnail\"; filename=\"${thumbnail.key}${thumbnail.pixelWidth}\""
                         )
                     }
                 )
@@ -278,6 +258,7 @@ private suspend inline fun <reified T> buildFormDataInternal(
         }
     )
 }
+
 
 /** Processes a payload file with optional encryption. */
 private suspend fun processPayload(
@@ -290,9 +271,9 @@ private suspend fun processPayload(
         val iv =
             payloadDescriptors?.find { it.payloadKey == payload.key }?.iv
                 ?: keyHeader.iv
-        keyHeader.encryptDataAes(payload.payload, iv)
+        keyHeader.encryptDataAes(payload.filePath, iv)
     } else {
-        payload.payload
+        payload.filePath
     }
 }
 
@@ -307,8 +288,8 @@ private suspend fun processThumbnail(
         val iv =
             payloadDescriptors?.find { it.payloadKey == thumbnail.key }?.iv
                 ?: keyHeader.iv
-        keyHeader.encryptDataAes(thumbnail.payload, iv)
+        keyHeader.encryptDataAes(thumbnail.filePath, iv)
     } else {
-        thumbnail.payload
+        thumbnail.filePath
     }
 }

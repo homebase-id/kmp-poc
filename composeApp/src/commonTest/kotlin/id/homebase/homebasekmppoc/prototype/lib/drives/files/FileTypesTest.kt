@@ -260,13 +260,13 @@ class FileTypesTest {
         val payloadFile =
                 PayloadFile(
                         key = "payload-1",
-                        payload = testPayload,
+                        filePath = testPayload,
                         descriptorContent = "description",
                         skipEncryption = false
                 )
 
         assertEquals("payload-1", payloadFile.key)
-        assertTrue(testPayload.contentEquals(payloadFile.payload))
+        assertTrue(testPayload.contentEquals(payloadFile.filePath))
         assertEquals("description", payloadFile.descriptorContent)
         assertFalse(payloadFile.skipEncryption)
     }
@@ -279,7 +279,7 @@ class FileTypesTest {
         val payloadFile =
                 PayloadFile(
                         key = "payload-1",
-                        payload = testPayload,
+                        filePath = testPayload,
                         skipEncryption = true,
                         iv = testIv
                 )

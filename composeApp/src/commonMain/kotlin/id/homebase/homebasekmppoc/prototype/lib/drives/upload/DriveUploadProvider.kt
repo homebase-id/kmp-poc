@@ -70,7 +70,8 @@ data class UploadFileRequest(
     val instructions: UploadInstructionSet,
     val metadata: UploadFileMetadata,
     val payloads: List<PayloadFile>? = null,
-    val thumbnails: List<ThumbnailFile>? = null
+    val thumbnails: List<ThumbnailFile>? = null,
+    val fileSystemType: FileSystemType?
 )
 
 
@@ -96,32 +97,49 @@ class DriveUploadProvider(
         onVersionConflict: (suspend () -> CreateFileResult?)? = null
     ): CreateFileResult? {
 
-        // Build manifest based on already-prepared inputs
-        val manifest =
-            UploadManifest.build(
-                payloads = request.payloads,
-                thumbnails = request.thumbnails,
-                generateIv = request.metadata.isEncrypted
-            )
+        val baseMetadata = request.metadata.copy(isEncrypted = true)
 
-        val serializableInstructions = request.instructions.toSerializable(manifest)
+        val keyHeader = KeyHeader.newRandom16()
+
+        val encryptedMetadata = baseMetadata.encryptContent(keyHeader)
+
+        val manifest = UploadManifest.build(request.payloads, request.thumbnails, true)
+
+        val serializableInstructions =
+            request.instructions.toSerializable(manifest)
+
+        val sharedSecret = client.getSharedSecret()
+
+        val encryptedDescriptor =
+            if (sharedSecret != null) {
+                buildEncryptedDescriptor(
+                    keyHeader,
+                    encryptedMetadata,
+                    sharedSecret,
+                    serializableInstructions.transferIv
+                )
+            } else {
+                null
+            }
 
         val data =
-            buildFormData(
+            buildUploadFormData(
                 instructionSet = serializableInstructions,
-                encryptedDescriptor = null, // <-- encryption handled elsewhere
+                encryptedDescriptor = encryptedDescriptor,
                 payloads = request.payloads,
                 thumbnails = request.thumbnails,
-                keyHeader = null,
+                keyHeader = keyHeader,
                 manifest = manifest
             )
 
-        // Upload only
-        return pureUpload(
-            data = data,
-            fileSystemType = request.instructions.systemFileType,
-            onVersionConflict = onVersionConflict
-        )
+        val result =
+            pureUpload(data, request.fileSystemType, onVersionConflict)
+
+        if (result != null) {
+            result.keyHeader = keyHeader
+        }
+
+        return result
     }
 
 
@@ -139,83 +157,84 @@ class DriveUploadProvider(
      */
     // TODO: need to add a large class here that holds all needed to preform the CREATE (same for PATCH)
 
-    suspend fun uploadFile(
-        instructions: UploadInstructionSet,
-        metadata: UploadFileMetadata,
-        payloads: List<PayloadFile>? = null,
-        thumbnails: List<ThumbnailFile>? = null,
-        encrypt: Boolean = true,
-        onVersionConflict: (suspend () -> CreateFileResult?)? = null,
-        aesKey: ByteArray? = null
-    ): CreateFileResult? {
-        // Validate version tag usage
-
-
-        // Force isEncrypted on metadata to match encrypt flag
-        val shouldEncrypt = encrypt || aesKey != null
-        val baseMetadata = metadata.copy(isEncrypted = shouldEncrypt)
-
-        // Generate key header if encrypting
-        val keyHeader =
-            if (shouldEncrypt) {
-                if (aesKey != null) {
-                    KeyHeader(
-                        iv = ByteArrayUtil.getRndByteArray(16),
-                        aesKey = SecureByteArray(aesKey)
-                    )
-                } else {
-                    KeyHeader.newRandom16()
-                }
-            } else {
-                null
-            }
-
-        // Encrypt metadata content using UploadFileMetadata.encryptContent()
-        val encryptedMetadata = baseMetadata.encryptContent(keyHeader)
-
-        // Build manifest
-        val manifest = UploadManifest.build(payloads, thumbnails, shouldEncrypt)
-
-        // Create serializable instruction set with manifest (matches TypeScript
-        // instructionsWithManifest)
-        val serializableInstructions = instructions.toSerializable(manifest)
-
-        // Get shared secret for encrypting key header
-        val sharedSecret = client.getSharedSecret()
-
-        // Build encrypted descriptor (encrypted key header + encrypted metadata + all encrypted
-        // with sharedSecret)
-        val encryptedDescriptor =
-            if (sharedSecret != null) {
-                buildEncryptedDescriptor(
-                    keyHeader,
-                    encryptedMetadata,
-                    sharedSecret,
-                    serializableInstructions.transferIv
-                )
-            } else {
-                null
-            }
-
-        // Build form data
-        val data =
-            buildFormData(
-                instructionSet = serializableInstructions,
-                encryptedDescriptor = encryptedDescriptor,
-                payloads = payloads,
-                thumbnails = thumbnails,
-                keyHeader = keyHeader,
-                manifest = manifest
-            )
-
-        // Upload
-        val result = pureUpload(data, instructions.systemFileType, onVersionConflict)
-
-        if (result != null) {
-            result.keyHeader = keyHeader
-        }
-        return result
-    }
+//    suspend fun uploadFile(
+//        instructions: UploadInstructionSet,
+//        metadata: UploadFileMetadata,
+//        payloads: List<PayloadFile>? = null,
+//        thumbnails: List<ThumbnailFile>? = null,
+//        encrypt: Boolean = true,
+//        onVersionConflict: (suspend () -> CreateFileResult?)? = null,
+//        aesKey: ByteArray? = null,
+//        fileSystemType: FileSystemType?
+//    ): CreateFileResult? {
+//        // Validate version tag usage
+//
+//
+//        // Force isEncrypted on metadata to match encrypt flag
+//        val shouldEncrypt = encrypt || aesKey != null
+//        val baseMetadata = metadata.copy(isEncrypted = shouldEncrypt)
+//
+//        // Generate key header if encrypting
+//        val keyHeader =
+//            if (shouldEncrypt) {
+//                if (aesKey != null) {
+//                    KeyHeader(
+//                        iv = ByteArrayUtil.getRndByteArray(16),
+//                        aesKey = SecureByteArray(aesKey)
+//                    )
+//                } else {
+//                    KeyHeader.newRandom16()
+//                }
+//            } else {
+//                null
+//            }
+//
+//        // Encrypt metadata content using UploadFileMetadata.encryptContent()
+//        val encryptedMetadata = baseMetadata.encryptContent(keyHeader)
+//
+//        // Build manifest
+//        val manifest = UploadManifest.build(payloads, thumbnails, shouldEncrypt)
+//
+//        // Create serializable instruction set with manifest (matches TypeScript
+//        // instructionsWithManifest)
+//        val serializableInstructions = instructions.toSerializable(manifest)
+//
+//        // Get shared secret for encrypting key header
+//        val sharedSecret = client.getSharedSecret()
+//
+//        // Build encrypted descriptor (encrypted key header + encrypted metadata + all encrypted
+//        // with sharedSecret)
+//        val encryptedDescriptor =
+//            if (sharedSecret != null) {
+//                buildEncryptedDescriptor(
+//                    keyHeader,
+//                    encryptedMetadata,
+//                    sharedSecret,
+//                    serializableInstructions.transferIv
+//                )
+//            } else {
+//                null
+//            }
+//
+//        // Build form data
+//        val data =
+//            buildUploadFormData(
+//                instructionSet = serializableInstructions,
+//                encryptedDescriptor = encryptedDescriptor,
+//                payloads = payloads,
+//                thumbnails = thumbnails,
+//                keyHeader = keyHeader,
+//                manifest = manifest
+//            )
+//
+//        // Upload
+//        val result = pureUpload(data, fileSystemType, onVersionConflict)
+//
+//        if (result != null) {
+//            result.keyHeader = keyHeader
+//        }
+//        return result
+//    }
 
     /**
      * Patches (updates) an existing file.
@@ -293,7 +312,7 @@ class DriveUploadProvider(
 
         // Build form data
         val data =
-            buildFormData(
+            buildUpdateFormData(
                 instructionSet = serializableInstructions,
                 encryptedDescriptor = encryptedDescriptor,
                 payloads = payloads,

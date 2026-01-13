@@ -314,12 +314,12 @@ class UploadTypesTest {
                         listOf(
                                 id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadFile(
                                         key = "payload1",
-                                        payload = byteArrayOf(1, 2, 3),
+                                        filePath = byteArrayOf(1, 2, 3),
                                         descriptorContent = "desc1"
                                 ),
                                 id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadFile(
                                         key = "payload2",
-                                        payload = byteArrayOf(4, 5, 6)
+                                        filePath = byteArrayOf(4, 5, 6)
                                 )
                         )
 
@@ -337,7 +337,7 @@ class UploadTypesTest {
                         listOf(
                                 id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadFile(
                                         key = "image1",
-                                        payload = byteArrayOf(1, 2, 3)
+                                        filePath = byteArrayOf(1, 2, 3)
                                 )
                         )
 
@@ -347,7 +347,7 @@ class UploadTypesTest {
                                     key = "image1",
                                     pixelWidth = 100,
                                     pixelHeight = 100,
-                                    payload = byteArrayOf(7, 8, 9),
+                                    filePath = byteArrayOf(7, 8, 9),
                                     contentType = "image/webp"
                             )
                         )
@@ -372,7 +372,7 @@ class UploadTypesTest {
                         listOf(
                                 id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadFile(
                                         key = "payload1",
-                                        payload = byteArrayOf(1, 2, 3)
+                                        filePath = byteArrayOf(1, 2, 3)
                                 )
                         )
 
@@ -389,7 +389,7 @@ class UploadTypesTest {
                         listOf(
                                 id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadFile(
                                         key = "payload1",
-                                        payload = byteArrayOf(1, 2, 3),
+                                        filePath = byteArrayOf(1, 2, 3),
                                         iv = customIv
                                 )
                         )
@@ -420,7 +420,7 @@ class UploadTypesTest {
                         listOf(
                                 id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadFile(
                                         key = "payload1",
-                                        payload = byteArrayOf(1, 2, 3)
+                                        filePath = byteArrayOf(1, 2, 3)
                                 )
                         )
 
@@ -456,7 +456,7 @@ class UploadTypesTest {
                         listOf(
                                 id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadFile(
                                         key = "new-payload",
-                                        payload = byteArrayOf(1, 2, 3)
+                                        filePath = byteArrayOf(1, 2, 3)
                                 )
                         )
                 val toDelete = listOf(PayloadDeleteKey("old-payload"))

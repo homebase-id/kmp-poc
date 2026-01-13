@@ -4,10 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadFile
-import id.homebase.homebasekmppoc.prototype.lib.drives.upload.StorageOptions
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UploadAppFileMetaData
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UploadFileMetadata
-import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UploadInstructionSet
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import id.homebase.homebasekmppoc.prototype.ui.driveUpload.DriveUploadService.Companion.DATA_TYPE_POST
 import id.homebase.homebasekmppoc.prototype.ui.driveUpload.DriveUploadService.Companion.FILE_TYPE_POST
@@ -157,13 +155,13 @@ class DriveUploadViewModel(private val driveUploadService: DriveUploadService?) 
                     PayloadFile(
                         key = "txt_data1",
                         contentType = "text/plain",
-                        payload = "This is a sample text payload used for testing purposes. It contains roughly one hundred bytes."
+                        filePath = "This is a sample text payload used for testing purposes. It contains roughly one hundred bytes."
                             .encodeToByteArray(),
                     ),
                     PayloadFile(
                         key = "txt_data2",
                         contentType = "text/plain",
-                        payload = "Another example text payload for preview rendering. This one is different and suitable for testing."
+                        filePath = "Another example text payload for preview rendering. This one is different and suitable for testing."
                             .encodeToByteArray()
                     )
                 )

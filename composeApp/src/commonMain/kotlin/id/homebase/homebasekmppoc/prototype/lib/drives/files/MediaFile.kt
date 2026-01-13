@@ -42,14 +42,13 @@ data class NewMediaFile(
  */
 @Serializable
 data class PayloadFile(
-        val key: String,
-        val payload: ByteArray,
-//        val payload: String,
-        val previewThumbnail: EmbeddedThumb? = null,
-        val contentType: String = "",
-        val descriptorContent: String? = null,
-        val skipEncryption: Boolean = false,
-        /** IV for manual encryption mode (when skipEncryption = true). */
+    val key: String,
+    val filePath: String,
+    val previewThumbnail: EmbeddedThumb? = null,
+    val contentType: String = "",
+    val descriptorContent: String? = null,
+    val skipEncryption: Boolean = false,
+    /** IV for manual encryption mode (when skipEncryption = true). */
         val iv: ByteArray? = null
 ) {
     override fun equals(other: Any?): Boolean {
@@ -59,7 +58,7 @@ data class PayloadFile(
         other as PayloadFile
 
         if (key != other.key) return false
-        if (!payload.contentEquals(other.payload)) return false
+        if (!filePath.contentEquals(other.filePath)) return false
         if (previewThumbnail != other.previewThumbnail) return false
         if (descriptorContent != other.descriptorContent) return false
         if (skipEncryption != other.skipEncryption) return false
@@ -73,7 +72,7 @@ data class PayloadFile(
 
     override fun hashCode(): Int {
         var result = key.hashCode()
-        result = 31 * result + payload.contentHashCode()
+        result = 31 * result + filePath.hashCode()
         result = 31 * result + (previewThumbnail?.hashCode() ?: 0)
         result = 31 * result + (descriptorContent?.hashCode() ?: 0)
         result = 31 * result + skipEncryption.hashCode()
@@ -83,13 +82,13 @@ data class PayloadFile(
 }
 
 data class ThumbnailFile(
-        val pixelWidth: Int,
-        val pixelHeight: Int,
-        val payload: ByteArray, // raw bytes -> equivalent to Blob
-        val key: String,
-        val contentType: String = "image/webp",
-        val quality: Int = 76,
-        val skipEncryption: Boolean = false
+    val pixelWidth: Int,
+    val pixelHeight: Int,
+    val filePath: String,
+    val key: String,
+    val contentType: String = "image/webp",
+    val quality: Int = 76,
+    val skipEncryption: Boolean = false
 ) {
     // Convenience property to match test expectations
     val imageSize: ImageSize
@@ -103,7 +102,7 @@ data class ThumbnailFile(
 
         if (pixelWidth != other.pixelWidth) return false
         if (pixelHeight != other.pixelHeight) return false
-        if (!payload.contentEquals(other.payload)) return false
+        if (!filePath.contentEquals(other.filePath)) return false
         if (key != other.key) return false
         if (contentType != other.contentType) return false
         if (quality != other.quality) return false
@@ -115,7 +114,7 @@ data class ThumbnailFile(
     override fun hashCode(): Int {
         var result = pixelWidth
         result = 31 * result + pixelHeight
-        result = 31 * result + payload.contentHashCode()
+        result = 31 * result + filePath.hashCode()
         result = 31 * result + key.hashCode()
         result = 31 * result + contentType.hashCode()
         result = 31 * result + quality

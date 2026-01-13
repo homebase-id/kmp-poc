@@ -182,7 +182,7 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
         val payloads = listOf(
             PayloadFile(
                 key = payloadKey,
-                payload = imageBytes,
+                filePath = imageBytes,
                 previewThumbnail = previewThumb,
 //                contentType = "image/jpeg"
             )

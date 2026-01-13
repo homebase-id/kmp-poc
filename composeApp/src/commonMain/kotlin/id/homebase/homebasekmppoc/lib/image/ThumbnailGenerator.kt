@@ -74,7 +74,7 @@ suspend fun createThumbnails(
         val vectorThumb = ThumbnailFile(
             pixelWidth = naturalSize.pixelWidth,
             pixelHeight = naturalSize.pixelHeight,
-            payload = imageBytes,
+            filePath = imageBytes,
             key = payloadKey,
             contentType = "image/svg+xml",
             quality = 100
@@ -83,7 +83,7 @@ suspend fun createThumbnails(
             pixelWidth = naturalSize.pixelWidth,
             pixelHeight = naturalSize.pixelHeight,
             contentType = "image/svg+xml",
-            content = toBase64(vectorThumb.payload)
+            content = toBase64(vectorThumb.filePath)
         )
 
         return@withContext Triple(naturalSize, embedded, listOf(vectorThumb))
@@ -99,7 +99,7 @@ suspend fun createThumbnails(
             pixelWidth = naturalSize.pixelWidth,
             pixelHeight = naturalSize.pixelHeight,
             contentType = "image/webp",
-            content = toBase64(tinyThumbFile.payload)
+            content = toBase64(tinyThumbFile.filePath)
         )
         return@withContext Triple(naturalSize, embeddedTiny, emptyList())
     }
@@ -120,7 +120,7 @@ suspend fun createThumbnails(
         pixelWidth = tinyThumbFile.pixelWidth,
         pixelHeight = tinyThumbFile.pixelHeight,
         contentType = "image/webp",
-        content = toBase64(tinyThumbFile.payload)
+        content = toBase64(tinyThumbFile.filePath)
     )
 
     return@withContext Triple(naturalSize, embeddedTiny, additional)
@@ -158,7 +158,7 @@ suspend fun createImageThumbnail(
         return@withContext ThumbnailFile(
             pixelWidth = naturalSize.pixelWidth,
             pixelHeight = naturalSize.pixelHeight,
-            payload = imageBytes,
+            filePath = imageBytes,
             key = payloadKey,
             contentType = "image/${targetFormat.name.lowercase()}",
             quality = quality
@@ -214,7 +214,7 @@ suspend fun createImageThumbnail(
     val thumb = ThumbnailFile(
         pixelWidth = result.size.pixelWidth,
         pixelHeight = result.size.pixelHeight,
-        payload = finalBytes,
+        filePath = finalBytes,
         key = payloadKey,
         contentType = when (targetFormat) {
             ImageFormat.WEBP -> "image/webp"

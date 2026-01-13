@@ -148,15 +148,15 @@ abstract class ThumbnailGeneratorTest {
 
         // Verify additional thumbnails
         assertTrue(additionalThumbnails.all { it.key == payloadKey })
-        assertTrue(additionalThumbnails.all { it.payload.isNotEmpty() })
+        assertTrue(additionalThumbnails.all { it.filePath.isNotEmpty() })
         // Quality should be reasonable (between 1 and 100) and all thumbnails should fit within
         // maxBytes
         assertTrue(additionalThumbnails.all { it.quality in 1..100 })
         additionalThumbnails.forEachIndexed { index, thumb ->
             if (index < baseThumbSizes.size) {
                 assertTrue(
-                        thumb.payload.size <= baseThumbSizes[index].maxBytes,
-                        "Thumbnail $index size ${thumb.payload.size} exceeds max ${baseThumbSizes[index].maxBytes}"
+                        thumb.filePath.size <= baseThumbSizes[index].maxBytes,
+                        "Thumbnail $index size ${thumb.filePath.size} exceeds max ${baseThumbSizes[index].maxBytes}"
                 )
             }
         }
@@ -179,8 +179,8 @@ abstract class ThumbnailGeneratorTest {
 
         for (i in 0..2) {
             assertTrue(
-                    additionalThumbnails[i].payload.size <= baseThumbSizes[i].maxBytes,
-                    "Thumbnail $i size ${additionalThumbnails[i].payload.size} exceeds max ${baseThumbSizes[i].maxBytes}"
+                    additionalThumbnails[i].filePath.size <= baseThumbSizes[i].maxBytes,
+                    "Thumbnail $i size ${additionalThumbnails[i].filePath.size} exceeds max ${baseThumbSizes[i].maxBytes}"
             )
             // Quality should be reasonable
             assertTrue(
@@ -215,7 +215,7 @@ abstract class ThumbnailGeneratorTest {
         assertNotNull(additionalThumbnails)
         assertEquals(1, additionalThumbnails.size, "Should be 1")
 
-        assertTrue(additionalThumbnails[0].payload.size <= customSizes[0].maxBytes, "Too large")
+        assertTrue(additionalThumbnails[0].filePath.size <= customSizes[0].maxBytes, "Too large")
         // Quality must change!
         assertNotEquals(
                 baseThumbSizes[0].quality,
@@ -260,7 +260,7 @@ abstract class ThumbnailGeneratorTest {
 
         for (i in 0..2) {
             assertTrue(
-                    additionalThumbnails[i].payload.size <= baseThumbSizes[i].maxBytes,
+                    additionalThumbnails[i].filePath.size <= baseThumbSizes[i].maxBytes,
                     "Too large"
             )
             assertEquals(
@@ -360,8 +360,8 @@ abstract class ThumbnailGeneratorTest {
         assertEquals(1, additionalThumbnails.size)
 
         // Verify it's the exact same size
-        assertEquals(imageData.size, additionalThumbnails[0].payload.size)
-        assertTrue(imageData.contentEquals(additionalThumbnails[0].payload))
+        assertEquals(imageData.size, additionalThumbnails[0].filePath.size)
+        assertTrue(imageData.contentEquals(additionalThumbnails[0].filePath))
     }
 
     @Test
@@ -422,7 +422,7 @@ abstract class ThumbnailGeneratorTest {
 
         // Verify additional thumbnails
         assertTrue(additionalThumbnails.all { it.key == payloadKey })
-        assertTrue(additionalThumbnails.all { it.payload.isNotEmpty() })
+        assertTrue(additionalThumbnails.all { it.filePath.isNotEmpty() })
         // Quality should be reasonable
         assertTrue(additionalThumbnails.all { it.quality in 1..100 })
     }
@@ -445,7 +445,7 @@ abstract class ThumbnailGeneratorTest {
         // SVG should maintain original content type
         val svgThumbnail = additionalThumbnails.first()
         assertEquals("image/svg+xml", svgThumbnail.contentType)
-        assertTrue(svgThumbnail.payload.contentEquals(imageData))
+        assertTrue(svgThumbnail.filePath.contentEquals(imageData))
         assertEquals(100, svgThumbnail.quality)
 
         // Natural size should be extracted from SVG
@@ -577,8 +577,8 @@ abstract class ThumbnailGeneratorTest {
                     )
                     for (i in 0..2) {
                         assertTrue(
-                                additionalThumbnails[i].payload.size <= baseThumbSizes[i].maxBytes,
-                                "Thumbnail $i for $format exceeds size limit: ${additionalThumbnails[i].payload.size} > ${baseThumbSizes[i].maxBytes}"
+                                additionalThumbnails[i].filePath.size <= baseThumbSizes[i].maxBytes,
+                                "Thumbnail $i for $format exceeds size limit: ${additionalThumbnails[i].filePath.size} > ${baseThumbSizes[i].maxBytes}"
                         )
                         assertTrue(
                                 additionalThumbnails[i].quality in 1..100,
@@ -629,7 +629,7 @@ abstract class ThumbnailGeneratorTest {
                 ThumbnailFile(
                         pixelWidth = 100,
                         pixelHeight = 200,
-                        payload = payload,
+                        filePath = payload,
                         contentType = "image/jpeg",
                         key = "test-key",
                         quality = 100
@@ -638,7 +638,7 @@ abstract class ThumbnailGeneratorTest {
         // Assert
         assertEquals(100, thumbnail.imageSize.pixelWidth)
         assertEquals(200, thumbnail.imageSize.pixelHeight)
-        assertContentEquals(payload, thumbnail.payload)
+        assertContentEquals(payload, thumbnail.filePath)
         assertEquals("image/jpeg", thumbnail.contentType)
         assertEquals("test-key", thumbnail.key)
     }

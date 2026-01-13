@@ -11,7 +11,6 @@ data class UploadInstructionSet(
         val storageOptions: StorageOptions? = null,
         val transitOptions: TransitOptions? = null,
         @Serializable(with = Base64ByteArraySerializer::class) val transferIv: ByteArray? = null,
-        val systemFileType: FileSystemType? = null
 ) {
     /**
      * Creates a serializable instruction set with manifest for sending to the server. Matches
@@ -39,7 +38,6 @@ data class UploadInstructionSet(
             if (other.transferIv == null) return false
             if (!transferIv.contentEquals(other.transferIv)) return false
         } else if (other.transferIv != null) return false
-        if (systemFileType != other.systemFileType) return false
 
         return true
     }
@@ -48,7 +46,6 @@ data class UploadInstructionSet(
         var result = storageOptions?.hashCode() ?: 0
         result = 31 * result + (transitOptions?.hashCode() ?: 0)
         result = 31 * result + (transferIv?.contentHashCode() ?: 0)
-        result = 31 * result + (systemFileType?.hashCode() ?: 0)
         return result
     }
 }

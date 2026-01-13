@@ -2,11 +2,6 @@ package id.homebase.homebasekmppoc.lib.image
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import id.homebase.homebasekmppoc.lib.image.ImageSize
-import id.homebase.homebasekmppoc.lib.image.ThumbnailInstruction
-import id.homebase.homebasekmppoc.lib.image.baseThumbSizes
-import id.homebase.homebasekmppoc.lib.image.createThumbnails
-import id.homebase.homebasekmppoc.lib.image.getRevisedThumbs
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -60,15 +55,15 @@ class ThumbnailGeneratorInstrumentedTest {
 
         // Verify additional thumbnails
         assertTrue(additionalThumbnails.all { it.key == payloadKey })
-        assertTrue(additionalThumbnails.all { it.payload.isNotEmpty() })
+        assertTrue(additionalThumbnails.all { it.filePath.isNotEmpty() })
         assertTrue(additionalThumbnails.all { it.quality in 1..100 })
 
         // Verify size constraints
         additionalThumbnails.forEachIndexed { index, thumb ->
             if (index < baseThumbSizes.size) {
                 assertTrue(
-                    thumb.payload.size <= baseThumbSizes[index].maxBytes,
-                    "Thumbnail $index size ${thumb.payload.size} exceeds max ${baseThumbSizes[index].maxBytes}"
+                    thumb.filePath.size <= baseThumbSizes[index].maxBytes,
+                    "Thumbnail $index size ${thumb.filePath.size} exceeds max ${baseThumbSizes[index].maxBytes}"
                 )
             }
         }
@@ -88,8 +83,8 @@ class ThumbnailGeneratorInstrumentedTest {
 
         for (i in 0..2) {
             assertTrue(
-                additionalThumbnails[i].payload.size <= baseThumbSizes[i].maxBytes,
-                "Thumbnail $i size ${additionalThumbnails[i].payload.size} exceeds max ${baseThumbSizes[i].maxBytes}"
+                additionalThumbnails[i].filePath.size <= baseThumbSizes[i].maxBytes,
+                "Thumbnail $i size ${additionalThumbnails[i].filePath.size} exceeds max ${baseThumbSizes[i].maxBytes}"
             )
             assertTrue(additionalThumbnails[i].quality in 1..100, "Quality for thumbnail $i is ${additionalThumbnails[i].quality}")
         }
@@ -108,7 +103,7 @@ class ThumbnailGeneratorInstrumentedTest {
         assertTrue(additionalThumbnails.isNotEmpty())
 
         assertTrue(additionalThumbnails.all { it.key == payloadKey })
-        assertTrue(additionalThumbnails.all { it.payload.isNotEmpty() })
+        assertTrue(additionalThumbnails.all { it.filePath.isNotEmpty() })
         assertTrue(additionalThumbnails.all { it.quality in 1..100 })
     }
 
@@ -126,7 +121,7 @@ class ThumbnailGeneratorInstrumentedTest {
 
         val svgThumbnail = additionalThumbnails.first()
         assertEquals("image/svg+xml", svgThumbnail.contentType)
-        assertTrue(svgThumbnail.payload.contentEquals(imageData))
+        assertTrue(svgThumbnail.filePath.contentEquals(imageData))
         assertEquals(100, svgThumbnail.quality)
 
         assertEquals(800, naturalSize.pixelWidth)
@@ -178,8 +173,8 @@ class ThumbnailGeneratorInstrumentedTest {
         val (_, _, additionalThumbnails) = createThumbnails(imageData, payloadKey, customSizes)
 
         assertEquals(1, additionalThumbnails.size)
-        assertEquals(imageData.size, additionalThumbnails[0].payload.size)
-        assertTrue(imageData.contentEquals(additionalThumbnails[0].payload))
+        assertEquals(imageData.size, additionalThumbnails[0].filePath.size)
+        assertTrue(imageData.contentEquals(additionalThumbnails[0].filePath))
     }
 }
 
