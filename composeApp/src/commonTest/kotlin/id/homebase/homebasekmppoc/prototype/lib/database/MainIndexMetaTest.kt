@@ -645,20 +645,20 @@ class MainIndexMetaTest {
             assertEquals(originalHeader.fileState, reconstructedHeader.fileState)
             assertEquals(originalHeader.fileSystemType, reconstructedHeader.fileSystemType)
             assertEquals(
-                originalHeader.sharedSecretEncryptedKeyHeader?.encryptionVersion,
-                reconstructedHeader.sharedSecretEncryptedKeyHeader?.encryptionVersion
+                originalHeader.sharedSecretEncryptedKeyHeader.encryptionVersion,
+                reconstructedHeader.sharedSecretEncryptedKeyHeader.encryptionVersion
             )
             assertEquals(
-                originalHeader.sharedSecretEncryptedKeyHeader?.type,
-                reconstructedHeader.sharedSecretEncryptedKeyHeader?.type
+                originalHeader.sharedSecretEncryptedKeyHeader.type,
+                reconstructedHeader.sharedSecretEncryptedKeyHeader.type
             )
             assertContentEquals(
-                originalHeader.sharedSecretEncryptedKeyHeader?.iv,
-                reconstructedHeader.sharedSecretEncryptedKeyHeader?.iv
+                originalHeader.sharedSecretEncryptedKeyHeader.iv,
+                reconstructedHeader.sharedSecretEncryptedKeyHeader.iv
             )
             assertContentEquals(
-                originalHeader.sharedSecretEncryptedKeyHeader?.encryptedAesKey,
-                reconstructedHeader.sharedSecretEncryptedKeyHeader?.encryptedAesKey
+                originalHeader.sharedSecretEncryptedKeyHeader.encryptedAesKey,
+                reconstructedHeader.sharedSecretEncryptedKeyHeader.encryptedAesKey
             )
 
             // Verify file metadata

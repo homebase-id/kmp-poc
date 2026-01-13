@@ -53,36 +53,36 @@ class CursorSyncTest
             // Verify paging cursor fields
             assertEquals(
                 originalCursor.paging!!.time,
-                loadedCursor.paging!!.time,
+                loadedCursor.paging.time,
                 "Paging cursor time should match"
             )
             assertEquals(
-                originalCursor.paging!!.row,
-                loadedCursor.paging!!.row,
+                originalCursor.paging.row,
+                loadedCursor.paging.row,
                 "Paging cursor row ID should match"
             )
 
             // Verify stop at boundary cursor fields
             assertEquals(
                 originalCursor.stop!!.time,
-                loadedCursor.stop!!.time,
+                loadedCursor.stop.time,
                 "Stop at boundary cursor time should match"
             )
             assertEquals(
-                originalCursor.stop!!.row,
-                loadedCursor.stop!!.row,
+                originalCursor.stop.row,
+                loadedCursor.stop.row,
                 "Stop at boundary cursor row ID should match"
             )
 
             // Verify next boundary cursor fields
             assertEquals(
                 originalCursor.next!!.time,
-                loadedCursor.next!!.time,
+                loadedCursor.next.time,
                 "Next boundary cursor time should match"
             )
             assertEquals(
-                originalCursor.next!!.row,
-                loadedCursor.next!!.row,
+                originalCursor.next.row,
+                loadedCursor.next.row,
                 "Next boundary cursor row ID should match"
             )
         }
@@ -125,15 +125,15 @@ class CursorSyncTest
             assertNotNull(loadedCursor, "Cursor should be loaded after saving")
 
             // Verify paging cursor fields
-            assertNotNull(loadedCursor!!.paging, "Paging cursor should not be null")
+            assertNotNull(loadedCursor.paging, "Paging cursor should not be null")
             assertEquals(
                 originalCursor.paging!!.time,
-                loadedCursor.paging!!.time,
+                loadedCursor.paging.time,
                 "Paging cursor time should match"
             )
             assertEquals(
-                originalCursor.paging!!.row,
-                loadedCursor.paging!!.row,
+                originalCursor.paging.row,
+                loadedCursor.paging.row,
                 "Paging cursor row ID should match"
             )
 
@@ -212,12 +212,12 @@ class CursorSyncTest
             assertNotNull(loadedUpdated)
             assertEquals(
                 1704153600000L,
-                loadedUpdated!!.paging!!.time.milliseconds,
+                loadedUpdated.paging!!.time.milliseconds,
                 "Paging cursor should be updated"
             )
             assertEquals(
                 54321L,
-                loadedUpdated.paging!!.row,
+                loadedUpdated.paging.row,
                 "Paging cursor row ID should be updated"
             )
             assertEquals(
@@ -227,7 +227,7 @@ class CursorSyncTest
             )
             assertEquals(
                 98765L,
-                loadedUpdated.stop!!.row,
+                loadedUpdated.stop.row,
                 "Stop at boundary row ID should be updated"
             )
             assertEquals(
@@ -235,7 +235,7 @@ class CursorSyncTest
                 loadedUpdated.next!!.time.milliseconds,
                 "Next boundary should be updated"
             )
-            assertEquals(11111L, loadedUpdated.next!!.row, "Next boundary row ID should be updated")
+            assertEquals(11111L, loadedUpdated.next.row, "Next boundary row ID should be updated")
         }
     }
     @Test
@@ -265,23 +265,23 @@ class CursorSyncTest
         assertNotNull(cursor, "Cursor should be parsed successfully")
 
         // Verify paging field
-        assertNotNull(cursor!!.paging, "Paging cursor should not be null")
+        assertNotNull(cursor.paging, "Paging cursor should not be null")
         assertEquals(
             UnixTimeUtc(1752846588053L),
-            cursor.paging!!.time,
+            cursor.paging.time,
             "Paging time should match"
         )
-        assertEquals(3729L, cursor.paging!!.row, "Paging row should match")
+        assertEquals(3729L, cursor.paging.row, "Paging row should match")
 
         // Verify stop field
         assertNotNull(cursor.stop, "Stop cursor should not be null")
-        assertEquals(UnixTimeUtc(1752846589000L), cursor.stop!!.time, "Stop time should match")
-        assertEquals(4000L, cursor.stop!!.row, "Stop row should match")
+        assertEquals(UnixTimeUtc(1752846589000L), cursor.stop.time, "Stop time should match")
+        assertEquals(4000L, cursor.stop.row, "Stop row should match")
 
         // Verify next field
         assertNotNull(cursor.next, "Next cursor should not be null")
-        assertEquals(UnixTimeUtc(1752846590000L), cursor.next!!.time, "Next time should match")
-        assertEquals(4500L, cursor.next!!.row, "Next row should match")
+        assertEquals(UnixTimeUtc(1752846590000L), cursor.next.time, "Next time should match")
+        assertEquals(4500L, cursor.next.row, "Next row should match")
     }
 
     @Test
@@ -305,9 +305,9 @@ class CursorSyncTest
         assertNotNull(cursor, "Cursor should be parsed successfully")
 
         // Verify paging field (populated)
-        assertNotNull(cursor!!.paging, "Paging cursor should not be null")
-        assertEquals(UnixTimeUtc(1752846588053L), cursor.paging!!.time, "Paging time should match")
-        assertEquals(3729L, cursor.paging!!.row, "Paging row should match")
+        assertNotNull(cursor.paging, "Paging cursor should not be null")
+        assertEquals(UnixTimeUtc(1752846588053L), cursor.paging.time, "Paging time should match")
+        assertEquals(3729L, cursor.paging.row, "Paging row should match")
 
         // Verify stop field (null)
         assertNull(cursor.stop, "Stop cursor should be null")
@@ -334,7 +334,7 @@ class CursorSyncTest
         assertNotNull(cursor, "Cursor should be parsed successfully")
 
         // Verify all fields are null
-        assertNull(cursor!!.paging, "Paging cursor should be null")
+        assertNull(cursor.paging, "Paging cursor should be null")
         assertNull(cursor.stop, "Stop cursor should be null")
         assertNull(cursor.next, "Next cursor should be null")
     }
@@ -365,19 +365,19 @@ class CursorSyncTest
         assertNotNull(cursor, "Cursor should be parsed successfully")
 
         // Verify paging field (row not provided, should be null)
-        assertNotNull(cursor!!.paging, "Paging cursor should not be null")
-        assertEquals(UnixTimeUtc(1752846588053L), cursor.paging!!.time, "Paging time should match")
-        assertNull(cursor.paging!!.row, "Paging row should be null when not provided")
+        assertNotNull(cursor.paging, "Paging cursor should not be null")
+        assertEquals(UnixTimeUtc(1752846588053L), cursor.paging.time, "Paging time should match")
+        assertNull(cursor.paging.row, "Paging row should be null when not provided")
 
         // Verify stop field (row explicitly null)
         assertNotNull(cursor.stop, "Stop cursor should not be null")
-        assertEquals(UnixTimeUtc(1752846589000L), cursor.stop!!.time, "Stop time should match")
-        assertNull(cursor.stop!!.row, "Stop row should be null when explicitly null")
+        assertEquals(UnixTimeUtc(1752846589000L), cursor.stop.time, "Stop time should match")
+        assertNull(cursor.stop.row, "Stop row should be null when explicitly null")
 
         // Verify next field (row provided)
         assertNotNull(cursor.next, "Next cursor should not be null")
-        assertEquals(UnixTimeUtc(1752846590000L), cursor.next!!.time, "Next time should match")
-        assertEquals(4500L, cursor.next!!.row, "Next row should match")
+        assertEquals(UnixTimeUtc(1752846590000L), cursor.next.time, "Next time should match")
+        assertEquals(4500L, cursor.next.row, "Next row should match")
     }
 
     @Test
