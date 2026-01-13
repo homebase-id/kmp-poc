@@ -54,10 +54,8 @@ val appPermissions: List<AppPermissionType> =
                 AppPermissionType.ReadCircleMembers,
                 AppPermissionType.ReadWhoIFollow,
                 AppPermissionType.ReadMyFollowers,
-                AppPermissionType.ManageFeed,
                 AppPermissionType.SendDataToOtherIdentitiesOnMyBehalf,
                 AppPermissionType.ReceiveDataFromOtherIdentitiesOnMyBehalf,
-                AppPermissionType.PublishStaticContent,
                 AppPermissionType.SendPushNotifications,
                 AppPermissionType.SendIntroductions,
         )
