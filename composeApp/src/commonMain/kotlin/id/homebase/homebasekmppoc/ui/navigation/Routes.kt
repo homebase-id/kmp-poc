@@ -1,7 +1,6 @@
 package id.homebase.homebasekmppoc.ui.navigation
 
 import kotlinx.serialization.Serializable
-import kotlin.uuid.Uuid
 
 /**
  * Type-safe route definitions for Navigation 3. Using @Serializable for compile-time safety and
@@ -28,6 +27,8 @@ sealed class Route {
     @Serializable data object DriveUpload : Route()
 
     @Serializable data class FileDetail(val driveId: String, val fileId: String) : Route()
+
+    @Serializable data object FFmpegTest : Route()
 }
 
 /** Deep link configuration */
