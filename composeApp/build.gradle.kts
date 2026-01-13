@@ -115,6 +115,30 @@ kotlin {
             
             freeCompilerArgs += listOf("-Xbinary=bundleId=id.homebase.homebasekmppoc")
         }
+        
+        // Configure linker for test binaries to also find ffmpegkit frameworks
+        iosTarget.binaries.all {
+            if (this is org.jetbrains.kotlin.gradle.plugin.mpp.TestExecutable) {
+                val libsDir = project.file("libs/ffmpegkit-bundled.xcframework").absolutePath
+                val frameworkArch = if (iosTarget.konanTarget.name.contains("simulator")) {
+                    "ios-arm64_x86_64-simulator"
+                } else {
+                    "ios-arm64_arm64e"
+                }
+                
+                linkerOpts("-lsqlite3")
+                linkerOpts("-lz", "-lbz2", "-liconv")
+                
+                val frameworks = listOf(
+                    "ffmpegkit", "libavcodec", "libavdevice", "libavfilter", 
+                    "libavformat", "libavutil", "libswresample", "libswscale"
+                )
+                
+                frameworks.forEach { fw ->
+                    linkerOpts("-F$libsDir/$fw.xcframework/$frameworkArch", "-framework", fw)
+                }
+            }
+        }
     }
 
     sourceSets {
