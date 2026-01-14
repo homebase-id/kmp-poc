@@ -61,12 +61,11 @@ class OutboxSyncTest {
 
             // We cannot use "use" in these tests since it'll mess up waiting for threads
             val uploader = TestUploader()
-            val testDispatcher = UnconfinedTestDispatcher(testScheduler)
+
             val sync = OutboxSync(
                 databaseManager = db,
                 uploader = uploader,
                 eventBus = eventBus,
-                dispatcher = testDispatcher,
                 scope = this
             )
 
@@ -124,12 +123,11 @@ class OutboxSyncTest {
 
             val uploader = TestUploader()
             uploader.shouldFail = true
-            val testDispatcher = UnconfinedTestDispatcher(testScheduler)
+
             val sync = OutboxSync(
                 databaseManager = db,
                 uploader = uploader,
                 eventBus = eventBus,
-                dispatcher = testDispatcher,
                 scope = this
             )
 
@@ -176,12 +174,11 @@ class OutboxSyncTest {
             val eventBus = EventBus()  // Fresh instance per test
 
             val uploader = TestUploader()
-            val testDispatcher = UnconfinedTestDispatcher(testScheduler)
+
             val sync = OutboxSync(
                 databaseManager = db,
                 uploader = uploader,
                 eventBus = eventBus,
-                dispatcher = testDispatcher,
                 scope = this
             )
 
@@ -237,12 +234,11 @@ class OutboxSyncTest {
             val eventBus = EventBus()  // Fresh instance per test
 
             val uploader = TestUploader()
-            val testDispatcher = UnconfinedTestDispatcher(testScheduler)
+
             val sync = OutboxSync(
                 databaseManager = db,
                 uploader = uploader,
                 eventBus = eventBus,
-                dispatcher = testDispatcher,
                 scope = this
             )
 

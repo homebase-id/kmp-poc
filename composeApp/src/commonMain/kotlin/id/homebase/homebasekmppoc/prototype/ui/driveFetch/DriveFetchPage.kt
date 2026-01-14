@@ -40,7 +40,6 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.prototype.lib.eventbus.BackendEvent
 import id.homebase.homebasekmppoc.prototype.lib.eventbus.appEventBus
-import id.homebase.homebasekmppoc.ui.screens.login.publicPostsDriveId
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.compose.koinInject

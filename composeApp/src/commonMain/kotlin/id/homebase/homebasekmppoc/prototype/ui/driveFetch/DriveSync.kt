@@ -19,6 +19,7 @@ import kotlin.uuid.Uuid
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
 
@@ -28,13 +29,15 @@ class DriveSync(
     private val driveId: Uuid,
     private val driveQueryProvider: DriveQueryProvider, // TODO: <- can we get rid of this?
     private val databaseManager: DatabaseManager,
-    private val eventBus: EventBus
-) {
+    private val eventBus: EventBus,
+    scope: CoroutineScope? = null)
+{
+    // Background work is Network and DB bound, so using IO
+    private val scope = scope ?: CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var cursor: QueryBatchCursor?
     private val mutex = Mutex()
     private var batchSize = 50 // We begin with the smallest batch
     private var fileHeaderProcessor = MainIndexMetaHelpers.HomebaseFileProcessor(databaseManager)
-    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     //TODO: Consider having a (readable) "last modified" which holds the largest timestamp of last-modified
 
@@ -44,16 +47,17 @@ class DriveSync(
         cursor = cursorStorage.loadCursor()
 
         // temp hack
-        runBlocking { testHack() }
+        runBlocking { clearStorage() }
     }
 
-    suspend fun testHack()
+    // Call this to clear everything if you want to run a test and re-sync
+    suspend fun clearStorage()
     {
         // Temp hack, remove soon.
-        DatabaseManager.appDb.driveMainIndex.deleteAll() // TODO: <-- don't delete all! :-)
-        DatabaseManager.appDb.driveTagIndex.deleteAll() // TODO: <-- don't delete all! :-)
-        DatabaseManager.appDb.driveLocalTagIndex.deleteAll() // TODO: <-- don't delete all! :-)
-        DatabaseManager.appDb.keyValue.deleteByKey(driveId) // TODO: <-- don't delete the cursor
+        databaseManager.driveMainIndex.deleteAll() // TODO: <-- don't delete all! :-)
+        databaseManager.driveTagIndex.deleteAll() // TODO: <-- don't delete all! :-)
+        databaseManager.driveLocalTagIndex.deleteAll() // TODO: <-- don't delete all! :-)
+        databaseManager.keyValue.deleteByKey(driveId) // TODO: <-- don't delete the cursor
         val cursorStorage = CursorStorage(databaseManager, driveId)
         cursorStorage.deleteCursor();
         cursor = null

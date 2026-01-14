@@ -7,10 +7,10 @@ import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
 import id.homebase.homebasekmppoc.prototype.lib.eventbus.BackendEvent
 import id.homebase.homebasekmppoc.prototype.lib.eventbus.EventBus
 import kotlinx.atomicfu.atomic
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.sync.*
@@ -23,9 +23,10 @@ class OutboxSync(
     private val databaseManager: DatabaseManager,
     private val uploader: OutboxUploader,
     private val eventBus: EventBus,
-    private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
-    private val scope: CoroutineScope = CoroutineScope(dispatcher + SupervisorJob()))
+    scope: CoroutineScope? = null)
 {
+    // The threads use the DB & Network, so we use the IO dispatcher
+    private val scope = scope ?: CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val MAX_SENDING_THREADS = 3
     private val WAIT_INCREMENT_SECONDS = 30
     private val semaphore = Semaphore(MAX_SENDING_THREADS)
@@ -43,7 +44,7 @@ class OutboxSync(
             return false
         }
 
-        scope.launch(dispatcher) {
+        scope.launch {
             try {
                 counterMutex.withLock {
                     if (activeThreads.incrementAndGet() == 1) {
