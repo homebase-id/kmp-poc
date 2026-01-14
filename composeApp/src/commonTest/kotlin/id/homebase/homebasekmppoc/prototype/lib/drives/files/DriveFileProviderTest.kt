@@ -137,7 +137,7 @@ class DriveFileProviderTest {
         // Assert
         assertTrue(result)
         assertTrue(requestedEndpoint?.contains("/delete") == true)
-        assertTrue(requestedEndpoint?.contains("hard-delete") == false)
+        assertTrue(requestedEndpoint.contains("hard-delete") == false)
     }
 
     @Test

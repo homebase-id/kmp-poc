@@ -139,7 +139,7 @@ class DriveMainIndexWrapper(
             },
             parameters = 0,
             binders = null
-        ).value as String?
+        ).value
 
         if (createStmt == null) return -1
 

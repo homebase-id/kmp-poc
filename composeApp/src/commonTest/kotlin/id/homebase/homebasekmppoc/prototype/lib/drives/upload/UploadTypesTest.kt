@@ -379,7 +379,7 @@ class UploadTypesTest {
                 val manifest = UploadManifest.build(payloads, generateIv = true)
 
                 kotlin.test.assertNotNull(manifest.payloadDescriptors?.get(0)?.iv)
-                assertEquals(16, manifest.payloadDescriptors?.get(0)?.iv?.size)
+                assertEquals(16, manifest.payloadDescriptors.get(0).iv?.size)
         }
 
         @Test

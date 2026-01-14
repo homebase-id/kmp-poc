@@ -58,7 +58,7 @@ actual object FFmpegUtils {
                     val mediaInformation =
                             mediaInformationSession?.getMediaInformation() ?: return@withContext 0
 
-                    val streams = mediaInformation.getStreams() as? List<*> ?: return@withContext 0
+                    val streams = mediaInformation.getStreams() ?: return@withContext 0
 
                     // Iterate through streams to find video stream and extract rotation
                     for (stream in streams) {
@@ -68,7 +68,7 @@ actual object FFmpegUtils {
                         if (streamInfo.getType() != "video") continue
 
                         // Method 1: Check the 'rotate' tag (older videos)
-                        @Suppress("UNCHECKED_CAST") val tags = streamInfo.getTags() as? Map<Any?, *>
+                        @Suppress("UNCHECKED_CAST") val tags = streamInfo.getTags()
                         if (tags != null) {
                             val rotateValue = tags["rotate"] as? String
                             if (rotateValue != null) {
