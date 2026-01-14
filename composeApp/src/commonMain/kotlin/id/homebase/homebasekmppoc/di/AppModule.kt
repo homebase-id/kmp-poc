@@ -92,7 +92,8 @@ val appModule = module {
         FileDetailViewModel(
             driveId = driveId,
             fileId = fileId,
-            driveFileProvider = getOrNull<DriveFileProvider>()
+            driveFileProvider = get<DriveFileProvider>(),
+            driveUploadService = get<DriveUploadService>()
         )
     }
 }

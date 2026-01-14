@@ -106,7 +106,7 @@ suspend fun buildUploadFormData(
  * @return MultiPartFormDataContent ready for HTTP update
  */
 suspend fun buildUpdateFormData(
-    instructionSet: SerializableUpdateLocalInstructionSet,
+    instructionSet: FileUpdateInstructionSet,
     sharedSecretEncryptedDescriptor: ByteArray? = null,
     payloads: List<PayloadFile>? = null,
     thumbnails: List<ThumbnailFile>? = null
@@ -125,36 +125,6 @@ suspend fun buildUpdateFormData(
             thumbnails = runtimeThumbnails
         )
     }
-/**
- * Builds a MultiPartFormDataContent for peer updates.
- *
- * @param instructionSet The update instruction set (peer)
- * @param encryptedDescriptor Optional encrypted file descriptor
- * @param payloads Optional list of payload files to upload
- * @param thumbnails Optional list of thumbnail files to upload
- * @param keyHeader Optional key header for encryption
- * @return MultiPartFormDataContent ready for HTTP update
- */
-suspend fun buildUpdateFormData(
-    instructionSet: UpdatePeerInstructionSet,
-    sharedSecretEncryptedDescriptor: ByteArray? = null,
-    payloads: List<PayloadFile>? = null,
-    thumbnails: List<ThumbnailFile>? = null
-): MultiPartFormDataContent
-{
-    val runtimePayloads =
-        payloads?.map { it.toRuntime(::openFileInput) }
-
-    val runtimeThumbnails =
-        thumbnails?.map { it.toRuntime(::openFileInput) }
-
-    return buildFormDataInternal(
-        instructionSet = instructionSet,
-        sharedSecretEncryptedDescriptor = sharedSecretEncryptedDescriptor,
-        payloads = runtimePayloads,
-        thumbnails = runtimeThumbnails
-    )
-}
 
 /**
  * Internal implementation of buildFormData. Pre-computes all encrypted data before building the

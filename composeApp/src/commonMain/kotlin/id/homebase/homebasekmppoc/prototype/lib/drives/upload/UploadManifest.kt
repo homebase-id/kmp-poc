@@ -1,6 +1,5 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives.upload
 
-import id.homebase.homebasekmppoc.lib.image.ImageFormatDetector.detectFormat
 import id.homebase.homebasekmppoc.prototype.lib.crypto.ByteArrayUtil
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.ThumbnailFile
@@ -66,13 +65,13 @@ data class UploadManifest(
          *
          * @param payloads List of payload files to include
          * @param thumbnails Optional list of thumbnails associated with payloads
-         * @param generateIv Whether to generate random IVs for payloads
+         * @param generatePayloadIv Whether to generate random IVs for payloads
          * @return A new UploadManifest with payload descriptors
          */
         fun build(
             payloads: List<PayloadFile>?,
             thumbnails: List<ThumbnailFile>? = null,
-            generateIv: Boolean = false
+            generatePayloadIv: Boolean = false
         ): UploadManifest {
             val descriptors =
                 payloads?.map { payload ->
@@ -98,7 +97,7 @@ data class UploadManifest(
                                     )
                                 },
                         iv = payload.iv
-                            ?: if (generateIv)
+                            ?: if (generatePayloadIv)
                                 ByteArrayUtil
                                     .getRndByteArray(16)
                             else null
@@ -111,7 +110,7 @@ data class UploadManifest(
 
 /** Update payload instruction. */
 @Serializable
-data class UpdatePayloadInstruction(
+data class UploadManifestPayloadDescriptor(
     val payloadKey: String,
     @SerialName("payloadUpdateOperationType") val operationType: PayloadOperationType,
     val descriptorContent: String? = null,
@@ -123,7 +122,7 @@ data class UpdatePayloadInstruction(
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other == null || this::class != other::class) return false
-        other as UpdatePayloadInstruction
+        other as UploadManifestPayloadDescriptor
         if (payloadKey != other.payloadKey) return false
         if (operationType != other.operationType) return false
         if (descriptorContent != other.descriptorContent) return false
@@ -162,7 +161,7 @@ enum class PayloadOperationType {
 @Serializable
 data class UpdateManifest(
     @SerialName("PayloadDescriptors")
-    val payloadDescriptors: List<UpdatePayloadInstruction>? = null
+    val payloadDescriptors: List<UploadManifestPayloadDescriptor>? = null
 ) {
     companion object {
         /**
@@ -171,24 +170,24 @@ data class UpdateManifest(
          * @param payloads List of payload files to append/overwrite
          * @param toDeletePayloads List of payload keys to delete
          * @param thumbnails Optional list of thumbnails associated with payloads
-         * @param generateIv Whether to generate random IVs for payloads
+         * @param generatePayloadIv Whether to generate random IVs for payloads
          * @return A new UpdateManifest with payload instructions
          */
         fun build(
             payloads: List<PayloadFile>? = null,
             toDeletePayloads: List<PayloadDeleteKey>? = null,
             thumbnails: List<ThumbnailFile>? = null,
-            generateIv: Boolean = false
+            generatePayloadIv: Boolean = false
         ): UpdateManifest {
             val appendInstructions =
                 payloads?.map { payload ->
-                    UpdatePayloadInstruction(
+                    UploadManifestPayloadDescriptor(
                         payloadKey = payload.key,
                         operationType =
                             PayloadOperationType.AppendOrOverwrite,
                         descriptorContent = payload.descriptorContent,
                         previewThumbnail = payload.previewThumbnail,
-                        contentType = null,
+                        contentType = payload.contentType,
                         thumbnails =
                             thumbnails
                                 ?.filter { it.key == payload.key }
@@ -206,7 +205,7 @@ data class UpdateManifest(
                                     )
                                 },
                         iv = payload.iv
-                            ?: if (generateIv)
+                            ?: if (generatePayloadIv)
                                 ByteArrayUtil
                                     .getRndByteArray(16)
                             else null
@@ -216,7 +215,7 @@ data class UpdateManifest(
 
             val deleteInstructions =
                 toDeletePayloads?.map { toDelete ->
-                    UpdatePayloadInstruction(
+                    UploadManifestPayloadDescriptor(
                         payloadKey = toDelete.key,
                         operationType = PayloadOperationType.DeletePayload
                     )

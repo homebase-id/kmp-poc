@@ -10,6 +10,7 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.files.GlobalTransitIdFile
 import id.homebase.homebasekmppoc.prototype.lib.serialization.Base64ByteArraySerializer
 import kotlin.io.encoding.Base64
 import kotlinx.serialization.Serializable
+import kotlin.uuid.Uuid
 
 /**
  * Embedded thumbnail for preview in upload context. This is a serializable DTO version that differs
@@ -45,7 +46,7 @@ data class UploadFileMetadata(
         val accessControlList: AccessControlList? = null,
         val appData: UploadAppFileMetaData,
         val referencedFile: GlobalTransitIdFileIdentifier? = null,
-        val versionTag: String? = null
+        val versionTag: Uuid? = null
 ) {
     /**
      * Encrypts the appData.content using the provided KeyHeader. If keyHeader is null or content is
@@ -71,6 +72,13 @@ data class UploadFileMetadata(
 data class UploadFileDescriptor(
         val encryptedKeyHeader: EncryptedKeyHeader? = null,
         val fileMetadata: UploadFileMetadata
+)
+
+
+@Serializable
+data class UpdateFileDescriptor(
+    val encryptedKeyHeader: EncryptedKeyHeader? = null,
+    val fileMetadata: UploadFileMetadata
 )
 
 /**

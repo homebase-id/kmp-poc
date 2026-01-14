@@ -1,5 +1,7 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives.upload
 
+import co.touchlab.kermit.Logger
+import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.prototype.lib.ApiServiceExample.CredentialsManager
 import id.homebase.homebasekmppoc.prototype.lib.client.ApiResponse
 import id.homebase.homebasekmppoc.prototype.lib.client.OdinApiProviderBase
@@ -28,6 +30,7 @@ import io.ktor.http.*
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlinx.serialization.Serializable
+import kotlin.uuid.Uuid
 
 /** Local metadata upload result. */
 @Serializable
@@ -67,11 +70,22 @@ private data class UpdateLocalMetadataContentRequest(
 )
 
 data class UploadFileRequest(
+    val driveId: Uuid,
     val instructions: UploadInstructionSet,
     val metadata: UploadFileMetadata,
     val payloads: List<PayloadFile>? = null,
     val thumbnails: List<ThumbnailFile>? = null,
     val fileSystemType: FileSystemType? = null
+)
+
+data class UpdateFileByFileIdRequest(
+    val driveId: Uuid,
+    val fileId: Uuid,
+    val keyHeader: KeyHeader?,
+    val instructions: FileUpdateInstructionSet,
+    val metadata: UploadFileMetadata,
+    val payloads: List<PayloadFile>? = null,
+    val thumbnails: List<ThumbnailFile>? = null,
 )
 
 
@@ -112,7 +126,7 @@ class DriveUploadProvider(
 
         val sharedSecretEncryptedDescriptor =
             if (sharedSecret != null) {
-                buildEncryptedDescriptor(
+                buildEncryptedUploadDescriptor(
                     keyHeader,
                     encryptedMetadata,
                     sharedSecret,
@@ -130,8 +144,7 @@ class DriveUploadProvider(
                 thumbnails = request.thumbnails
             )
 
-        val result =
-            pureUpload(data, request.fileSystemType, onVersionConflict)
+        val result = pureUpload(request.driveId, data, request.fileSystemType, onVersionConflict)
 
         if (result != null) {
             result.keyHeader = keyHeader
@@ -140,91 +153,36 @@ class DriveUploadProvider(
         return result
     }
 
-    /**
-     * Patches (updates) an existing file.
-     *
-     * @param keyHeader The key header (encrypted or decrypted)
-     * @param instructions The update instruction set
-     * @param metadata The file metadata
-     * @param payloads Optional list of payload files to add/update
-     * @param thumbnails Optional list of thumbnail files
-     * @param toDeletePayloads Optional list of payloads to delete
-     * @param onVersionConflict Optional callback for version conflict handling
-     * @return The update result, or null if handled by conflict callback
-     */
-    suspend fun patchFile(
-        keyHeader: Any?, // EncryptedKeyHeader | KeyHeader | null
-        instructions: UpdateLocalInstructionSet,
-        metadata: UploadFileMetadata,
-        payloads: List<PayloadFile>? = null,
-        thumbnails: List<ThumbnailFile>? = null,
-        toDeletePayloads: List<PayloadDeleteKey>? = null,
+    suspend fun updateFileByFileId(
+        request: UpdateFileByFileIdRequest,
         onVersionConflict: (suspend () -> UpdateFileResult?)? = null
     ): UpdateFileResult? {
-        // Decrypt key header if encrypted
-        val decryptedKeyHeader: KeyHeader? =
-            when (keyHeader) {
-                is EncryptedKeyHeader -> {
-                    val sharedSecret = client.getSharedSecret()
-                    if (sharedSecret != null) {
-                        keyHeader.decryptAesToKeyHeader(SecureByteArray(sharedSecret))
-                    } else {
-                        null
-                    }
-                }
 
-                is KeyHeader -> keyHeader
-                else -> null
-            }
-
-        // Generate new IV for the key header if decrypted
-        val updatedKeyHeader =
-            decryptedKeyHeader?.let {
-                KeyHeader(iv = ByteArrayUtil.getRndByteArray(16), aesKey = it.aesKey)
-            }
-
-        // Encrypt metadata content
-        val encryptedMetadata = metadata.encryptContent(updatedKeyHeader)
-
-        // Build update manifest
-        val manifest =
-            UpdateManifest.build(
-                payloads = payloads,
-                toDeletePayloads = toDeletePayloads,
-                thumbnails = thumbnails,
-                generateIv = updatedKeyHeader != null
-            )
-
-        // Create serializable instruction set with manifest
-        val serializableInstructions = instructions.toSerializable(manifest)
-
-        // Get shared secret for encrypting key header
         val sharedSecret = client.getSharedSecret()
 
         // Build encrypted descriptor
         val sharedSecretEncryptedDescriptor =
-            if (updatedKeyHeader != null && sharedSecret != null) {
-                buildEncryptedDescriptor(
-                    updatedKeyHeader,
-                    encryptedMetadata,
+            if (sharedSecret != null) {
+                buildSharedSecretEncryptedUpdateDescriptor(
+                    request.keyHeader,
+                    request.metadata,
                     sharedSecret,
-                    serializableInstructions.transferIv
+                    request.instructions.transferIv
                 )
             } else {
                 null
             }
 
-        // Build form data
         val data =
             buildUpdateFormData(
-                instructionSet = serializableInstructions,
+                instructionSet = request.instructions,
                 sharedSecretEncryptedDescriptor = sharedSecretEncryptedDescriptor,
-                payloads = payloads,
-                thumbnails = thumbnails
+                payloads = request.payloads,
+                thumbnails = request.thumbnails
             )
 
-        // Update
-        return pureUpdate(data, onVersionConflict)
+        val path = "/drives/${request.driveId}/files/${request.fileId}";
+        return pureUpdate(data, path, onVersionConflict)
     }
 
     // ==================== LOCAL METADATA METHODS ====================
@@ -369,89 +327,76 @@ class DriveUploadProvider(
 
     /** Performs a raw upload to the drive. */
     suspend fun pureUpload(
+        driveId: Uuid,
         data: MultiPartFormDataContent,
         fileSystemType: FileSystemType? = null,
         onVersionConflict: (suspend () -> CreateFileResult?)? = null
     ): CreateFileResult? {
-        try {
-            val creds = requireCreds()
 
-            val queryParams =
-                buildMap<String, String> {
-                    if (fileSystemType != null) {
-                        put("xsft", fileSystemType.toString())
-                    }
+        val credentials = requireCreds()
+        val queryParams =
+            buildMap<String, String> {
+                if (fileSystemType != null) {
+                    put("xsft", fileSystemType.toString())
                 }
-
-            val url =
-                apiUrl(
-                    creds.domain,
-                    buildString {
-                        append("/drives/files")
-                        if (queryParams.isNotEmpty()) {
-                            append("?")
-                            append(
-                                queryParams.entries.joinToString("&") {
-                                    "${it.key}=${it.value}"
-                                }
-                            )
-                        }
-                    }
-                )
-
-            val response =
-                plainPostMultipart(
-                    url = url,
-                    token = creds.accessToken,
-                    formData = data
-                )
-
-            if (response.status in 200..299) {
-                return OdinSystemSerializer.deserialize(response.body)
             }
 
-            return handleErrorResponse(response, onVersionConflict) { it() }
+        val url =
+            apiUrl(
+                credentials.domain,
+                buildString {
+                    append("/drives/${driveId}/files")
 
-        } catch (e: OdinClientException) {
-            throw e
-        } catch (e: Exception) {
-            KLogger.d(TAG) { "Upload failed: ${e.message}" }
-            throw OdinClientException(
-                "Upload failed: ${e.message}",
-                OdinClientErrorCode.UnhandledScenario,
-                e
+                    if (queryParams.isNotEmpty()) {
+                        append("?")
+                        append(
+                            queryParams.entries.joinToString("&") {
+                                "${it.key}=${it.value}"
+                            }
+                        )
+                    }
+                }
             )
+
+
+        Logger.i(TAG) { "drive upload url: [${url}]" }
+
+        val response =
+            plainPostMultipart(
+                url = url,
+                token = credentials.accessToken,
+                formData = data
+            )
+
+        if (response.status in 200..299) {
+            return OdinSystemSerializer.deserialize(response.body)
         }
+
+        return handleErrorResponse(response, onVersionConflict) { it() }
     }
 
 
     /** Performs a raw update to an existing file on the drive. */
     suspend fun pureUpdate(
         data: MultiPartFormDataContent,
+        path: String,
         onVersionConflict: (suspend () -> UpdateFileResult?)? = null
     ): UpdateFileResult? {
-        try {
-            val creds = requireCreds()
-            val url = apiUrl(creds.domain, "/drives/files")
+        val credentials = requireCreds()
 
-            val response =
-                plainPatchMultipart(
-                    url = url,
-                    token = creds.accessToken,
-                    formData = data
-                )
-
-            return handleUpdateResponse(response, onVersionConflict)
-        } catch (e: OdinClientException) {
-            throw e
-        } catch (e: Exception) {
-            KLogger.d(TAG) { "Update failed: ${e.message}" }
-            throw OdinClientException(
-                "Update failed: ${e.message}",
-                OdinClientErrorCode.UnhandledScenario,
-                e
+        val url = apiUrl(credentials.domain, path)
+        val response =
+            plainPatchMultipart(
+                url = url,
+                token = credentials.accessToken,
+                formData = data
             )
+
+        if (response.status in 200..299) {
+            return OdinSystemSerializer.deserialize(response.body)
         }
+
+        return handleErrorResponse(response, onVersionConflict) { it() }
     }
 
 
@@ -465,7 +410,7 @@ class DriveUploadProvider(
      * @param transferIv The transfer IV from instructions
      * @return AES-CBC encrypted descriptor bytes
      */
-    private suspend fun buildEncryptedDescriptor(
+    private suspend fun buildEncryptedUploadDescriptor(
         keyHeader: KeyHeader?,
         metadata: UploadFileMetadata,
         sharedSecret: ByteArray,
@@ -473,7 +418,7 @@ class DriveUploadProvider(
     ): ByteArray {
         // Encrypt the key header using shared secret and transferIv (matches TypeScript
         // encryptKeyHeader)
-        val encryptedKeyHeader =
+        val sharedSecretEncryptedKeyHeader =
             EncryptedKeyHeader.encryptKeyHeaderAes(
                 keyHeader ?: KeyHeader.empty(),
                 transferIv,
@@ -483,7 +428,7 @@ class DriveUploadProvider(
         // Create the file descriptor
         val descriptor =
             UploadFileDescriptor(
-                encryptedKeyHeader = encryptedKeyHeader,
+                encryptedKeyHeader = sharedSecretEncryptedKeyHeader,
                 fileMetadata = metadata
             )
 
@@ -496,19 +441,46 @@ class DriveUploadProvider(
         return AesCbc.encrypt(descriptorBytes, sharedSecret, transferIv)
     }
 
-    private suspend fun handleUpdateResponse(
-        response: ApiResponse,
-        onVersionConflict: (suspend () -> UpdateFileResult?)? = null
-    ): UpdateFileResult? {
-        return when {
-            response.status in 200..299 -> {
-                OdinSystemSerializer.deserialize<UpdateFileResult>(response.body)
-            }
+    /**
+     * Builds an encrypted descriptor (UploadFileDescriptor encrypted with sharedSecret). Matches
+     * TypeScript buildDescriptor function.
+     *
+     * @param keyHeader The key header to encrypt
+     * @param metadata The already-encrypted file metadata
+     * @param sharedSecret The shared secret for encryption
+     * @param transferIv The transfer IV from instructions
+     * @return AES-CBC encrypted descriptor bytes
+     */
+    private suspend fun buildSharedSecretEncryptedUpdateDescriptor(
+        keyHeader: KeyHeader?,
+        metadata: UploadFileMetadata,
+        sharedSecret: ByteArray,
+        transferIv: ByteArray
+    ): ByteArray {
+        // Encrypt the key header using shared secret and transferIv (matches TypeScript
+        // encryptKeyHeader)
+        val sharedSecretEncryptedKeyHeader =
+            EncryptedKeyHeader.encryptKeyHeaderAes(
+                keyHeader ?: KeyHeader.empty(),
+                transferIv,
+                SecureByteArray(sharedSecret)
+            )
 
-            else -> handleErrorResponse(response, onVersionConflict) { it() }
-        }
+        // Create the file descriptor
+        val descriptor =
+            UpdateFileDescriptor(
+                encryptedKeyHeader = sharedSecretEncryptedKeyHeader,
+                fileMetadata = metadata
+            )
+
+        // Serialize to JSON (matches TypeScript jsonStringify64)
+        val descriptorJson = OdinSystemSerializer.json.encodeToString(descriptor)
+        val descriptorBytes = descriptorJson.encodeToByteArray()
+
+        // Encrypt the entire descriptor with sharedSecret using transferIv (matches TypeScript
+        // encryptWithSharedSecret)
+        return AesCbc.encrypt(descriptorBytes, sharedSecret, transferIv)
     }
-
 
     private suspend fun handleLocalMetadataError(
         response: HttpResponse,

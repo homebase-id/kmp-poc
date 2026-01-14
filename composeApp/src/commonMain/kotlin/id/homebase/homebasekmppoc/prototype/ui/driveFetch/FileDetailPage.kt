@@ -109,6 +109,15 @@ fun FileDetailPage(
                         pendingDelete = PendingDeleteType.Hard
                     }
                 )
+
+                Button(
+                    enabled = !state.isLoading,
+                    onClick = {
+                        viewModel.onAction(FileDetailUiAction.UpdateFileClicked)
+                    }
+                ) {
+                    Text(if (state.isLoading) "Loading…" else "Update File")
+                }
             }
 
             Spacer(Modifier.height(24.dp))
@@ -159,6 +168,22 @@ fun FileDetailPage(
                                     FileDetailUiAction.GetPayloadRangeClicked(key, start, length)
                                 )
                             }
+                        )
+                    }
+                }
+
+                !state.hasTriedToLoadHeader && !state.error.isNullOrEmpty() -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = state.error ?: "error text empty",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error
                         )
                     }
                 }

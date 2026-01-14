@@ -1,14 +1,12 @@
 package id.homebase.homebasekmppoc.prototype.ui.driveUpload
 
 import id.homebase.homebasekmppoc.lib.image.createThumbnails
+import id.homebase.homebasekmppoc.prototype.lib.crypto.ByteArrayUtil
 import co.touchlab.kermit.Logger as KLogger
-import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.ThumbnailFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.DriveUploadProvider
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.EmbeddedThumb
-import id.homebase.homebasekmppoc.prototype.lib.drives.upload.FileIdFileIdentifier
-import id.homebase.homebasekmppoc.prototype.lib.drives.upload.PayloadDeleteKey
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.PostContent
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.PostType
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.PriorityOptions
@@ -16,14 +14,17 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.upload.ScheduleOptions
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.SendContents
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.StorageOptions
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.TransitOptions
-import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UpdateLocalInstructionSet
-import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UpdateFileResult
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UploadAppFileMetaData
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UploadFileMetadata
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UploadInstructionSet
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.CreateFileResult
+import id.homebase.homebasekmppoc.prototype.lib.drives.upload.FileUpdateInstructionSet
+import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UpdateFileByFileIdRequest
+import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UpdateLocale
+import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UpdateManifest
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UploadFileRequest
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
+import id.homebase.homebasekmppoc.prototype.writeTextToTempFile
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -101,6 +102,7 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
             )
 
         val request = UploadFileRequest(
+            driveId = driveId,
             instructions = instructions,
             metadata = metadata
         )
@@ -190,6 +192,7 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
         )
 
         val request = UploadFileRequest(
+            driveId = driveId,
             instructions = instructions,
             metadata = metadata,
             payloads = payloads,
@@ -239,11 +242,13 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
         }
 
         val request = UploadFileRequest(
+            driveId = driveId,
             instructions = instructions,
             metadata = metadata,
             payloads = payloads,
             thumbnails = thumbnails,
         )
+
         return driveUploadProvider.uploadFile(
             request,
             onVersionConflict = onVersionConflict
@@ -251,44 +256,83 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
     }
 
     /**
-     * Updates an existing file.
+     * Updates an existing text post file by replacing / appending payloads.
      *
-     * @param targetDrive The target drive
-     * @param fileId The file ID to update
-     * @param versionTag The current version tag of the file
-     * @param keyHeader The key header (encrypted or decrypted)
-     * @param metadata The new file metadata
-     * @param payloads Optional list of payload files to add/update
-     * @param thumbnails Optional list of thumbnail files
-     * @param toDeletePayloads Optional list of payloads to delete
-     * @param onVersionConflict Optional callback for version conflict handling
-     * @return The update result
+     * @param driveId The drive containing the file
+     * @param fileId The file to update
+     * @param payloadText The new text content
      */
-    suspend fun updateFile(
-        targetDrive: TargetDrive,
-        fileId: String,
-        versionTag: String,
-        keyHeader: Any?,
-        metadata: UploadFileMetadata,
-        payloads: List<PayloadFile>? = null,
-        thumbnails: List<ThumbnailFile>? = null,
-        toDeletePayloads: List<PayloadDeleteKey>? = null,
-        onVersionConflict: (suspend () -> UpdateFileResult?)? = null
-    ): UpdateFileResult? {
-        val fileIdentifier = FileIdFileIdentifier(fileId = fileId, targetDrive = targetDrive)
+    suspend fun updateTextPost(
+        driveId: Uuid,
+        fileId: Uuid,
+        versionTag: Uuid,
+        contentText: String,
+        payloadText: String
+    ) {
+        KLogger.d(TAG) { "Updating text post fileId=$fileId" }
 
-        val instructions = UpdateLocalInstructionSet(versionTag = versionTag, file = fileIdentifier)
+        val isEncrypted = false
 
-        return driveUploadProvider.patchFile(
-            keyHeader = keyHeader,
-            instructions = instructions,
-            metadata = metadata,
-            payloads = payloads,
-            thumbnails = thumbnails,
-            toDeletePayloads = toDeletePayloads,
-            onVersionConflict = onVersionConflict
-        )
+        val payloads =
+            listOf(
+                PayloadFile(
+                    key = "txt_data1",
+                    contentType = "text/plain",
+                    filePath = writeTextToTempFile(
+                        prefix = "payload_",
+                        suffix = ".txt",
+                        content = payloadText
+                    )
+                )
+            )
+
+        val manifest =
+            UpdateManifest.build(
+                payloads = payloads,
+                toDeletePayloads = null,
+                thumbnails = null,
+                generatePayloadIv = isEncrypted // only need an IV if we are encrypting
+            )
+
+        val instructions =
+            FileUpdateInstructionSet(
+                transferIv = ByteArrayUtil.getRndByteArray(16),
+                locale = UpdateLocale.Local,
+                recipients = emptyList(), // local update
+                manifest = manifest,
+                useAppNotification = false
+            )
+
+        val metadata =
+            UploadFileMetadata(
+                allowDistribution = true,
+                isEncrypted = isEncrypted,
+                versionTag = versionTag,
+                appData =
+                    UploadAppFileMetaData(
+                        uniqueId = null,
+                        fileType = FILE_TYPE_POST,
+                        dataType = DATA_TYPE_POST,
+                        content = OdinSystemSerializer.serialize(contentText)
+                    )
+            )
+
+        val request =
+            UpdateFileByFileIdRequest(
+                driveId = driveId,
+                fileId = fileId,
+                keyHeader = null, //TODO: handle encryption
+                instructions = instructions,
+                metadata = metadata,
+                payloads = payloads,
+                thumbnails = null
+            )
+
+        driveUploadProvider.updateFileByFileId(request)
+
+        KLogger.i(TAG) { "Text post updated successfully: fileId=$fileId" }
     }
+
 
     /**
      * Creates a new PostContent with default values.

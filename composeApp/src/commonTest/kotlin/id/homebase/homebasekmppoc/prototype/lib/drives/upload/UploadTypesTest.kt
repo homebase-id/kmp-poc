@@ -276,7 +276,7 @@ class UploadTypesTest {
         @Test
         fun `UpdatePayloadInstruction creation works correctly`() {
                 val instruction =
-                        UpdatePayloadInstruction(
+                        UploadManifestPayloadDescriptor(
                                 payloadKey = "payload1",
                                 operationType = PayloadOperationType.AppendOrOverwrite,
                                 contentType = "text/plain"
@@ -376,7 +376,7 @@ class UploadTypesTest {
                                 )
                         )
 
-                val manifest = UploadManifest.build(payloads, generateIv = true)
+                val manifest = UploadManifest.build(payloads, generatePayloadIv = true)
 
                 kotlin.test.assertNotNull(manifest.payloadDescriptors?.get(0)?.iv)
                 assertEquals(16, manifest.payloadDescriptors?.get(0)?.iv?.size)
@@ -397,7 +397,7 @@ class UploadTypesTest {
                 val manifest =
                         UploadManifest.build(
                                 payloads,
-                                generateIv = true
+                                generatePayloadIv = true
                         ) // generateIv should be ignored
 
                 kotlin.test.assertTrue(

@@ -34,14 +34,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalDensity
 import id.homebase.homebasekmppoc.lib.image.toImageBitmap
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.BytesResponse
-import id.homebase.homebasekmppoc.prototype.lib.drives.files.FileOperationOptions
-import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadOperationOptions
+import id.homebase.homebasekmppoc.prototype.ui.driveUpload.DriveUploadService
 
 
 class FileDetailViewModel(
     val driveId: Uuid,
     val fileId: Uuid,
-    private val driveFileProvider: DriveFileProvider?
+    private val driveFileProvider: DriveFileProvider,
+    private val driveUploadService: DriveUploadService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FileDetailUiState())
@@ -72,8 +72,50 @@ class FileDetailViewModel(
 
             is FileDetailUiAction.GetPayloadRangeClicked ->
                 loadPayloadRange(action)
+
+            is FileDetailUiAction.UpdateFileClicked ->
+                updateFile(action)
         }
     }
+
+
+    private fun updateFile(action: FileDetailUiAction.UpdateFileClicked) {
+        val provider = driveUploadService ?: return
+
+        val versionTag = _uiState.value.header?.fileMetadata?.versionTag
+
+        if (versionTag == null) {
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    hasTriedToLoadHeader = false,
+                    error = "click get header so we know the version tag"
+                )
+            }
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                provider.updateTextPost(
+                    driveId = driveId,
+                    fileId = fileId,
+                    versionTag = versionTag,
+                    contentText = "content post and a random id ${Uuid.random()}",
+                    payloadText = "payload text + rando ${Uuid.random()}"
+                )
+            } catch (t: Throwable) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        hasTriedToLoadHeader = false,
+                        error = t.message ?: "Failed to update file header"
+                    )
+                }
+            }
+        }
+    }
+
 
     private fun loadPayloadRange(action: FileDetailUiAction.GetPayloadRangeClicked) {
         val provider = driveFileProvider ?: return
@@ -96,19 +138,18 @@ class FileDetailViewModel(
                         )
                     }
                 }
-            } catch (_: Throwable) {
+            } catch (t: Throwable) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = t.message ?: "Failed to get payload range"
+                    )
+                }
             }
         }
     }
 
     private fun softDeleteFile() {
-        if (driveFileProvider == null) {
-            _uiState.update {
-                it.copy(error = "Not authenticated")
-            }
-            return
-        }
-
         viewModelScope.launch {
             _uiState.update {
                 it.copy(isLoading = true, error = null)
@@ -140,13 +181,6 @@ class FileDetailViewModel(
     }
 
     private fun hardDeleteFile() {
-        if (driveFileProvider == null) {
-            _uiState.update {
-                it.copy(error = "Not authenticated")
-            }
-            return
-        }
-
         viewModelScope.launch {
             _uiState.update {
                 it.copy(isLoading = true, error = null)
@@ -178,13 +212,6 @@ class FileDetailViewModel(
     }
 
     private fun loadHeader() {
-        if (driveFileProvider == null) {
-            _uiState.update {
-                it.copy(error = "Not authenticated")
-            }
-            return
-        }
-
         viewModelScope.launch {
             _uiState.update {
                 it.copy(
@@ -592,6 +619,8 @@ sealed interface FileDetailUiEvent {
 sealed interface FileDetailUiAction {
     object BackClicked : FileDetailUiAction
     object GetFileHeaderClicked : FileDetailUiAction
+
+    object UpdateFileClicked : FileDetailUiAction
 
     object HardDeleteClicked : FileDetailUiAction
     object SoftDeleteClicked : FileDetailUiAction
