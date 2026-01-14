@@ -113,12 +113,26 @@ fun FileDetailPage(
                 Button(
                     enabled = !state.isLoading,
                     onClick = {
-                        viewModel.onAction(FileDetailUiAction.UpdateFileClicked)
+                        viewModel.onAction(
+                            FileDetailUiAction.UpdateFileClicked.ByUniqueId
+                        )
                     }
                 ) {
-                    Text(if (state.isLoading) "Loading…" else "Update File")
+                    Text(if (state.isLoading) "Loading…" else "Update File by Unique Id")
+                }
+
+                Button(
+                    enabled = !state.isLoading,
+                    onClick = {
+                        viewModel.onAction(
+                            FileDetailUiAction.UpdateFileClicked.ByFileId
+                        )
+                    }
+                ) {
+                    Text(if (state.isLoading) "Loading…" else "Update File by File Id")
                 }
             }
+
 
             Spacer(Modifier.height(24.dp))
 

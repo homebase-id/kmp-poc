@@ -78,38 +78,64 @@ class FileDetailViewModel(
         }
     }
 
-
     private fun updateFile(action: FileDetailUiAction.UpdateFileClicked) {
         val provider = driveUploadService ?: return
 
-        val versionTag = _uiState.value.header?.fileMetadata?.versionTag
+        val header = _uiState.value.header
 
+        val versionTag = header?.fileMetadata?.versionTag
         if (versionTag == null) {
             _uiState.update {
                 it.copy(
                     isLoading = false,
                     hasTriedToLoadHeader = false,
-                    error = "click get header so we know the version tag"
+                    error = "Click get header so we know the version tag"
                 )
             }
             return
         }
 
+        val target =
+            when (action) {
+                FileDetailUiAction.UpdateFileClicked.ByFileId ->
+                    DriveUploadService.UpdateTarget.ByFileId(fileId)
+
+                FileDetailUiAction.UpdateFileClicked.ByUniqueId -> {
+                    val uniqueId = header
+                        .fileMetadata
+                        .appData
+                        ?.uniqueId
+
+                    if (uniqueId == null) {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                hasTriedToLoadHeader = false,
+                                error = "File has no uniqueId; cannot update by uniqueId"
+                            )
+                        }
+                        return
+                    }
+
+                    DriveUploadService.UpdateTarget.ByUniqueId(uniqueId)
+                }
+            }
+
         viewModelScope.launch {
             try {
                 provider.updateTextPost(
                     driveId = driveId,
-                    fileId = fileId,
+                    target = target,
                     versionTag = versionTag,
-                    contentText = "content post and a random id ${Uuid.random()}",
-                    payloadText = "payload text + rando ${Uuid.random()}"
+                    contentText = "content post ${Uuid.random()}",
+                    payloadText = "payload text ${Uuid.random()}"
                 )
             } catch (t: Throwable) {
                 _uiState.update {
                     it.copy(
                         isLoading = false,
                         hasTriedToLoadHeader = false,
-                        error = t.message ?: "Failed to update file header"
+                        error = t.message ?: "Failed to update file"
                     )
                 }
             }
@@ -620,7 +646,10 @@ sealed interface FileDetailUiAction {
     object BackClicked : FileDetailUiAction
     object GetFileHeaderClicked : FileDetailUiAction
 
-    object UpdateFileClicked : FileDetailUiAction
+    sealed interface UpdateFileClicked : FileDetailUiAction {
+        object ByFileId : UpdateFileClicked
+        object ByUniqueId : UpdateFileClicked
+    }
 
     object HardDeleteClicked : FileDetailUiAction
     object SoftDeleteClicked : FileDetailUiAction

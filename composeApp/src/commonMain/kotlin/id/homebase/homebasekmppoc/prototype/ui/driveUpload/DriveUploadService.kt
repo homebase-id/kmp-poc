@@ -20,6 +20,7 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UploadInstructionS
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.CreateFileResult
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.FileUpdateInstructionSet
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UpdateFileByFileIdRequest
+import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UpdateFileByUniqueIdRequest
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UpdateLocale
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UpdateManifest
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UploadFileRequest
@@ -255,6 +256,12 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
         )
     }
 
+    sealed interface UpdateTarget {
+        data class ByFileId(val fileId: Uuid) : UpdateTarget
+        data class ByUniqueId(val uniqueId: Uuid) : UpdateTarget
+    }
+
+
     /**
      * Updates an existing text post file by replacing / appending payloads.
      *
@@ -264,12 +271,12 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
      */
     suspend fun updateTextPost(
         driveId: Uuid,
-        fileId: Uuid,
+        target: UpdateTarget,
         versionTag: Uuid,
         contentText: String,
         payloadText: String
     ) {
-        KLogger.d(TAG) { "Updating text post fileId=$fileId" }
+        KLogger.d(TAG) { "Updating text post target=$target" }
 
         val isEncrypted = false
 
@@ -291,14 +298,14 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
                 payloads = payloads,
                 toDeletePayloads = null,
                 thumbnails = null,
-                generatePayloadIv = isEncrypted // only need an IV if we are encrypting
+                generatePayloadIv = isEncrypted
             )
 
         val instructions =
             FileUpdateInstructionSet(
                 transferIv = ByteArrayUtil.getRndByteArray(16),
                 locale = UpdateLocale.Local,
-                recipients = emptyList(), // local update
+                recipients = emptyList(),
                 manifest = manifest,
                 useAppNotification = false
             )
@@ -317,21 +324,41 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
                     )
             )
 
-        val request =
-            UpdateFileByFileIdRequest(
-                driveId = driveId,
-                fileId = fileId,
-                keyHeader = null, //TODO: handle encryption
-                instructions = instructions,
-                metadata = metadata,
-                payloads = payloads,
-                thumbnails = null
-            )
+        when (target) {
+            is UpdateTarget.ByFileId -> {
+                val request =
+                    UpdateFileByFileIdRequest(
+                        driveId = driveId,
+                        fileId = target.fileId,
+                        keyHeader = null,
+                        instructions = instructions,
+                        metadata = metadata,
+                        payloads = payloads,
+                        thumbnails = null
+                    )
 
-        driveUploadProvider.updateFileByFileId(request)
+                driveUploadProvider.updateFileByFileId(request)
+            }
 
-        KLogger.i(TAG) { "Text post updated successfully: fileId=$fileId" }
+            is UpdateTarget.ByUniqueId -> {
+                val request =
+                    UpdateFileByUniqueIdRequest(
+                        driveId = driveId,
+                        uniqueId = target.uniqueId,
+                        keyHeader = null,
+                        instructions = instructions,
+                        metadata = metadata,
+                        payloads = payloads,
+                        thumbnails = null
+                    )
+
+                driveUploadProvider.updateFileByUniqueId(request)
+            }
+        }
+
+        KLogger.i(TAG) { "Text post updated successfully: target=$target" }
     }
+
 
 
     /**

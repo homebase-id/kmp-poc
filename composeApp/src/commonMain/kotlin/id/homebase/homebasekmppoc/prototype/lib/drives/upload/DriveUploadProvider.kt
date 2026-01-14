@@ -88,6 +88,16 @@ data class UpdateFileByFileIdRequest(
     val thumbnails: List<ThumbnailFile>? = null,
 )
 
+data class UpdateFileByUniqueIdRequest(
+    val driveId: Uuid,
+    val uniqueId: Uuid,
+    val keyHeader: KeyHeader?,
+    val instructions: FileUpdateInstructionSet,
+    val metadata: UploadFileMetadata,
+    val payloads: List<PayloadFile>? = null,
+    val thumbnails: List<ThumbnailFile>? = null,
+)
+
 
 /** Provider for drive upload and update operations. Ported from JS/TS odin-js UploadProvider. */
 @OptIn(ExperimentalEncodingApi::class)
@@ -182,6 +192,38 @@ class DriveUploadProvider(
             )
 
         val path = "/drives/${request.driveId}/files/${request.fileId}";
+        return pureUpdate(data, path, onVersionConflict)
+    }
+
+    suspend fun updateFileByUniqueId(
+        request: UpdateFileByUniqueIdRequest,
+        onVersionConflict: (suspend () -> UpdateFileResult?)? = null
+    ): UpdateFileResult? {
+
+        val sharedSecret = client.getSharedSecret()
+
+        // Build encrypted descriptor
+        val sharedSecretEncryptedDescriptor =
+            if (sharedSecret != null) {
+                buildSharedSecretEncryptedUpdateDescriptor(
+                    request.keyHeader,
+                    request.metadata,
+                    sharedSecret,
+                    request.instructions.transferIv
+                )
+            } else {
+                null
+            }
+
+        val data =
+            buildUpdateFormData(
+                instructionSet = request.instructions,
+                sharedSecretEncryptedDescriptor = sharedSecretEncryptedDescriptor,
+                payloads = request.payloads,
+                thumbnails = request.thumbnails
+            )
+
+        val path = "/drives/${request.driveId}/files/by-uid/${request.uniqueId}";
         return pureUpdate(data, path, onVersionConflict)
     }
 
