@@ -38,6 +38,8 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortField
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortOrder
 import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
+import id.homebase.homebasekmppoc.prototype.lib.eventbus.BackendEvent
+import id.homebase.homebasekmppoc.prototype.lib.eventbus.appEventBus
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.compose.koinInject
@@ -78,12 +80,11 @@ fun DriveFetchPage(
     }
 
     // Create driveSynchronizer once
-    val driveSynchronizer =
-            remember(driveQueryProvider) {
-                driveQueryProvider?.let {
-                    DriveSync(identityId, driveId, it, DatabaseManager.appDb)
-                }
-            }
+    val driveSynchronizer = remember(driveQueryProvider) {
+        driveQueryProvider?.let { DriveSync(identityId, driveId, it, DatabaseManager.appDb,
+            appEventBus
+        ) }
+    }
 
     fun triggerFetch(withProgress: Boolean) {
         if (driveSynchronizer == null) {
@@ -126,14 +127,15 @@ fun DriveFetchPage(
 
     // New: Collect events from the bus once, filter by driveId
     LaunchedEffect(Unit) {
-        EventBusFlow.events.collectLatest { event ->
+        appEventBus.events.collectLatest { event ->
             when (event) {
-                is BackendEvent.SyncUpdate.BatchReceived -> {
+                is BackendEvent.DriveEvent.BatchReceived -> {
                     if (event.driveId == driveId) {
                         syncProgress = event
                     }
                 }
-                is BackendEvent.SyncUpdate.Completed -> {
+
+                is BackendEvent.DriveEvent.Completed -> {
                     if (event.driveId == driveId) {
                         syncProgress = event
                         // Fetch local results as before
@@ -153,14 +155,16 @@ fun DriveFetchPage(
                         isRefreshing = false
                     }
                 }
-                is BackendEvent.SyncUpdate.Failed -> {
+
+                is BackendEvent.DriveEvent.Failed -> {
                     if (event.driveId == driveId) {
                         errorMessage = event.errorMessage
                         isLoading = false
                         isRefreshing = false
                     }
                 }
-                is BackendEvent.SyncUpdate.SyncStarted -> {
+
+                is BackendEvent.DriveEvent.Started -> {
                     if (event.driveId == driveId) {
                         isLoading = true
                         syncProgress = null
@@ -180,39 +184,39 @@ fun DriveFetchPage(
     }
 
     Scaffold(
-            topBar = {
-                TopAppBar(
-                        title = { Text("Drive Fetch") },
-                        navigationIcon = {
-                            IconButton(onClick = onNavigateBack) {
-                                Text("←", style = MaterialTheme.typography.headlineMedium)
-                            }
-                        },
-                        actions = {
-                            // Spinner when loading
-                            if (isLoading) {
-                                CircularProgressIndicator(
-                                        modifier = Modifier.padding(end = 8.dp),
-                                        strokeWidth = 2.dp
-                                )
-                            }
-                            // Numerical progress
-                            if (syncProgress is BackendEvent.SyncUpdate.BatchReceived) {
-                                val progress = syncProgress as BackendEvent.SyncUpdate.BatchReceived
-                                Text(
-                                        text = "${progress.totalCount}",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        modifier = Modifier.padding(end = 8.dp)
-                                )
-                            }
-                            // Online/offline indicator
-                            Text(
-                                    text = if (isOnline) "🟢" else "🔴",
-                                    style = MaterialTheme.typography.headlineSmall
-                            )
-                        }
-                )
-            }
+        topBar = {
+            TopAppBar(
+                title = { Text("Drive Fetch") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Text("←", style = MaterialTheme.typography.headlineMedium)
+                    }
+                },
+                actions = {
+                    // Spinner when loading
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.padding(end = 8.dp),
+                            strokeWidth = 2.dp
+                        )
+                    }
+                    // Numerical progress
+                    if (syncProgress is BackendEvent.DriveEvent.BatchReceived) {
+                        val progress = syncProgress as BackendEvent.DriveEvent.BatchReceived
+                        Text(
+                            text = "${progress.totalCount}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                    }
+                    // Online/offline indicator
+                    Text(
+                        text = if (isOnline) "🟢" else "🔴",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                }
+            )
+        }
     ) { paddingValues ->
         Box(
                 modifier =

@@ -9,15 +9,17 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.FileState
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchRequest
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResponse
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResultOptionsRequest
-import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.QueryBatchCursor
+import id.homebase.homebasekmppoc.prototype.lib.eventbus.BackendEvent
+import id.homebase.homebasekmppoc.prototype.lib.eventbus.EventBus
 import kotlin.time.measureTimedValue
 import kotlinx.coroutines.sync.*
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
 
@@ -26,13 +28,16 @@ class DriveSync(
     private val identityId: Uuid,
     private val driveId: Uuid,
     private val driveQueryProvider: DriveQueryProvider, // TODO: <- can we get rid of this?
-    private val databaseManager: DatabaseManager
-) {
+    private val databaseManager: DatabaseManager,
+    private val eventBus: EventBus,
+    scope: CoroutineScope? = null)
+{
+    // Background work is Network and DB bound, so using IO
+    private val scope = scope ?: CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var cursor: QueryBatchCursor?
     private val mutex = Mutex()
     private var batchSize = 50 // We begin with the smallest batch
     private var fileHeaderProcessor = MainIndexMetaHelpers.HomebaseFileProcessor(databaseManager)
-    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     //TODO: Consider having a (readable) "last modified" which holds the largest timestamp of last-modified
 
@@ -42,16 +47,17 @@ class DriveSync(
         cursor = cursorStorage.loadCursor()
 
         // temp hack
-        runBlocking { testHack() }
+        runBlocking { clearStorage() }
     }
 
-    suspend fun testHack()
+    // Call this to clear everything if you want to run a test and re-sync
+    suspend fun clearStorage()
     {
         // Temp hack, remove soon.
-        DatabaseManager.appDb.driveMainIndex.deleteAll() // TODO: <-- don't delete all! :-)
-        DatabaseManager.appDb.driveTagIndex.deleteAll() // TODO: <-- don't delete all! :-)
-        DatabaseManager.appDb.driveLocalTagIndex.deleteAll() // TODO: <-- don't delete all! :-)
-        DatabaseManager.appDb.keyValue.deleteByKey(driveId) // TODO: <-- don't delete the cursor
+        databaseManager.driveMainIndex.deleteAll() // TODO: <-- don't delete all! :-)
+        databaseManager.driveTagIndex.deleteAll() // TODO: <-- don't delete all! :-)
+        databaseManager.driveLocalTagIndex.deleteAll() // TODO: <-- don't delete all! :-)
+        databaseManager.keyValue.deleteByKey(driveId) // TODO: <-- don't delete the cursor
         val cursorStorage = CursorStorage(databaseManager, driveId)
         cursorStorage.deleteCursor();
         cursor = null
@@ -80,7 +86,7 @@ class DriveSync(
         var queryBatchResponse: QueryBatchResponse? = null
         var keepGoing = true
 
-        EventBusFlow.emit(BackendEvent.SyncUpdate.SyncStarted(driveId));
+        eventBus.emit(BackendEvent.DriveEvent.Started(driveId))
 
         while (keepGoing) {
             Logger.i("Querying host for ${batchSize} rows")
@@ -127,7 +133,8 @@ class DriveSync(
 
                         val latestModified = searchResults.last().fileMetadata.updated
 
-                        EventBusFlow.emit(BackendEvent.SyncUpdate.BatchReceived(
+                        eventBus.emit(
+                            BackendEvent.DriveEvent.BatchReceived(
                             driveId = driveId,
                             totalCount = totalCount,
                             batchCount = recordsRead,
@@ -139,7 +146,7 @@ class DriveSync(
                     // TODO: The BE should return the moreRows boolean from QueryBatch.
                     keepGoing = searchResults.size >= batchSize
                 } catch (e: Exception) {
-                    EventBusFlow.emit(BackendEvent.SyncUpdate.Failed(driveId, "Sync failed: ${e.message}"))
+                    eventBus.emit(BackendEvent.DriveEvent.Failed(driveId, "Sync failed: ${e.message}"))
                     keepGoing = false
                 }
             }
@@ -157,6 +164,6 @@ class DriveSync(
             }
         }
 
-        EventBusFlow.emit(BackendEvent.SyncUpdate.Completed(driveId, totalCount))
+        eventBus.emit(BackendEvent.DriveEvent.Completed(driveId, totalCount))
     }
 }

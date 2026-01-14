@@ -1,28 +1,38 @@
 package id.homebase.homebasekmppoc.prototype.ui.driveFetch
 
 import co.touchlab.kermit.Logger
+import id.homebase.homebasekmppoc.lib.database.Outbox
 import id.homebase.homebasekmppoc.prototype.lib.core.time.UnixTimeUtc
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
-import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
+import id.homebase.homebasekmppoc.prototype.lib.eventbus.BackendEvent
+import id.homebase.homebasekmppoc.prototype.lib.eventbus.EventBus
 import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.sync.*
 
+interface OutboxUploader {
+    suspend fun upload(outboxRecord: Outbox, eventBus : EventBus): Unit
+}
+
 class OutboxSync(
-    private val databaseManager: DatabaseManager
-) {
+    private val databaseManager: DatabaseManager,
+    private val uploader: OutboxUploader,
+    private val eventBus: EventBus,
+    scope: CoroutineScope? = null)
+{
+    // The threads use the DB & Network, so we use the IO dispatcher
+    private val scope = scope ?: CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val MAX_SENDING_THREADS = 3
+    private val WAIT_INCREMENT_SECONDS = 30L
     private val semaphore = Semaphore(MAX_SENDING_THREADS)
     private val activeThreads = atomic(0)
     private val totalSent = atomic(0)
     private val counterMutex = Mutex()
-    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
-
-    //TODO: Consider having a (readable) "last modified" which holds the largest timestamp of last-modified
 
     // The send() function spawns a thread when it acquires the lock.
     // Then send() returns true if it begins processing in a thread, and false if
@@ -38,25 +48,31 @@ class OutboxSync(
             try {
                 counterMutex.withLock {
                     if (activeThreads.incrementAndGet() == 1) {
-                        EventBusFlow.emit(BackendEvent.OutboxUpdate.ProcessingStarted);
+                        eventBus.emit(BackendEvent.OutboxEvent.Started)
                     }
                 }
                 outboxSend()
             } finally {
                 // After loop, check if this is the final thread
-                counterMutex.withLock {
-                    if (activeThreads.decrementAndGet() == 0) {
-                        val n = totalSent.getAndSet(0)
-                        val nextSend = databaseManager.outbox.nextScheduled()
-                        EventBusFlow.emit(BackendEvent.OutboxUpdate.Completed(n))
-                        if (nextSend != null)
-                        {
-                            val delay = nextSend.milliseconds - UnixTimeUtc.now().milliseconds
-                            delay(delay) // Put the thread to sleep
+                var nextSend : UnixTimeUtc? = null
+                try {
+                    counterMutex.withLock {
+                        if (activeThreads.decrementAndGet() == 0) {
+                            val n = totalSent.getAndSet(0)
+                            nextSend = databaseManager.outbox.nextScheduled()
+                            eventBus.emit(BackendEvent.OutboxEvent.Completed(n))
                         }
                     }
                 }
-                semaphore.release()
+                finally {
+                    semaphore.release()
+                }
+                if (nextSend != null)
+                {
+                    val delay = nextSend!!.milliseconds - UnixTimeUtc.now().milliseconds
+                    delay(delay) // Put the thread to sleep
+                    send()
+                }
             }
         }
         return true
@@ -80,23 +96,23 @@ class OutboxSync(
 
             try {
                 // We sent the item, send an event
-                EventBusFlow.emit(BackendEvent.OutboxUpdate.Sending(outboxRecord.driveId, outboxRecord.fileId))
+                eventBus.emit(BackendEvent.OutboxEvent.ItemStarted(outboxRecord.driveId, outboxRecord.fileId))
                 Logger.i("Log the data from the outboxRecord here...")
 
-                // Try to upload the item over the network (this will emit events)
+                uploader.upload(outboxRecord, eventBus)
 
                 // if successful we remove it from the database
                 databaseManager.outbox.deleteByRowId(outboxRecord.rowId)
 
                 // We sent the item, send an event
-                EventBusFlow.emit(BackendEvent.OutboxUpdate.Sent(outboxRecord.driveId, outboxRecord.fileId))
+                eventBus.emit(BackendEvent.OutboxEvent.ItemCompleted(outboxRecord.driveId, outboxRecord.fileId))
                 totalSent.incrementAndGet()
             } catch (e: Exception) {
-                val n = 30*outboxRecord.checkOutCount
-                Logger.e("Failed upload for ${outboxRecord.fileId}, retry in $n seconds (attempt ${outboxRecord.checkOutCount + 1})", e)
+                val n = WAIT_INCREMENT_SECONDS * outboxRecord.checkOutCount
+                Logger.w("Failed upload for ${outboxRecord.fileId}, retry in $n seconds (attempt ${outboxRecord.checkOutCount + 1})", e)
                 databaseManager.outbox.checkInFailed(outboxRecord.checkOutStamp!!,
-                    UnixTimeUtc.now().addSeconds(n).seconds )
-                EventBusFlow.emit(BackendEvent.OutboxUpdate.Failed(e.message ?: "Unknown error"))
+                    UnixTimeUtc.now().addSeconds(n).seconds)
+                eventBus.emit(BackendEvent.OutboxEvent.Failed(e.message ?: "Unknown error"))
             }
         }
     }
