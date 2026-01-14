@@ -28,7 +28,7 @@ class OutboxSync(
     // The threads use the DB & Network, so we use the IO dispatcher
     private val scope = scope ?: CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val MAX_SENDING_THREADS = 3
-    private val WAIT_INCREMENT_SECONDS = 30
+    private val WAIT_INCREMENT_SECONDS = 30L
     private val semaphore = Semaphore(MAX_SENDING_THREADS)
     private val activeThreads = atomic(0)
     private val totalSent = atomic(0)
@@ -108,10 +108,10 @@ class OutboxSync(
                 eventBus.emit(BackendEvent.OutboxEvent.ItemCompleted(outboxRecord.driveId, outboxRecord.fileId))
                 totalSent.incrementAndGet()
             } catch (e: Exception) {
-                val n = WAIT_INCREMENT_SECONDS*outboxRecord.checkOutCount
+                val n = WAIT_INCREMENT_SECONDS * outboxRecord.checkOutCount
                 Logger.w("Failed upload for ${outboxRecord.fileId}, retry in $n seconds (attempt ${outboxRecord.checkOutCount + 1})", e)
                 databaseManager.outbox.checkInFailed(outboxRecord.checkOutStamp!!,
-                    UnixTimeUtc.now().addSeconds(n.toLong()).seconds )
+                    UnixTimeUtc.now().addSeconds(n).seconds)
                 eventBus.emit(BackendEvent.OutboxEvent.Failed(e.message ?: "Unknown error"))
             }
         }
