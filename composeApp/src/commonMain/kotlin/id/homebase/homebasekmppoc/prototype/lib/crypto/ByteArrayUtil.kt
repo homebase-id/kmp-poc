@@ -275,7 +275,7 @@ object ByteArrayUtil {
     fun muidcmp(b1: ByteArray?, b2: ByteArray?): Int {
         if (b1 == null || b2 == null) {
             return when {
-                b1 == b2 -> 0
+                b1 === b2 -> 0  // Reference compare
                 b1 == null -> -1
                 else -> 1
             }

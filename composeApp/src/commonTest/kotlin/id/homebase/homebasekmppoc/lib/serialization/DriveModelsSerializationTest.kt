@@ -93,7 +93,7 @@ class DriveModelsSerializationTest {
 
         assertNotNull(thumbnail)
         assertNotNull(thumbnail.content)
-        assertTrue(thumbnail.content!!.startsWith("UklGRug"))
+        assertTrue(thumbnail.content.startsWith("UklGRug"))
         assertEquals(2912, thumbnail.pixelWidth)
     }
 
@@ -145,10 +145,10 @@ class DriveModelsSerializationTest {
         assertEquals(473932L, payload.bytesWritten)
         assertEquals(1764019518116L, payload.lastModified)
         assertNotNull(payload.previewThumbnail)
-        assertEquals(2912, payload.previewThumbnail?.pixelWidth)
+        assertEquals(2912, payload.previewThumbnail.pixelWidth)
         assertNotNull(payload.thumbnails)
-        assertEquals(2, payload.thumbnails?.size)
-        assertEquals(20, payload.thumbnails?.get(0)?.pixelWidth)
+        assertEquals(2, payload.thumbnails.size)
+        assertEquals(20, payload.thumbnails.get(0).pixelWidth)
         assertEquals(115606783129092100L, payload.uid)
     }
 
@@ -353,7 +353,7 @@ class DriveModelsSerializationTest {
 
         assertNotNull(metadata)
         assertNotNull(metadata.accessControlList)
-        assertEquals("owner", metadata.accessControlList?.requiredSecurityGroup)
+        assertEquals("owner", metadata.accessControlList.requiredSecurityGroup)
         assertEquals(false, metadata.allowDistribution)
         assertEquals(FileSystemType.Standard, metadata.fileSystemType)
         assertEquals(9007L, metadata.fileByteCount)
@@ -394,14 +394,14 @@ class DriveModelsSerializationTest {
         assertNotNull(appData)
         assertEquals(null, appData.uniqueId)
         assertNotNull(appData.tags)
-        assertEquals(1, appData.tags?.size)
-        assertEquals("32e861cf-bf6c-1eaf-3d57-efb2258b7fcc", appData.tags?.get(0).toString())
+        assertEquals(1, appData.tags.size)
+        assertEquals("32e861cf-bf6c-1eaf-3d57-efb2258b7fcc", appData.tags.get(0).toString())
         assertEquals(101, appData.fileType)
         assertEquals(100, appData.dataType)
         assertEquals(1764019517491L, appData.userDate)
         assertEquals("Simple text content", appData.content)
         assertNotNull(appData.previewThumbnail)
-        assertEquals(2912, appData.previewThumbnail?.pixelWidth)
+        assertEquals(2912, appData.previewThumbnail.pixelWidth)
         assertEquals(ArchivalStatus.None, appData.archivalStatus)
     }
 
@@ -479,10 +479,10 @@ class DriveModelsSerializationTest {
         assertNotNull(metadata.appData)
         assertEquals(101, metadata.appData.fileType)
         assertNotNull(metadata.payloads)
-        assertEquals(1, metadata.payloads?.size)
-        assertEquals("pst_mdi0", metadata.payloads?.get(0)?.key)
+        assertEquals(1, metadata.payloads.size)
+        assertEquals("pst_mdi0", metadata.payloads.get(0).key)
         assertNotNull(metadata.dataSource)
-        assertEquals("bishwajeetparhi.dev", metadata.dataSource?.identity)
+        assertEquals("bishwajeetparhi.dev", metadata.dataSource.identity)
     }
 
     // ========================================================================

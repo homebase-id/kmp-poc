@@ -48,7 +48,7 @@ class AppAuthorizationParamsTest {
                 )
 
         assertTrue(params.drives != null)
-        assertTrue(params.drives!!.contains("photos"))
+        assertTrue(params.drives.contains("photos"))
     }
 
     @Test

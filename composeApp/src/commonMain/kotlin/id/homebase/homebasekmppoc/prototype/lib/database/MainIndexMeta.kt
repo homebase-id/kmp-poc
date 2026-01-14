@@ -180,7 +180,7 @@ object MainIndexMetaHelpers {
                     db.driveTagIndexQueries.deleteByFile(
                         identityId = identityId,
                         driveId = driveId,
-                        fileId = driveMainIndexRecord.fileId!!
+                        fileId = driveMainIndexRecord.fileId
                     )
                     db.driveLocalTagIndexQueries.deleteByFile(
                         identityId = identityId,

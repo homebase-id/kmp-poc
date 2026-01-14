@@ -61,7 +61,8 @@ actual object SecureStorage {
     }
 
     actual fun put(key: String, value: String) {
-        val valueData = (value as NSString).dataUsingEncoding(NSUTF8StringEncoding) ?: return
+        val nsString = NSString.create(string = value)
+        val valueData = nsString.dataUsingEncoding(NSUTF8StringEncoding) ?: return
 
         // Delete existing item first
         remove(key)
