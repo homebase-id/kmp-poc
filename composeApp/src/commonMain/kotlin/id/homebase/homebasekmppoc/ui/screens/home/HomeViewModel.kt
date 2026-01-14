@@ -101,6 +101,9 @@ class HomeViewModel(private val youAuthFlowManager: YouAuthFlowManager) : ViewMo
             is HomeUiAction.FFmpegTestClicked -> {
                 sendEvent(HomeUiEvent.NavigateToFFmpegTest)
             }
+            is HomeUiAction.ChatListClicked -> {
+                sendEvent(HomeUiEvent.NavigateToChatList)
+            }
             is HomeUiAction.LogoutClicked -> {
                 performLogout()
             }

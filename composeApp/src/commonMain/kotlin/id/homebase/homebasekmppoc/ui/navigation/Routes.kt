@@ -29,6 +29,12 @@ sealed class Route {
     @Serializable data class FileDetail(val driveId: String, val fileId: String) : Route()
 
     @Serializable data object FFmpegTest : Route()
+
+    @Serializable data object ChatList : Route()
+
+    @Serializable data class ChatMessageDetail(val driveId: String, val fileId: String) : Route()
+
+    @Serializable data class ChatMessages(val conversationId: String) : Route()
 }
 
 /** Deep link configuration */

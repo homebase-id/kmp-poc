@@ -1,14 +1,16 @@
 package id.homebase.homebasekmppoc.di
 
 import id.homebase.homebasekmppoc.lib.youauth.OdinClientFactory
-import id.homebase.homebasekmppoc.prototype.lib.drives.files.DriveFileProvider
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthProvider
+import id.homebase.homebasekmppoc.prototype.lib.drives.files.DriveFileProvider
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.DriveUploadProvider
 import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
-import id.homebase.homebasekmppoc.prototype.ui.driveFetch.FileDetailViewModel
+import id.homebase.homebasekmppoc.prototype.ui.chat.ChatListViewModel
+import id.homebase.homebasekmppoc.prototype.ui.chat.ChatMessageDetailViewModel
 import id.homebase.homebasekmppoc.prototype.ui.driveFetch.DriveFetchViewModel
+import id.homebase.homebasekmppoc.prototype.ui.driveFetch.FileDetailViewModel
 import id.homebase.homebasekmppoc.prototype.ui.driveUpload.DriveUploadService
 import id.homebase.homebasekmppoc.prototype.ui.driveUpload.DriveUploadViewModel
 import id.homebase.homebasekmppoc.ui.screens.home.HomeViewModel
@@ -19,9 +21,7 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
-/**
- * Main application DI module. Register all dependencies here.
- */
+/** Main application DI module. Register all dependencies here. */
 val appModule = module {
 
     /* ───────────────────────────
@@ -29,14 +29,10 @@ val appModule = module {
      * ─────────────────────────── */
 
     // OdinClient - nullable if no stored credentials
-    single<OdinClient?> {
-        OdinClientFactory.createFromStorage()
-    }
+    single<OdinClient?> { OdinClientFactory.createFromStorage() }
 
     // YouAuthProvider - created with OdinClient
-    factory { (odinClient: OdinClient) ->
-        YouAuthProvider(odinClient)
-    }
+    factory { (odinClient: OdinClient) -> YouAuthProvider(odinClient) }
 
     // Main auth flow manager
     singleOf(::YouAuthFlowManager)
@@ -76,34 +72,33 @@ val appModule = module {
      * ─────────────────────────── */
 
     // ViewModels
-    viewModel {
-        LoginViewModel(
-            youAuthFlowManager = get(),
-            odinClientFactory = get()
-        )
-    }
+    viewModel { LoginViewModel(youAuthFlowManager = get(), odinClientFactory = get()) }
     viewModelOf(::DriveFetchViewModel)
     viewModelOf(::HomeViewModel)
 
-    viewModel {
-        DriveUploadViewModel(
-            getOrNull<DriveUploadService>()
+    viewModel { DriveUploadViewModel(getOrNull<DriveUploadService>()) }
+
+    // FileDetailViewModel with parameters
+    viewModel { (driveId: Uuid, fileId: Uuid) ->
+        FileDetailViewModel(
+                driveId = driveId,
+                fileId = fileId,
+                driveFileProvider = getOrNull<DriveFileProvider>()
         )
     }
 
-    // 🔑 FileDetailViewModel WITH PARAMETERS
+    // Chat ViewModels
+    viewModelOf(::ChatListViewModel)
+
+    // ChatMessageDetailViewModel with parameters
     viewModel { (driveId: Uuid, fileId: Uuid) ->
-        FileDetailViewModel(
-            driveId = driveId,
-            fileId = fileId,
-            driveFileProvider = getOrNull<DriveFileProvider>()
+        ChatMessageDetailViewModel(
+                driveId = driveId,
+                fileId = fileId,
+                driveFileProvider = getOrNull<DriveFileProvider>()
         )
     }
 }
 
-/**
- * All Koin modules for the application.
- */
-val allModules = listOf(
-    appModule
-)
+/** All Koin modules for the application. */
+val allModules = listOf(appModule)

@@ -55,6 +55,8 @@ fun HomeScreen(state: HomeUiState, onAction: (HomeUiAction) -> Unit) {
 
             NavigationButton("FFmpeg Test") { onAction(HomeUiAction.FFmpegTestClicked) }
 
+            NavigationButton("Chat Messages") { onAction(HomeUiAction.ChatListClicked) }
+
             Spacer(modifier = Modifier.weight(1f))
 
             OutlinedButton(
