@@ -6,6 +6,9 @@ import id.homebase.homebasekmppoc.prototype.lib.database.QueryBatchResult
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortField
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortOrder
 import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
+import id.homebase.homebasekmppoc.prototype.lib.drives.files.RecipientTransferHistoryEntry
+import id.homebase.homebasekmppoc.prototype.lib.drives.files.RecipientTransferSummary
+import id.homebase.homebasekmppoc.prototype.lib.drives.files.TransferStatus
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.QueryBatchCursor
 import kotlin.uuid.Uuid
 import kotlinx.serialization.Serializable
@@ -69,6 +72,56 @@ data class ChatMessageContent(
         /** Get the delivery status as enum */
         fun getDeliveryStatusEnum(): ChatDeliveryStatus? =
                 ChatDeliveryStatus.fromValue(deliveryStatus)
+}
+
+/**
+ * Converts a recipient's transfer history entry to a ChatDeliveryStatus. Uses the existing
+ * RecipientTransferHistoryEntry from the drives package.
+ *
+ * @param transferHistory The transfer history entry for a single recipient
+ * @return The corresponding ChatDeliveryStatus
+ */
+fun transferHistoryToChatDeliveryStatus(
+        transferHistory: RecipientTransferHistoryEntry?
+): ChatDeliveryStatus {
+        if (transferHistory == null) return ChatDeliveryStatus.Failed
+
+        if (transferHistory.latestSuccessfullyDeliveredVersionTag != null) {
+                return if (transferHistory.isReadByRecipient) {
+                        ChatDeliveryStatus.Read
+                } else {
+                        ChatDeliveryStatus.Delivered
+                }
+        }
+
+        val transferStatus = transferHistory.latestTransferStatus
+
+        if (TransferStatus.isFailedStatus(transferStatus)) {
+                return ChatDeliveryStatus.Failed
+        }
+
+        return ChatDeliveryStatus.Sent
+}
+
+/**
+ * Builds a ChatDeliveryStatus from the transfer summary across all recipients. Uses the existing
+ * RecipientTransferSummary from the drives package.
+ *
+ * @param recipientCount The total number of recipients
+ * @param transferSummary The aggregated transfer summary
+ * @return The corresponding ChatDeliveryStatus
+ */
+fun buildDeliveryStatus(
+        recipientCount: Int?,
+        transferSummary: RecipientTransferSummary
+): ChatDeliveryStatus {
+        if (transferSummary.totalFailed > 0) return ChatDeliveryStatus.Failed
+
+        val count = recipientCount ?: 0
+        if (transferSummary.totalReadByRecipient >= count) return ChatDeliveryStatus.Read
+        if (transferSummary.totalDelivered >= count) return ChatDeliveryStatus.Delivered
+
+        return ChatDeliveryStatus.Sent
 }
 
 /**
