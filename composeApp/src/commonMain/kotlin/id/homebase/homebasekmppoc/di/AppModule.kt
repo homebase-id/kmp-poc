@@ -4,6 +4,9 @@ import id.homebase.homebasekmppoc.lib.youauth.OdinClientFactory
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.DriveFileProvider
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthProvider
+import id.homebase.homebasekmppoc.prototype.lib.base.AuthRepository
+import id.homebase.homebasekmppoc.prototype.lib.base.CredentialsManager
+import id.homebase.homebasekmppoc.prototype.lib.base.HttpClientProvider
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.DriveUploadProvider
 import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
@@ -13,6 +16,7 @@ import id.homebase.homebasekmppoc.prototype.ui.driveUpload.DriveUploadService
 import id.homebase.homebasekmppoc.prototype.ui.driveUpload.DriveUploadViewModel
 import id.homebase.homebasekmppoc.ui.screens.home.HomeViewModel
 import id.homebase.homebasekmppoc.ui.screens.login.LoginViewModel
+import org.koin.core.module.dsl.factoryOf
 import kotlin.uuid.Uuid
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModel
@@ -38,6 +42,10 @@ val appModule = module {
         YouAuthProvider(odinClient)
     }
 
+    single { HttpClientProvider.create() }
+    singleOf(::CredentialsManager)
+    singleOf(::AuthRepository)
+
     // Main auth flow manager
     singleOf(::YouAuthFlowManager)
 
@@ -45,20 +53,11 @@ val appModule = module {
      * Drive Providers
      * ─────────────────────────── */
 
-    factory<DriveQueryProvider?> {
-        val odinClient: OdinClient? = get()
-        odinClient?.let { DriveQueryProvider(it) }
-    }
+    factoryOf(::DriveQueryProvider)
 
-    factory<DriveUploadProvider?> {
-        val odinClient: OdinClient? = get()
-        odinClient?.let { DriveUploadProvider(it) }
-    }
+    factoryOf(::DriveUploadProvider)
 
-    factory<DriveFileProvider?> {
-        val odinClient: OdinClient? = get()
-        odinClient?.let { DriveFileProvider(it) }
-    }
+    factoryOf(::DriveFileProvider)
 
     /* ───────────────────────────
      * Services
