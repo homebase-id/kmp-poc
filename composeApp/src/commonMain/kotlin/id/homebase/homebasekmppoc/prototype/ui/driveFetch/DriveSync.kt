@@ -45,9 +45,6 @@ class DriveSync(
         // Load cursor from database
         val cursorStorage = CursorStorage(databaseManager, driveId)
         cursor = cursorStorage.loadCursor()
-
-        // temp hack
-        runBlocking { clearStorage() }
     }
 
     // Call this to clear everything if you want to run a test and re-sync
