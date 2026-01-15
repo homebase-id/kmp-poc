@@ -32,10 +32,8 @@ import androidx.compose.ui.unit.dp
 import id.homebase.homebasekmppoc.lib.config.chatTargetDrive
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthState
+import id.homebase.homebasekmppoc.prototype.lib.chat.ChatMessage
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
-import id.homebase.homebasekmppoc.prototype.lib.database.QueryBatch
-import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortField
-import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortOrder
 import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.prototype.lib.eventbus.BackendEvent
@@ -44,9 +42,6 @@ import id.homebase.homebasekmppoc.prototype.ui.driveFetch.DriveSync
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.compose.koinInject
-
-/** Chat message file type constant */
-const val CHAT_MESSAGE_FILE_TYPE = 7878
 
 /**
  * Messages page - shows messages for a specific conversation. Filters by fileType 7878 and groupId
@@ -130,19 +125,13 @@ fun ChatMessagesPage(
                 is BackendEvent.DriveEvent.Completed -> {
                     if (event.driveId == driveId) {
                         syncProgress = event
-                        // Load messages filtered by conversationId (groupId)
+                        // Load messages using ChatMessage helper
                         val localResult =
-                                QueryBatch(identityId)
-                                        .queryBatchAsync(
-                                                DatabaseManager.appDb,
-                                                driveId,
-                                                1000,
-                                                null,
-                                                QueryBatchSortOrder.NewestFirst,
-                                                QueryBatchSortField.CreatedDate,
-                                                fileSystemType = 0,
-                                                filetypesAnyOf = listOf(CHAT_MESSAGE_FILE_TYPE),
-                                                groupIdAnyOf = listOf(conversationUuid)
+                                ChatMessage(identityId)
+                                        .fetchMessages(
+                                                dbm = DatabaseManager.appDb,
+                                                driveId = driveId,
+                                                conversationId = conversationUuid
                                         )
                         localQueryResults = localResult.records
                         isLoading = false

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -24,7 +25,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import id.homebase.homebasekmppoc.prototype.lib.chat.ChatDeliveryStatus
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.BytesResponse
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.HomebaseFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadDescriptor
@@ -128,11 +131,47 @@ fun ChatFileHeaderPanel(
         LabeledValue("Encrypted", header.fileMetadata.isEncrypted.toString())
         LabeledValue("Sender", header.fileMetadata.senderOdinId ?: "—")
 
+        // Preview thumbnail from appData
+        header.fileMetadata.appData.previewThumbnail?.let { thumbnail ->
+            Spacer(Modifier.height(12.dp))
+            Text(text = "Preview Thumbnail", style = MaterialTheme.typography.titleSmall)
+            Spacer(Modifier.height(4.dp))
+            ThumbnailImage(
+                    thumbnail = thumbnail,
+                    modifier = Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(8.dp))
+            )
+            Text(
+                    text =
+                            "${thumbnail.pixelWidth ?: 0}x${thumbnail.pixelHeight ?: 0} - ${thumbnail.contentType ?: "unknown"}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
         // App Data content
         header.fileMetadata.appData.content?.let { content ->
             Spacer(Modifier.height(12.dp))
             Text(text = "App Data Content", style = MaterialTheme.typography.titleSmall)
             Spacer(Modifier.height(4.dp))
+
+            // Try to parse and display delivery status
+            parseDeliveryStatus(content)?.let { status ->
+                Row {
+                    Text(text = "Delivery Status: ", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                            text = status.name,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color =
+                                    when (status) {
+                                        ChatDeliveryStatus.Delivered, ChatDeliveryStatus.Read ->
+                                                MaterialTheme.colorScheme.primary
+                                        ChatDeliveryStatus.Failed -> MaterialTheme.colorScheme.error
+                                        else -> MaterialTheme.colorScheme.onSurface
+                                    }
+                    )
+                }
+            }
+
             Text(text = content, style = MaterialTheme.typography.bodyMedium)
         }
 
@@ -177,15 +216,30 @@ private fun PayloadSection(
 
     Column {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Text(
-                    text = "Key: ${payload.key}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.weight(1f)
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = "Key: ${payload.key}", style = MaterialTheme.typography.bodyMedium)
+                // Show payload preview thumbnail if available
+                payload.previewThumbnail?.let { thumb ->
+                    Text(
+                            text = "📷 Preview: ${thumb.pixelWidth ?: 0}x${thumb.pixelHeight ?: 0}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
 
             Button(onClick = { onViewPayload(payload.key) }) {
                 Text(if (isExpanded) "Hide payload" else "View payload")
             }
+        }
+
+        // Show payload preview thumbnail
+        payload.previewThumbnail?.let { thumbnail ->
+            Spacer(Modifier.height(8.dp))
+            ThumbnailImage(
+                    thumbnail = thumbnail,
+                    modifier = Modifier.fillMaxWidth().height(100.dp).clip(RoundedCornerShape(8.dp))
+            )
         }
 
         AnimatedVisibility(visible = isExpanded) {
@@ -211,6 +265,22 @@ private fun PayloadSection(
                 }
             }
         }
+    }
+}
+
+/** Attempts to parse delivery status from content JSON. */
+private fun parseDeliveryStatus(content: String): ChatDeliveryStatus? {
+    return try {
+        val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+        val jsonObj = json.parseToJsonElement(content)
+        if (jsonObj is kotlinx.serialization.json.JsonObject) {
+            val statusValue =
+                    (jsonObj["deliveryStatus"] as? kotlinx.serialization.json.JsonPrimitive)
+                            ?.content?.toIntOrNull()
+            statusValue?.let { ChatDeliveryStatus.fromValue(it) }
+        } else null
+    } catch (e: Exception) {
+        null
     }
 }
 

@@ -32,10 +32,8 @@ import androidx.compose.ui.unit.dp
 import id.homebase.homebasekmppoc.lib.config.chatTargetDrive
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthState
+import id.homebase.homebasekmppoc.prototype.lib.chat.Conversation
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
-import id.homebase.homebasekmppoc.prototype.lib.database.QueryBatch
-import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortField
-import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortOrder
 import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.prototype.lib.eventbus.BackendEvent
@@ -45,9 +43,6 @@ import kotlin.uuid.Uuid
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
-
-/** Chat conversation file type constant */
-const val CHAT_CONVERSATION_FILE_TYPE = 8888
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -144,18 +139,12 @@ fun ChatListPage(
                 is BackendEvent.DriveEvent.Completed -> {
                     if (event.driveId == driveId) {
                         syncProgress = event
-                        // Fetch local results - filter by conversation fileType 8888
+                        // Fetch local results using Conversation helper
                         val localResult =
-                                QueryBatch(identityId)
-                                        .queryBatchAsync(
-                                                DatabaseManager.appDb,
-                                                driveId,
-                                                1000,
-                                                null,
-                                                QueryBatchSortOrder.NewestFirst,
-                                                QueryBatchSortField.CreatedDate,
-                                                fileSystemType = 0,
-                                                filetypesAnyOf = listOf(CHAT_CONVERSATION_FILE_TYPE)
+                                Conversation(identityId)
+                                        .fetchConversations(
+                                                dbm = DatabaseManager.appDb,
+                                                driveId = driveId
                                         )
                         localQueryResults = localResult.records
                         isLoading = false
