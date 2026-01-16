@@ -1,8 +1,11 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives.upload
 
 import id.homebase.homebasekmppoc.lib.config.publicPostsDriveId
+import id.homebase.homebasekmppoc.prototype.lib.base.ApiCredentials
+import id.homebase.homebasekmppoc.prototype.lib.base.CredentialsManager
 import id.homebase.homebasekmppoc.prototype.lib.core.OdinClientErrorCode
 import id.homebase.homebasekmppoc.prototype.lib.core.OdinClientException
+import id.homebase.homebasekmppoc.prototype.lib.core.SecureByteArray
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileSystemType
 import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
 import id.homebase.homebasekmppoc.prototype.lib.http.MockOdinClientSetup
@@ -24,6 +27,7 @@ import kotlinx.coroutines.test.runTest
 class DriveUploadProviderTest {
 
     private val fileId = Uuid.parse("00000000-0000-0000-0000-000000000008")
+    private val driveId = Uuid.parse("00000000-0000-0000-0000-000000000099")
     private val version1 = Uuid.parse("00000000-0000-0000-0000-000000000099")
     private val version2 = Uuid.parse("00000000-0000-0000-0000-000000000077")
 
@@ -35,22 +39,22 @@ class DriveUploadProviderTest {
 
     private fun createTestUploadResult(): CreateFileResult {
         return CreateFileResult(
-                keyHeader = null,
-                fileId = fileId,
-                driveId = publicPostsDriveId,
-                globalTransitId = Uuid.random(),
-                recipientStatus = emptyMap(),
-                newVersionTag = version1
+            keyHeader = null,
+            fileId = fileId,
+            driveId = publicPostsDriveId,
+            globalTransitId = Uuid.random(),
+            recipientStatus = emptyMap(),
+            newVersionTag = version1
         )
     }
 
     private fun createTestUpdateResult(): UpdateFileResult {
         return UpdateFileResult(
-                fileId = fileId,
-                driveId = publicPostsDriveId,
-                globalTransitId = Uuid.random(),
-                recipientStatus = emptyMap(),
-                newVersionTag = version2
+            fileId = fileId,
+            driveId = publicPostsDriveId,
+            globalTransitId = Uuid.random(),
+            recipientStatus = emptyMap(),
+            newVersionTag = version2
         )
     }
 
@@ -63,13 +67,13 @@ class DriveUploadProviderTest {
         // Arrange
         val expectedResult = createTestUploadResult()
         val responseJson =
-              OdinSystemSerializer
-                        .serialize(expectedResult)
-        val odinClient = MockOdinClientSetup.setupMockOdinClient(responseJson)
-        val provider = DriveUploadProvider(odinClient)
+            OdinSystemSerializer
+                .serialize(expectedResult)
+        val httpClient = MockOdinClientSetup.createMockClient(responseJson)
+        val provider = DriveUploadProvider(httpClient, testCredentialsManager())
 
         // Act
-        val result = provider.pureUpload(createTestFormData())
+        val result = provider.pureUpload(driveId, createTestFormData())
 
         // Assert
         assertNotNull(result)
@@ -82,17 +86,18 @@ class DriveUploadProviderTest {
         // Arrange
         val expectedResult = createTestUploadResult()
         val responseJson =
-                OdinSystemSerializer
-                        .serialize(expectedResult)
-        val odinClient = MockOdinClientSetup.setupMockOdinClient(responseJson)
-        val provider = DriveUploadProvider(odinClient)
+            OdinSystemSerializer
+                .serialize(expectedResult)
+        val httpClient = MockOdinClientSetup.createMockClient(responseJson)
+        val provider = DriveUploadProvider(httpClient, testCredentialsManager())
 
         // Act
         val result =
-                provider.pureUpload(
-                        data = createTestFormData(),
-                        fileSystemType = FileSystemType.Comment
-                )
+            provider.pureUpload(
+                driveId = driveId,
+                data = createTestFormData(),
+                fileSystemType = FileSystemType.Comment
+            )
 
         // Assert
         assertNotNull(result)
@@ -102,23 +107,24 @@ class DriveUploadProviderTest {
     fun testPureUpload_versionConflict_withCallback() = runTest {
         // Arrange
         val errorJson = """{"errorCode": "VersionTagMismatch", "message": "Version conflict"}"""
-        val odinClient =
-                MockOdinClientSetup.setupMockOdinClient(
-                        responseBody = errorJson,
-                        status = HttpStatusCode.Conflict
-                )
-        val provider = DriveUploadProvider(odinClient)
+        val httpClient =
+            MockOdinClientSetup.createMockClient(
+                responseBody = errorJson,
+                status = HttpStatusCode.Conflict
+            )
+        val provider = DriveUploadProvider(httpClient, testCredentialsManager())
         var callbackInvoked = false
 
         // Act
         val result =
-                provider.pureUpload(
-                        data = createTestFormData(),
-                        onVersionConflict = {
-                            callbackInvoked = true
-                            null
-                        }
-                )
+            provider.pureUpload(
+                driveId = driveId,
+                data = createTestFormData(),
+                onVersionConflict = {
+                    callbackInvoked = true
+                    null
+                }
+            )
 
         // Assert
         assertTrue(callbackInvoked)
@@ -129,20 +135,21 @@ class DriveUploadProviderTest {
     fun testPureUpload_versionConflict_withCallbackReturningResult() = runTest {
         // Arrange
         val errorJson = """{"errorCode": "VersionTagMismatch", "message": "Version conflict"}"""
-        val odinClient =
-                MockOdinClientSetup.setupMockOdinClient(
-                        responseBody = errorJson,
-                        status = HttpStatusCode.Conflict
-                )
-        val provider = DriveUploadProvider(odinClient)
+        val httpClient =
+            MockOdinClientSetup.createMockClient(
+                responseBody = errorJson,
+                status = HttpStatusCode.Conflict
+            )
+        val provider = DriveUploadProvider(httpClient, testCredentialsManager())
         val retryResult = createTestUploadResult()
 
         // Act
         val result =
-                provider.pureUpload(
-                        data = createTestFormData(),
-                        onVersionConflict = { retryResult }
-                )
+            provider.pureUpload(
+                driveId = driveId,
+                data = createTestFormData(),
+                onVersionConflict = { retryResult }
+            )
 
         // Assert
         assertNotNull(result)
@@ -153,16 +160,21 @@ class DriveUploadProviderTest {
     fun testPureUpload_versionConflict_noCallback_throwsException() = runTest {
         // Arrange
         val errorJson = """{"errorCode": "VersionTagMismatch", "message": "Version conflict"}"""
-        val odinClient =
-                MockOdinClientSetup.setupMockOdinClient(
-                        responseBody = errorJson,
-                        status = HttpStatusCode.Conflict
-                )
-        val provider = DriveUploadProvider(odinClient)
+        val httpClient =
+            MockOdinClientSetup.createMockClient(
+                responseBody = errorJson,
+                status = HttpStatusCode.Conflict
+            )
+        val provider = DriveUploadProvider(httpClient, testCredentialsManager())
 
         // Act & Assert
         val exception =
-                assertFailsWith<OdinClientException> { provider.pureUpload(createTestFormData()) }
+            assertFailsWith<OdinClientException> {
+                provider.pureUpload(
+                    driveId = driveId,
+                    createTestFormData()
+                )
+            }
         assertEquals(OdinClientErrorCode.VersionTagMismatch, exception.errorCode)
     }
 
@@ -170,16 +182,21 @@ class DriveUploadProviderTest {
     fun testPureUpload_badRequest_throwsException() = runTest {
         // Arrange
         val errorJson = """{"errorCode": "InvalidUpload", "message": "Bad request"}"""
-        val odinClient =
-                MockOdinClientSetup.setupMockOdinClient(
-                        responseBody = errorJson,
-                        status = HttpStatusCode.BadRequest
-                )
-        val provider = DriveUploadProvider(odinClient)
+        val httpClient =
+            MockOdinClientSetup.createMockClient(
+                responseBody = errorJson,
+                status = HttpStatusCode.BadRequest
+            )
+        val provider = DriveUploadProvider(httpClient, testCredentialsManager())
 
         // Act & Assert
         val exception =
-                assertFailsWith<OdinClientException> { provider.pureUpload(createTestFormData()) }
+            assertFailsWith<OdinClientException> {
+                provider.pureUpload(
+                    driveId = driveId,
+                    createTestFormData(),
+                )
+            }
         assertEquals(OdinClientErrorCode.InvalidUpload, exception.errorCode)
     }
 
@@ -187,19 +204,24 @@ class DriveUploadProviderTest {
     fun testPureUpload_serverError_throwsException() = runTest {
         // Arrange
         val errorJson = """{"message": "Internal server error"}"""
-        val odinClient =
-                MockOdinClientSetup.setupMockOdinClient(
-                        responseBody = errorJson,
-                        status = HttpStatusCode.InternalServerError
-                )
-        val provider = DriveUploadProvider(odinClient)
+        val httpClient =
+            MockOdinClientSetup.createMockClient(
+                responseBody = errorJson,
+                status = HttpStatusCode.InternalServerError
+            )
+        val provider = DriveUploadProvider(httpClient, testCredentialsManager())
 
         // Act & Assert
         val exception =
-                assertFailsWith<OdinClientException> { provider.pureUpload(createTestFormData()) }
+            assertFailsWith<OdinClientException> {
+                provider.pureUpload(
+                    driveId = driveId,
+                    createTestFormData()
+                )
+            }
         assertEquals(
-                OdinClientErrorCode.RemoteServerReturnedInternalServerError,
-                exception.errorCode
+            OdinClientErrorCode.RemoteServerReturnedInternalServerError,
+            exception.errorCode
         )
     }
 
@@ -208,13 +230,16 @@ class DriveUploadProviderTest {
         // Arrange
         val expectedResult = createTestUpdateResult()
         val responseJson =
-                OdinSystemSerializer
-                        .serialize(expectedResult)
-        val odinClient = MockOdinClientSetup.setupMockOdinClient(responseJson)
-        val provider = DriveUploadProvider(odinClient)
+            OdinSystemSerializer
+                .serialize(expectedResult)
+        val httpClient = MockOdinClientSetup.createMockClient(responseJson)
+        val provider = DriveUploadProvider(httpClient, testCredentialsManager())
 
         // Act
-        val result = provider.pureUpdate(createTestFormData())
+        val result = provider.pureUpdate(
+            createTestFormData(),
+            path = ""
+        )
 
         // Assert
         assertNotNull(result)
@@ -226,23 +251,24 @@ class DriveUploadProviderTest {
     fun testPureUpdate_versionConflict_withCallback() = runTest {
         // Arrange
         val errorJson = """{"errorCode": "VersionTagMismatch", "message": "Version conflict"}"""
-        val odinClient =
-                MockOdinClientSetup.setupMockOdinClient(
-                        responseBody = errorJson,
-                        status = HttpStatusCode.Conflict
-                )
-        val provider = DriveUploadProvider(odinClient)
+        val httpClient =
+            MockOdinClientSetup.createMockClient(
+                responseBody = errorJson,
+                status = HttpStatusCode.Conflict
+            )
+        val provider = DriveUploadProvider(httpClient, testCredentialsManager())
         var callbackInvoked = false
 
         // Act
         val result =
-                provider.pureUpdate(
-                        data = createTestFormData(),
-                        onVersionConflict = {
-                            callbackInvoked = true
-                            null
-                        }
-                )
+            provider.pureUpdate(
+                data = createTestFormData(),
+                path = "",
+                onVersionConflict = {
+                    callbackInvoked = true
+                    null
+                }
+            )
 
         // Assert
         assertTrue(callbackInvoked)
@@ -253,16 +279,21 @@ class DriveUploadProviderTest {
     fun testPureUpdate_notFound_throwsException() = runTest {
         // Arrange
         val errorJson = """{"errorCode": "FileNotFound", "message": "File not found"}"""
-        val odinClient =
-                MockOdinClientSetup.setupMockOdinClient(
-                        responseBody = errorJson,
-                        status = HttpStatusCode.NotFound
-                )
-        val provider = DriveUploadProvider(odinClient)
+        val httpClient =
+            MockOdinClientSetup.createMockClient(
+                responseBody = errorJson,
+                status = HttpStatusCode.NotFound
+            )
+        val provider = DriveUploadProvider(httpClient, testCredentialsManager())
 
         // Act & Assert
         val exception =
-                assertFailsWith<OdinClientException> { provider.pureUpdate(createTestFormData()) }
+            assertFailsWith<OdinClientException> {
+                provider.pureUpdate(
+                    createTestFormData(),
+                    path = ""
+                )
+            }
         assertEquals(OdinClientErrorCode.FileNotFound, exception.errorCode)
     }
 
@@ -270,16 +301,21 @@ class DriveUploadProviderTest {
     fun testPureUpdate_unauthorized_throwsException() = runTest {
         // Arrange
         val errorJson = """{"message": "Unauthorized"}"""
-        val odinClient =
-                MockOdinClientSetup.setupMockOdinClient(
-                        responseBody = errorJson,
-                        status = HttpStatusCode.Unauthorized
-                )
-        val provider = DriveUploadProvider(odinClient)
+        val httpClient =
+            MockOdinClientSetup.createMockClient(
+                responseBody = errorJson,
+                status = HttpStatusCode.Unauthorized
+            )
+        val provider = DriveUploadProvider(httpClient, testCredentialsManager())
 
         // Act & Assert
         val exception =
-                assertFailsWith<OdinClientException> { provider.pureUpdate(createTestFormData()) }
+            assertFailsWith<OdinClientException> {
+                provider.pureUpdate(
+                    createTestFormData(),
+                    path = ""
+                )
+            }
         assertEquals(OdinClientErrorCode.InvalidAuthToken, exception.errorCode)
     }
 
@@ -287,16 +323,21 @@ class DriveUploadProviderTest {
     fun testPureUpload_errorWithIntegerCode() = runTest {
         // Arrange - test that integer error codes are deserialized correctly
         val errorJson = """{"errorCode": 4161, "message": "Invalid file"}"""
-        val odinClient =
-                MockOdinClientSetup.setupMockOdinClient(
-                        responseBody = errorJson,
-                        status = HttpStatusCode.BadRequest
-                )
-        val provider = DriveUploadProvider(odinClient)
+        val httpClient =
+            MockOdinClientSetup.createMockClient(
+                responseBody = errorJson,
+                status = HttpStatusCode.BadRequest
+            )
+        val provider = DriveUploadProvider(httpClient, testCredentialsManager())
 
         // Act & Assert
         val exception =
-                assertFailsWith<OdinClientException> { provider.pureUpload(createTestFormData()) }
+            assertFailsWith<OdinClientException> {
+                provider.pureUpload(
+                    driveId = driveId,
+                    createTestFormData(),
+                )
+            }
         assertEquals(OdinClientErrorCode.InvalidFile, exception.errorCode)
     }
 
@@ -307,10 +348,10 @@ class DriveUploadProviderTest {
         // Arrange
         val expectedResult = LocalMetadataUploadResult(newLocalVersionTag = "v1")
         val responseJson =
-                OdinSystemSerializer
-                        .serialize(expectedResult)
-        val odinClient = MockOdinClientSetup.setupMockOdinClient(responseJson)
-        val provider = DriveUploadProvider(odinClient)
+            OdinSystemSerializer
+                .serialize(expectedResult)
+        val httpClient = MockOdinClientSetup.createMockClient(responseJson)
+        val provider = DriveUploadProvider(httpClient, testCredentialsManager())
         val file = FileIdFileIdentifier(fileId = "test-file-id", targetDrive = testTargetDrive)
         val localAppData = LocalAppData(versionTag = "v0", tags = listOf("tag1", "tag2"))
 
@@ -326,26 +367,26 @@ class DriveUploadProviderTest {
     fun testUploadLocalMetadataTags_versionConflict_withCallback() = runTest {
         // Arrange
         val errorJson = """{"errorCode": "VersionTagMismatch", "message": "Version conflict"}"""
-        val odinClient =
-                MockOdinClientSetup.setupMockOdinClient(
-                        responseBody = errorJson,
-                        status = HttpStatusCode.Conflict
-                )
-        val provider = DriveUploadProvider(odinClient)
+        val httpClient =
+            MockOdinClientSetup.createMockClient(
+                responseBody = errorJson,
+                status = HttpStatusCode.Conflict
+            )
+        val provider = DriveUploadProvider(httpClient, testCredentialsManager())
         val file = FileIdFileIdentifier(fileId = "test-file-id", targetDrive = testTargetDrive)
         val localAppData = LocalAppData(versionTag = "v0", tags = listOf("tag1"))
         var callbackInvoked = false
 
         // Act
         val result =
-                provider.uploadLocalMetadataTags(
-                        file = file,
-                        localAppData = localAppData,
-                        onVersionConflict = {
-                            callbackInvoked = true
-                            null
-                        }
-                )
+            provider.uploadLocalMetadataTags(
+                file = file,
+                localAppData = localAppData,
+                onVersionConflict = {
+                    callbackInvoked = true
+                    null
+                }
+            )
 
         // Assert
         assertTrue(callbackInvoked)
@@ -356,23 +397,23 @@ class DriveUploadProviderTest {
     fun testUploadLocalMetadataTags_versionConflict_callbackReturnsResult() = runTest {
         // Arrange
         val errorJson = """{"errorCode": "VersionTagMismatch", "message": "Version conflict"}"""
-        val odinClient =
-                MockOdinClientSetup.setupMockOdinClient(
-                        responseBody = errorJson,
-                        status = HttpStatusCode.Conflict
-                )
-        val provider = DriveUploadProvider(odinClient)
+        val httpClient =
+            MockOdinClientSetup.createMockClient(
+                responseBody = errorJson,
+                status = HttpStatusCode.Conflict
+            )
+        val provider = DriveUploadProvider(httpClient, testCredentialsManager())
         val file = FileIdFileIdentifier(fileId = "test-file-id", targetDrive = testTargetDrive)
         val localAppData = LocalAppData(versionTag = "v0", tags = listOf("tag1"))
         val retryResult = LocalMetadataUploadResult(newLocalVersionTag = "v2")
 
         // Act
         val result =
-                provider.uploadLocalMetadataTags(
-                        file = file,
-                        localAppData = localAppData,
-                        onVersionConflict = { retryResult }
-                )
+            provider.uploadLocalMetadataTags(
+                file = file,
+                localAppData = localAppData,
+                onVersionConflict = { retryResult }
+            )
 
         // Assert
         assertNotNull(result)
@@ -383,20 +424,20 @@ class DriveUploadProviderTest {
     fun testUploadLocalMetadataTags_badRequest_throwsException() = runTest {
         // Arrange
         val errorJson = """{"errorCode": "ArgumentError", "message": "Invalid request"}"""
-        val odinClient =
-                MockOdinClientSetup.setupMockOdinClient(
-                        responseBody = errorJson,
-                        status = HttpStatusCode.BadRequest
-                )
-        val provider = DriveUploadProvider(odinClient)
+        val httpClient =
+            MockOdinClientSetup.createMockClient(
+                responseBody = errorJson,
+                status = HttpStatusCode.BadRequest
+            )
+        val provider = DriveUploadProvider(httpClient, testCredentialsManager())
         val file = FileIdFileIdentifier(fileId = "test-file-id", targetDrive = testTargetDrive)
         val localAppData = LocalAppData(versionTag = "v0", tags = listOf("tag1"))
 
         // Act & Assert
         val exception =
-                assertFailsWith<OdinClientException> {
-                    provider.uploadLocalMetadataTags(file = file, localAppData = localAppData)
-                }
+            assertFailsWith<OdinClientException> {
+                provider.uploadLocalMetadataTags(file = file, localAppData = localAppData)
+            }
         assertEquals(OdinClientErrorCode.ArgumentError, exception.errorCode)
     }
 
@@ -407,10 +448,10 @@ class DriveUploadProviderTest {
         // Arrange
         val expectedResult = LocalMetadataUploadResult(newLocalVersionTag = "v1")
         val responseJson =
-                OdinSystemSerializer
-                        .serialize(expectedResult)
-        val odinClient = MockOdinClientSetup.setupMockOdinClient(responseJson)
-        val provider = DriveUploadProvider(odinClient)
+            OdinSystemSerializer
+                .serialize(expectedResult)
+        val httpClient = MockOdinClientSetup.createMockClient(responseJson)
+        val provider = DriveUploadProvider(httpClient, testCredentialsManager())
 
         // Create unencrypted HomebaseFile
         val homebaseFile = createTestHomebaseFile(isEncrypted = false)
@@ -418,11 +459,11 @@ class DriveUploadProviderTest {
 
         // Act
         val result =
-                provider.uploadLocalMetadataContent(
-                        targetDrive = testTargetDrive,
-                        file = homebaseFile,
-                        localAppData = localAppData
-                )
+            provider.uploadLocalMetadataContent(
+                targetDrive = testTargetDrive,
+                file = homebaseFile,
+                localAppData = localAppData
+            )
 
         // Assert
         assertNotNull(result)
@@ -433,27 +474,27 @@ class DriveUploadProviderTest {
     fun testUploadLocalMetadataContent_versionConflict_withCallback() = runTest {
         // Arrange
         val errorJson = """{"errorCode": "VersionTagMismatch", "message": "Version conflict"}"""
-        val odinClient =
-                MockOdinClientSetup.setupMockOdinClient(
-                        responseBody = errorJson,
-                        status = HttpStatusCode.Conflict
-                )
-        val provider = DriveUploadProvider(odinClient)
+        val httpClient =
+            MockOdinClientSetup.createMockClient(
+                responseBody = errorJson,
+                status = HttpStatusCode.Conflict
+            )
+        val provider = DriveUploadProvider(httpClient, testCredentialsManager())
         val homebaseFile = createTestHomebaseFile(isEncrypted = false)
         val localAppData = LocalAppData(versionTag = "v0", content = "test content")
         var callbackInvoked = false
 
         // Act
         val result =
-                provider.uploadLocalMetadataContent(
-                        targetDrive = testTargetDrive,
-                        file = homebaseFile,
-                        localAppData = localAppData,
-                        onVersionConflict = {
-                            callbackInvoked = true
-                            null
-                        }
-                )
+            provider.uploadLocalMetadataContent(
+                targetDrive = testTargetDrive,
+                file = homebaseFile,
+                localAppData = localAppData,
+                onVersionConflict = {
+                    callbackInvoked = true
+                    null
+                }
+            )
 
         // Assert
         assertTrue(callbackInvoked)
@@ -463,24 +504,35 @@ class DriveUploadProviderTest {
     // ==================== Helper Methods ====================
 
     private fun createTestHomebaseFile(
-            isEncrypted: Boolean = false
+        isEncrypted: Boolean = false
     ): id.homebase.homebasekmppoc.prototype.lib.drives.files.HomebaseFile {
         return id.homebase.homebasekmppoc.prototype.lib.drives.files.HomebaseFile(
-                fileId = Uuid.random(),
-                fileSystemType =
-                        FileSystemType.Standard,
-                fileState =
-                        id.homebase.homebasekmppoc.prototype.lib.drives.files.HomebaseFileState
-                                .Active,
-                fileMetadata =
-                        id.homebase.homebasekmppoc.prototype.lib.drives.files.FileMetadata(
-                                isEncrypted = isEncrypted,
-                                appData =
-                                        id.homebase.homebasekmppoc.prototype.lib.drives.files
-                                                .AppFileMetaData(fileType = 1)
-                        ),
-                sharedSecretEncryptedKeyHeader =
-                        id.homebase.homebasekmppoc.prototype.lib.crypto.EncryptedKeyHeader.empty()
+            fileId = Uuid.random(),
+            fileSystemType =
+                FileSystemType.Standard,
+            fileState =
+                id.homebase.homebasekmppoc.prototype.lib.drives.files.HomebaseFileState
+                    .Active,
+            fileMetadata =
+                id.homebase.homebasekmppoc.prototype.lib.drives.files.FileMetadata(
+                    isEncrypted = isEncrypted,
+                    appData =
+                        id.homebase.homebasekmppoc.prototype.lib.drives.files
+                            .AppFileMetaData(fileType = 1)
+                ),
+            sharedSecretEncryptedKeyHeader =
+                id.homebase.homebasekmppoc.prototype.lib.crypto.EncryptedKeyHeader.empty()
         )
     }
+
+    suspend fun testCredentialsManager(): CredentialsManager =
+        CredentialsManager().apply {
+            setActiveCredentials(
+                ApiCredentials.create(
+                    domain = "test",
+                    clientAccessToken = "fake-token",
+                    sharedSecret = SecureByteArray(ByteArray(32))
+                )
+            )
+        }
 }

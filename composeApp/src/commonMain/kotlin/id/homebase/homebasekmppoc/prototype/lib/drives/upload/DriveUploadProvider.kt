@@ -132,17 +132,12 @@ class DriveUploadProvider(
 
         val sharedSecret = creds.secret.unsafeBytes
 
-        val sharedSecretEncryptedDescriptor =
-            if (sharedSecret != null) {
-                buildEncryptedUploadDescriptor(
-                    keyHeader,
-                    encryptedMetadata,
-                    sharedSecret,
-                    serializableInstructions.transferIv
-                )
-            } else {
-                null
-            }
+        val sharedSecretEncryptedDescriptor = buildEncryptedUploadDescriptor(
+            keyHeader,
+            encryptedMetadata,
+            sharedSecret,
+            serializableInstructions.transferIv
+        )
 
         val data =
             buildUploadFormData(
@@ -171,16 +166,12 @@ class DriveUploadProvider(
 
         // Build encrypted descriptor
         val sharedSecretEncryptedDescriptor =
-            if (sharedSecret != null) {
-                buildSharedSecretEncryptedUpdateDescriptor(
-                    request.keyHeader,
-                    request.metadata,
-                    sharedSecret,
-                    request.instructions.transferIv
-                )
-            } else {
-                null
-            }
+            buildSharedSecretEncryptedUpdateDescriptor(
+                request.keyHeader,
+                request.metadata,
+                sharedSecret,
+                request.instructions.transferIv
+            )
 
         val data =
             buildUpdateFormData(
@@ -203,16 +194,12 @@ class DriveUploadProvider(
         val sharedSecret = creds.secret.unsafeBytes
         // Build encrypted descriptor
         val sharedSecretEncryptedDescriptor =
-            if (sharedSecret != null) {
-                buildSharedSecretEncryptedUpdateDescriptor(
-                    request.keyHeader,
-                    request.metadata,
-                    sharedSecret,
-                    request.instructions.transferIv
-                )
-            } else {
-                null
-            }
+            buildSharedSecretEncryptedUpdateDescriptor(
+                request.keyHeader,
+                request.metadata,
+                sharedSecret,
+                request.instructions.transferIv
+            )
 
         val data =
             buildUpdateFormData(
