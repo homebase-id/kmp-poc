@@ -6,7 +6,6 @@ import id.homebase.homebasekmppoc.prototype.lib.base.OdinApiProviderBase
 import id.homebase.homebasekmppoc.prototype.lib.client.ApiResponse
 import co.touchlab.kermit.Logger as KLogger
 import id.homebase.homebasekmppoc.prototype.lib.core.OdinClientErrorCode
-import id.homebase.homebasekmppoc.prototype.lib.core.OdinClientException
 import id.homebase.homebasekmppoc.prototype.lib.core.OdinErrorResponse
 import id.homebase.homebasekmppoc.prototype.lib.core.SecureByteArray
 import id.homebase.homebasekmppoc.prototype.lib.crypto.AesCbc
@@ -18,14 +17,9 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.HomebaseFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.ThumbnailFile
-import id.homebase.homebasekmppoc.prototype.lib.http.CreateHttpClientOptions
-import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import io.ktor.client.HttpClient
-import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlinx.serialization.Serializable
@@ -43,20 +37,9 @@ data class LocalAppData(
     val iv: String? = null
 )
 
-// Request classes for local metadata operations
-@Serializable
-private data class LocalMetadataFileReference(
-    val fileId: String,
-    val targetDrive: LocalMetadataTargetDrive
-)
-
-@Serializable
-private data class LocalMetadataTargetDrive(val alias: String, val type: String)
-
 @Serializable
 private data class UpdateLocalMetadataTagsRequest(
     val localVersionTag: String?,
-    val file: LocalMetadataFileReference,
     val tags: List<String>?
 )
 
@@ -64,7 +47,6 @@ private data class UpdateLocalMetadataTagsRequest(
 private data class UpdateLocalMetadataContentRequest(
     val iv: String? = null,
     val localVersionTag: String?,
-    val file: LocalMetadataFileReference,
     val content: String?
 )
 
@@ -128,7 +110,7 @@ class DriveUploadProvider(
 
         val serializableInstructions = request.instructions.toSerializable(manifest)
 
-        val creds = requireCreds();
+        val creds = requireCreds()
 
         val sharedSecret = creds.secret.unsafeBytes
 
@@ -161,7 +143,7 @@ class DriveUploadProvider(
         onVersionConflict: (suspend () -> UpdateFileResult?)? = null
     ): UpdateFileResult? {
 
-        val creds = requireCreds();
+        val creds = requireCreds()
         val sharedSecret = creds.secret.unsafeBytes
 
         // Build encrypted descriptor
@@ -181,7 +163,7 @@ class DriveUploadProvider(
                 thumbnails = request.thumbnails
             )
 
-        val path = "/drives/${request.driveId}/files/${request.fileId}";
+        val path = "/drives/${request.driveId}/files/${request.fileId}"
         return pureUpdate(data, path, onVersionConflict)
     }
 
@@ -190,7 +172,7 @@ class DriveUploadProvider(
         onVersionConflict: (suspend () -> UpdateFileResult?)? = null
     ): UpdateFileResult? {
 
-        val creds = requireCreds();
+        val creds = requireCreds()
         val sharedSecret = creds.secret.unsafeBytes
         // Build encrypted descriptor
         val sharedSecretEncryptedDescriptor =
@@ -209,7 +191,7 @@ class DriveUploadProvider(
                 thumbnails = request.thumbnails
             )
 
-        val path = "/drives/${request.driveId}/files/by-uid/${request.uniqueId}";
+        val path = "/drives/${request.driveId}/files/by-uid/${request.uniqueId}"
         return pureUpdate(data, path, onVersionConflict)
     }
 
@@ -228,19 +210,6 @@ class DriveUploadProvider(
         val requestBody =
             UpdateLocalMetadataTagsRequest(
                 localVersionTag = localAppData.versionTag,
-                file =
-                    LocalMetadataFileReference(
-                        fileId = file.fileId,
-                        targetDrive =
-                            LocalMetadataTargetDrive(
-                                alias =
-                                    file.targetDrive.alias
-                                        .toString(),
-                                type =
-                                    file.targetDrive.type
-                                        .toString()
-                            )
-                    ),
                 tags = localAppData.tags
             )
                 .let { OdinSystemSerializer.json.encodeToString(it) }
@@ -271,8 +240,6 @@ class DriveUploadProvider(
         onVersionConflict: (suspend () -> LocalMetadataUploadResult?)? = null
     ): LocalMetadataUploadResult? {
 
-        val fileIdentifier =
-            FileIdFileIdentifier(fileId = file.fileId.toString(), targetDrive = targetDrive)
 
         val driveId = targetDrive.alias
         val fileId = file.fileId
@@ -307,15 +274,6 @@ class DriveUploadProvider(
             UpdateLocalMetadataContentRequest(
                 iv = ivToSend,
                 localVersionTag = localAppData.versionTag,
-                file =
-                    LocalMetadataFileReference(
-                        fileId = fileIdentifier.fileId,
-                        targetDrive =
-                            LocalMetadataTargetDrive(
-                                alias = fileIdentifier.targetDrive.alias.toString(),
-                                type = fileIdentifier.targetDrive.type.toString()
-                            )
-                    ),
                 content = encryptedContent
             ).let { OdinSystemSerializer.serialize(it) }
 
@@ -349,7 +307,7 @@ class DriveUploadProvider(
 
         val credentials = requireCreds()
         val queryParams =
-            buildMap<String, String> {
+            buildMap {
                 if (fileSystemType != null) {
                     put("xsft", fileSystemType.toString())
                 }

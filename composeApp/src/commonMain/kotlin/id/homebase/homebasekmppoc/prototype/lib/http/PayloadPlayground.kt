@@ -8,7 +8,6 @@ import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthState
 import id.homebase.homebasekmppoc.prototype.lib.drives.DriveDefinition
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileState
 import id.homebase.homebasekmppoc.prototype.lib.drives.GetDrivesByTypeRequest
-import id.homebase.homebasekmppoc.prototype.lib.drives.GetQueryBatchRequest
 import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid

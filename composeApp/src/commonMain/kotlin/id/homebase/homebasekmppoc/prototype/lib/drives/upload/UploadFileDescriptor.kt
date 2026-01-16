@@ -5,8 +5,8 @@ package id.homebase.homebasekmppoc.prototype.lib.drives.upload
 import id.homebase.homebasekmppoc.prototype.lib.crypto.EncryptedKeyHeader
 import id.homebase.homebasekmppoc.prototype.lib.crypto.KeyHeader
 import id.homebase.homebasekmppoc.prototype.lib.drives.AccessControlList
+import id.homebase.homebasekmppoc.prototype.lib.drives.GlobalTransitIdFileIdentifier
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.ArchivalStatus
-import id.homebase.homebasekmppoc.prototype.lib.drives.files.GlobalTransitIdFileIdentifier
 import id.homebase.homebasekmppoc.prototype.lib.serialization.Base64ByteArraySerializer
 import kotlin.io.encoding.Base64
 import kotlinx.serialization.Serializable
@@ -41,12 +41,12 @@ data class UploadAppFileMetaData(
 /** File metadata for uploads. */
 @Serializable
 data class UploadFileMetadata(
-        val allowDistribution: Boolean,
-        val isEncrypted: Boolean,
-        val accessControlList: AccessControlList? = null,
-        val appData: UploadAppFileMetaData,
-        val referencedFile: GlobalTransitIdFileIdentifier? = null,
-        val versionTag: Uuid? = null
+    val allowDistribution: Boolean,
+    val isEncrypted: Boolean,
+    val accessControlList: AccessControlList? = null,
+    val appData: UploadAppFileMetaData,
+    val referencedFile: GlobalTransitIdFileIdentifier? = null,
+    val versionTag: Uuid? = null
 ) {
     /**
      * Encrypts the appData.content using the provided KeyHeader. If keyHeader is null or content is
