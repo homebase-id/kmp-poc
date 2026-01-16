@@ -116,18 +116,20 @@ class DriveUploadProvider(
         onVersionConflict: (suspend () -> CreateFileResult?)? = null
     ): CreateFileResult? {
 
-        val baseMetadata = request.metadata.copy(isEncrypted = true)
+        val isEncrypted = request.metadata.isEncrypted
+
+        val baseMetadata = request.metadata
 
         val keyHeader = KeyHeader.newRandom16()
 
         val encryptedMetadata = baseMetadata.encryptContent(keyHeader)
 
-        val manifest = UploadManifest.build(request.payloads, request.thumbnails, true)
+        val manifest = UploadManifest.build(request.payloads, request.thumbnails, isEncrypted)
 
-        val serializableInstructions =
-            request.instructions.toSerializable(manifest)
+        val serializableInstructions = request.instructions.toSerializable(manifest)
 
         val creds = requireCreds();
+
         val sharedSecret = creds.secret.unsafeBytes
 
         val sharedSecretEncryptedDescriptor =
@@ -383,7 +385,6 @@ class DriveUploadProvider(
                 }
             )
 
-
         Logger.i(TAG) { "drive upload url: [${url}]" }
 
         val response =
@@ -507,31 +508,6 @@ class DriveUploadProvider(
         return AesCbc.encrypt(descriptorBytes, sharedSecret, transferIv)
     }
 
-    private suspend fun handleLocalMetadataError(
-        response: HttpResponse,
-        onVersionConflict: (suspend () -> LocalMetadataUploadResult?)? = null
-    ): LocalMetadataUploadResult? {
-        val errorBody = response.bodyAsText()
-        val errorResponse =
-            try {
-                OdinSystemSerializer.json.decodeFromString<OdinErrorResponse>(errorBody)
-            } catch (_: Exception) {
-                null
-            }
-
-        if (errorResponse?.errorCode == OdinClientErrorCode.VersionTagMismatch &&
-            onVersionConflict != null
-        ) {
-            return onVersionConflict()
-        }
-
-        KLogger.d(TAG) { "[odin-kt] ${response.status}: $errorBody" }
-        throw OdinClientException(
-            errorResponse?.message ?: "Request failed",
-            errorResponse?.errorCode ?: OdinClientErrorCode.UnhandledScenario
-        )
-    }
-
     private suspend fun <T> handleErrorResponse(
         response: ApiResponse,
         onVersionConflict: (suspend () -> T?)? = null,
@@ -560,6 +536,4 @@ class DriveUploadProvider(
         throwForFailure(response)
         return null
     }
-
-
 }

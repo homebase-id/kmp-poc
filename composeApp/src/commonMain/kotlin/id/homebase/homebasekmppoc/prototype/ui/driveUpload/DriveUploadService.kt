@@ -213,7 +213,6 @@ class DriveUploadService(
 //            throw NotImplementedError("todo: handle encryption")
 //        }
 
-
         val result = driveUploadProvider.uploadFile(request)
 
         KLogger.i(TAG) { "Image uploaded successfully: ${result?.fileId.toString()}" }
