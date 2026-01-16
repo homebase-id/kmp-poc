@@ -30,71 +30,38 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
-import id.homebase.homebasekmppoc.prototype.lib.chat.ChatMessageContent
-import id.homebase.homebasekmppoc.prototype.lib.chat.UnifiedConversation
-import id.homebase.homebasekmppoc.prototype.lib.crypto.ContentDecryptor
-import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
+import id.homebase.homebasekmppoc.prototype.lib.chat.ChatMessageData
+import id.homebase.homebasekmppoc.prototype.lib.chat.ConversationData
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.ThumbnailDescriptor
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
-import kotlinx.serialization.json.Json
 
-private val json = Json { ignoreUnknownKeys = true }
-
-/** List of conversations (fileType 8888). Clicking a conversation navigates to its messages. */
+/**
+ * List of conversations (fileType 8888). Clicking a conversation navigates to its messages.
+ *
+ * Note: Content is already decrypted by ConversationProvider.
+ */
 @Composable
 fun ConversationList(
-        items: List<SharedSecretEncryptedFileHeader>,
+        items: List<ConversationData>,
         modifier: Modifier = Modifier,
-        sharedSecret: String? = null,
         onConversationClicked: (conversationId: String) -> Unit
 ) {
         LazyColumn(
                 modifier = modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-                items(items, key = { it.fileId.toString() }) { item ->
+                items(items, key = { it.fileId.toString()}) { item ->
                         ConversationCard(
                                 item = item,
-                                sharedSecret = sharedSecret,
-                                onClick = {
-                                        val uniqueId =
-                                                item.fileMetadata.appData.uniqueId?.toString()
-                                                        ?: item.fileId.toString()
-                                        onConversationClicked(uniqueId)
-                                }
+                                onClick = { onConversationClicked(item.uniqueId.toString()) }
                         )
                 }
         }
 }
 
 @Composable
-fun ConversationCard(
-        item: SharedSecretEncryptedFileHeader,
-        sharedSecret: String? = null,
-        onClick: () -> Unit
-) {
-        var parsedConversation by remember { mutableStateOf<UnifiedConversation?>(null) }
-        var rawContent by remember { mutableStateOf<String?>(null) }
-        var isDecrypting by remember { mutableStateOf(false) }
-
-        val previewThumbnail = item.fileMetadata.appData.previewThumbnail
-
-        LaunchedEffect(item.fileId, sharedSecret) {
-                val content = item.fileMetadata.appData.content
-                if (content != null && item.fileMetadata.isEncrypted && sharedSecret != null) {
-                        isDecrypting = true
-                        val decrypted =
-                                ContentDecryptor.decryptContent(item, sharedSecret) ?: content
-                        rawContent = decrypted
-                        parsedConversation = parseConversation(decrypted)
-                        isDecrypting = false
-                } else {
-                        rawContent = content
-                        parsedConversation = content?.let { parseConversation(it) }
-                }
-        }
-
+fun ConversationCard(item: ConversationData, onClick: () -> Unit) {
         Card(
                 modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -105,7 +72,7 @@ fun ConversationCard(
                                 verticalAlignment = Alignment.Top
                         ) {
                                 // 100x100 preview thumbnail
-                                previewThumbnail?.let { thumb ->
+                                item.previewThumbnail?.let { thumb ->
                                         ThumbnailImage(
                                                 thumbnail = thumb,
                                                 modifier =
@@ -115,31 +82,20 @@ fun ConversationCard(
                                 }
 
                                 Column(modifier = Modifier.weight(1f)) {
-                                        // Show parsed data if available
-                                        if (parsedConversation != null) {
-                                                val conv = parsedConversation!!
-                                                Text("Title: ${conv.title}")
-                                                if (conv.recipients.isNotEmpty()) {
-                                                        Text(
-                                                                "Recipients: ${conv.recipients.joinToString(", ")}"
-                                                        )
-                                                }
-                                        } else if (isDecrypting) {
-                                                Text("Decrypting...")
-                                        } else if (rawContent != null) {
-                                                Text("Content: ${rawContent!!.take(100)}")
-                                        } else {
-                                                Text("(No content)")
+                                        // Show parsed data - already decrypted
+                                        Text("Title: ${item.content.title}")
+                                        if (item.content.recipients.isNotEmpty()) {
+                                                Text(
+                                                        "Recipients: ${item.content.recipients.joinToString(", ")}"
+                                                )
                                         }
 
                                         Spacer(Modifier.height(8.dp))
 
                                         // Metadata
-                                        Text(
-                                                "ID: ${item.fileMetadata.appData.uniqueId ?: item.fileId}"
-                                        )
-                                        Text("Created: ${item.fileMetadata.created}")
-                                        Text("Encrypted: ${item.fileMetadata.isEncrypted}")
+                                        Text("ID: ${item.uniqueId}")
+                                        Text("Created: ${item.created}")
+                                        Text("Encrypted: ${item.isEncrypted}")
                                 }
                         }
 
@@ -151,62 +107,32 @@ fun ConversationCard(
         }
 }
 
-/** List of messages for a conversation (fileType 7878). */
+/**
+ * List of messages for a conversation (fileType 7878).
+ *
+ * Note: Content is already decrypted by ChatMessageProvider.
+ */
 @Composable
 fun ChatMessageList(
-        items: List<SharedSecretEncryptedFileHeader>,
+        items: List<ChatMessageData>,
         modifier: Modifier = Modifier,
-        sharedSecret: String? = null,
         onMessageClicked: (driveId: String, fileId: String) -> Unit
 ) {
         LazyColumn(
                 modifier = modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-                items(items, key = { it.fileId.toString() }) { item ->
+                items(items, key = { it.fileId }) { item ->
                         ChatMessageCard(
                                 item = item,
-                                sharedSecret = sharedSecret,
-                                onClick = {
-                                        onMessageClicked(
-                                                item.driveId.toString(),
-                                                item.fileId.toString()
-                                        )
-                                }
+                                onClick = { onMessageClicked(item.driveId, item.fileId.toString()) }
                         )
                 }
         }
 }
 
 @Composable
-fun ChatMessageCard(
-        item: SharedSecretEncryptedFileHeader,
-        sharedSecret: String? = null,
-        onClick: () -> Unit
-) {
-        var parsedMessage by remember { mutableStateOf<ChatMessageContent?>(null) }
-        var rawContent by remember { mutableStateOf<String?>(null) }
-        var isDecrypting by remember { mutableStateOf(false) }
-
-        val previewThumbnail =
-                item.fileMetadata.appData.previewThumbnail
-                        ?: item.fileMetadata.payloads?.firstOrNull()?.previewThumbnail
-
-        LaunchedEffect(item.fileId, sharedSecret) {
-                val content = item.fileMetadata.appData.content
-                if (content != null && item.fileMetadata.isEncrypted && sharedSecret != null) {
-                        isDecrypting = true
-                        val decrypted =
-                                ContentDecryptor.decryptContent(item, sharedSecret) ?: content
-                        rawContent = decrypted
-                        parsedMessage = parseMessage(decrypted)
-                        isDecrypting = false
-                } else {
-                        rawContent = content
-                        parsedMessage = content?.let { parseMessage(it) }
-                }
-        }
-
+fun ChatMessageCard(item: ChatMessageData, onClick: () -> Unit) {
         Card(
                 modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -217,7 +143,7 @@ fun ChatMessageCard(
                                 verticalAlignment = Alignment.Top
                         ) {
                                 // 100x100 preview thumbnail
-                                previewThumbnail?.let { thumb ->
+                                item.previewThumbnail?.let { thumb ->
                                         ThumbnailImage(
                                                 thumbnail = thumb,
                                                 modifier =
@@ -227,35 +153,26 @@ fun ChatMessageCard(
                                 }
 
                                 Column(modifier = Modifier.weight(1f)) {
-                                        // Show parsed message data if available
-                                        if (parsedMessage != null) {
-                                                val msg = parsedMessage!!
-                                                Text("Message: ${msg.message}")
-                                                Text(
-                                                        "Delivery Status: ${msg.getDeliveryStatusEnum()?.name ?: "Unknown (${msg.deliveryStatus})"}"
-                                                )
-                                                if (msg.replyId != null) {
-                                                        Text("Reply To: ${msg.replyId}")
-                                                }
-                                                if (msg.isEdited) {
-                                                        Text("Edited: Yes")
-                                                }
-                                        } else if (isDecrypting) {
-                                                Text("Decrypting...")
-                                        } else if (rawContent != null) {
-                                                Text("Content: ${rawContent!!.take(150)}")
-                                        } else {
-                                                Text("(No content)")
+                                        // Show parsed message data - already decrypted
+                                        Text("Message: ${item.content.message}")
+                                        Text(
+                                                "Delivery Status: ${item.content.getDeliveryStatusEnum()?.name ?: "Unknown (${item.content.deliveryStatus})"}"
+                                        )
+                                        if (item.content.replyId != null) {
+                                                Text("Reply To: ${item.content.replyId}")
+                                        }
+                                        if (item.content.isEdited) {
+                                                Text("Edited: Yes")
                                         }
 
                                         Spacer(Modifier.height(8.dp))
 
                                         // Metadata
                                         Text("ID: ${item.fileId}")
-                                        Text("Created: ${item.fileMetadata.created}")
-                                        Text("Encrypted: ${item.fileMetadata.isEncrypted}")
-                                        Text("Payloads: ${item.fileMetadata.payloads?.size ?: 0}")
-                                        item.fileMetadata.senderOdinId?.let { Text("Sender: $it") }
+                                        Text("Created: ${item.created}")
+                                        Text("Encrypted: ${item.isEncrypted}")
+                                        Text("Payloads: ${item.payloads?.size ?: 0}")
+                                        item.sender?.let { Text("Sender: $it") }
                                 }
                         }
 
@@ -306,21 +223,3 @@ fun ThumbnailImage(thumbnail: ThumbnailDescriptor, modifier: Modifier = Modifier
 
 /** Platform-specific function to decode image bytes to ImageBitmap. */
 expect fun decodeImageBitmap(bytes: ByteArray): ImageBitmap?
-
-/** Parse content as UnifiedConversation. */
-private fun parseConversation(content: String): UnifiedConversation? {
-        return try {
-                json.decodeFromString<UnifiedConversation>(content)
-        } catch (e: Exception) {
-                null
-        }
-}
-
-/** Parse content as ChatMessageContent. */
-private fun parseMessage(content: String): ChatMessageContent? {
-        return try {
-                json.decodeFromString<ChatMessageContent>(content)
-        } catch (e: Exception) {
-                null
-        }
-}

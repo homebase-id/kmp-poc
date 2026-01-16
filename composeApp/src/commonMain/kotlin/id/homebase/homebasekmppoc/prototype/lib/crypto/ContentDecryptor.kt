@@ -61,52 +61,7 @@ object ContentDecryptor {
         }
     }
 
-    /**
-     * Decrypts arbitrary encrypted data using the shared secret and encrypted key header.
-     *
-     * @param encryptedData Base64-encoded encrypted data
-     * @param header The file header containing the encrypted key header
-     * @param sharedSecret Base64-encoded shared secret
-     * @return Decrypted bytes, or null if decryption fails
-     */
-    suspend fun decryptData(
-            encryptedData: String,
-            header: SharedSecretEncryptedFileHeader,
-            sharedSecret: String
-    ): ByteArray? {
-        return try {
-            val sharedSecretBytes = Base64.decode(sharedSecret)
-            val keyHeader =
-                    header.sharedSecretEncryptedKeyHeader.decryptAesToKeyHeader(
-                            SecureByteArray(sharedSecretBytes)
-                    )
-            val encryptedBytes = Base64.decode(encryptedData)
-            keyHeader.decrypt(encryptedBytes)
-        } catch (e: Exception) {
-            println("ContentDecryptor: Failed to decrypt data: ${e.message}")
-            null
-        }
-    }
+ 
 
-    /**
-     * Gets the KeyHeader from a SharedSecretEncryptedFileHeader for manual decryption.
-     *
-     * @param header The encrypted file header
-     * @param sharedSecret Base64-encoded shared secret
-     * @return KeyHeader for decryption, or null if decryption fails
-     */
-    suspend fun getKeyHeader(
-            header: SharedSecretEncryptedFileHeader,
-            sharedSecret: String
-    ): KeyHeader? {
-        return try {
-            val sharedSecretBytes = Base64.decode(sharedSecret)
-            header.sharedSecretEncryptedKeyHeader.decryptAesToKeyHeader(
-                    SecureByteArray(sharedSecretBytes)
-            )
-        } catch (e: Exception) {
-            println("ContentDecryptor: Failed to get key header: ${e.message}")
-            null
-        }
-    }
+
 }

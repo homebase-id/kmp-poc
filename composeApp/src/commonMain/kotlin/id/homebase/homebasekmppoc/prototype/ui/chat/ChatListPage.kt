@@ -32,12 +32,13 @@ import androidx.compose.ui.unit.dp
 import id.homebase.homebasekmppoc.lib.config.chatTargetDrive
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthState
-import id.homebase.homebasekmppoc.prototype.lib.chat.Conversation
+import id.homebase.homebasekmppoc.prototype.lib.chat.ConversationData
+import id.homebase.homebasekmppoc.prototype.lib.chat.ConversationProvider
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
-import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.prototype.lib.eventbus.BackendEvent
 import id.homebase.homebasekmppoc.prototype.lib.eventbus.appEventBus
+import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
 import id.homebase.homebasekmppoc.prototype.ui.driveFetch.DriveSync
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.flow.collectLatest
@@ -53,9 +54,7 @@ fun ChatListPage(
         viewModel: ChatListViewModel = koinViewModel()
 ) {
     val authState by youAuthFlowManager.authState.collectAsState()
-    var localQueryResults by remember {
-        mutableStateOf<List<SharedSecretEncryptedFileHeader>?>(null)
-    }
+    var localQueryResults by remember { mutableStateOf<List<ConversationData>?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var isRefreshing by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -72,8 +71,9 @@ fun ChatListPage(
         chatTargetDrive.alias
     }
 
-    // Inject DriveQueryProvider from Koin
+    // Inject DriveQueryProvider and OdinClient from Koin
     val driveQueryProvider: DriveQueryProvider? = koinInject()
+    val odinClient: OdinClient? = koinInject()
 
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
@@ -91,6 +91,10 @@ fun ChatListPage(
                     DriveSync(identityId, driveId, it, DatabaseManager.appDb, appEventBus)
                 }
             }
+
+    // Create ConversationProvider with OdinClient for decryption
+    val conversationProvider =
+            remember(odinClient) { odinClient?.let { ConversationProvider(identityId, it) } }
 
     fun triggerFetch(withProgress: Boolean) {
         if (driveSynchronizer == null) {
@@ -139,14 +143,15 @@ fun ChatListPage(
                 is BackendEvent.DriveEvent.Completed -> {
                     if (event.driveId == driveId) {
                         syncProgress = event
-                        // Fetch local results using Conversation helper
-                        val localResult =
-                                Conversation(identityId)
-                                        .fetchConversations(
-                                                dbm = DatabaseManager.appDb,
-                                                driveId = driveId
-                                        )
-                        localQueryResults = localResult.records
+                        // Fetch local results using ConversationProvider
+                        conversationProvider?.let { provider ->
+                            val result =
+                                    provider.fetchConversations(
+                                            dbm = DatabaseManager.appDb,
+                                            driveId = driveId
+                                    )
+                            localQueryResults = result.records
+                        }
                         isLoading = false
                         isRefreshing = false
                     }
@@ -234,14 +239,10 @@ fun ChatListPage(
                                     color = MaterialTheme.colorScheme.error
                             )
                         } else {
-                            // Extract sharedSecret for decryption
-                            val sharedSecret =
-                                    (authState as? YouAuthState.Authenticated)?.sharedSecret
-
+                            // Content is already decrypted by ConversationProvider
                             localQueryResults?.let { items ->
                                 ConversationList(
                                         items = items,
-                                        sharedSecret = sharedSecret,
                                         onConversationClicked = { uniqueId ->
                                             viewModel.onAction(
                                                     ChatListUiAction.ConversationClicked(uniqueId)
