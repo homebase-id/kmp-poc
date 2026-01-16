@@ -3,22 +3,21 @@ package id.homebase.homebasekmppoc.prototype.lib.drives.files
 import id.homebase.homebasekmppoc.prototype.lib.base.ByteApiResponse
 import id.homebase.homebasekmppoc.prototype.lib.base.CredentialsManager
 import id.homebase.homebasekmppoc.prototype.lib.base.OdinApiProviderBase
-import co.touchlab.kermit.Logger as KLogger
-import id.homebase.homebasekmppoc.prototype.lib.core.OdinClientErrorCode
-import id.homebase.homebasekmppoc.prototype.lib.core.OdinClientException
 import id.homebase.homebasekmppoc.prototype.lib.crypto.AesCbc
 import id.homebase.homebasekmppoc.prototype.lib.crypto.EncryptedKeyHeader
 import id.homebase.homebasekmppoc.prototype.lib.crypto.KeyHeader
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileSystemType
+import id.homebase.homebasekmppoc.prototype.lib.drives.upload.TransferUploadStatus
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import io.ktor.client.HttpClient
 import io.ktor.client.request.*
-import io.ktor.client.statement.*
 import io.ktor.http.*
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
-import kotlinx.serialization.Serializable
 import kotlin.uuid.Uuid
+import co.touchlab.kermit.Logger as KLogger
 
 /** Options for file operations. */
 data class FileOperationOptions(
@@ -94,12 +93,10 @@ public class DriveFileProvider(
             secret = creds.secret
         )
 
-        // 👇 Intentional business rule
         if (response.status == 404) {
             return null
         }
 
-        // 👇 Centralized error handling for everything else
         throwForFailure(response)
 
         return deserialize<HomebaseFile>(response.body)
@@ -312,41 +309,29 @@ public class DriveFileProvider(
      */
     suspend fun getTransferHistory(
         driveId: Uuid,
-        fileId: Uuid,
-        fileSystemType: FileSystemType = FileSystemType.Standard
+        fileId: Uuid
     ): TransferHistory? {
 
         ValidationUtil.requireValidUuid(driveId, "driveId")
         ValidationUtil.requireValidUuid(fileId, "fileId")
 
-        val queryParams = buildMap<String, String> { }
 
-        try {
-            val response =
-                httpClient.get("drives/${driveId}/files/${fileId}/transfer-history") {
-                    url {
-                        queryParams.forEach { (key, value) -> parameters.append(key, value) }
-                    }
-                }
+        val creds = requireCreds()
+        val endpoint = "/drives/${driveId}/files/${fileId}/transfer-history"
 
-            if (response.status == HttpStatusCode.NotFound) {
-                return null
-            }
+        val response = encryptedGet(
+            url = apiUrl(creds.domain, endpoint),
+            token = creds.accessToken,
+            secret = creds.secret
+        )
 
-            if (!response.status.isSuccess()) {
-                KLogger.e(TAG) { "[odin-kt:getTransferHistory] Request failed: ${response.status}" }
-                return null
-            }
-
-            val body = response.bodyAsText()
-            return OdinSystemSerializer.json.decodeFromString<TransferHistory>(body)
-        } catch (e: Exception) {
-            if (e.message?.contains("404") == true) return null
-            KLogger.e(TAG) { "[odin-kt:getTransferHistory] ${e.message}" }
+        if (response.status == 404) {
             return null
-        } finally {
-            // httpClient.close()
         }
+
+        throwForFailure(response);
+
+        return deserialize<TransferHistory>(response.body)
     }
 
     // ==================== DELETE METHODS ====================
@@ -357,60 +342,76 @@ public class DriveFileProvider(
      * @param driveId The target drive containing the file
      * @param fileId The ID of the file to delete
      * @param recipients Optional list of recipients to notify
-     * @param fileSystemType Optional file system type
      * @param hardDelete If true, performs a hard delete instead of soft delete
      * @return True if the file was deleted successfully
-     * @throws OdinClientException on errors
      */
-    suspend fun deleteFile(
+    suspend fun softDeleteFile(
+        driveId: Uuid,
+        fileId: Uuid,
+        recipients: List<String>? = null
+    ): DeleteFileResult {
+
+        ValidationUtil.requireValidUuid(driveId, "driveId")
+        ValidationUtil.requireValidUuid(fileId, "fileId")
+
+        val endpoint = "/drives/$driveId/files/$fileId/delete"
+
+        val creds = requireCreds()
+
+        // fileId not used  because we pass it in via query string
+        val request = DeleteFileRequest(fileId = Uuid.NIL, recipients = recipients)
+
+        val response = encryptedPostJson(
+            url = apiUrl(creds.domain, endpoint),
+            token = creds.accessToken,
+            jsonBody = OdinSystemSerializer.serialize(request),
+            secret = creds.secret
+        )
+
+        throwForFailure(response);
+
+        return deserialize<DeleteFileResult>(response.body)
+    }
+
+    suspend fun hardDeleteFile(
         driveId: Uuid,
         fileId: Uuid,
         recipients: List<String>? = null,
-        fileSystemType: FileSystemType? = null,
-        hardDelete: Boolean = false
     ): Boolean {
 
         ValidationUtil.requireValidUuid(driveId, "driveId")
         ValidationUtil.requireValidUuid(fileId, "fileId")
 
-        val method = if (hardDelete) "hard-delete" else "delete"
-        val endpoint = "drives/${driveId}/files/${fileId}/${method}"
+        val endpoint = "/drives/$driveId/files/$fileId/hard-delete"
+
+        val creds = requireCreds()
 
         // fileId not used  because we pass it in via query string
         val request = DeleteFileRequest(fileId = Uuid.NIL, recipients = recipients)
 
-        try {
-            val response: HttpResponse =
-                httpClient.post(endpoint) {
-                    contentType(ContentType.Application.Json)
-                    setBody(request)
-                }
+        val response = encryptedPostJson(
+            url = apiUrl(creds.domain, endpoint),
+            token = creds.accessToken,
+            jsonBody = OdinSystemSerializer.serialize(request),
+            secret = creds.secret
+        )
 
-            return response.status.isSuccess()
-        } catch (e: OdinClientException) {
-            throw e
-        } catch (e: Exception) {
-            KLogger.e(TAG) { "[odin-kt:deleteFile] ${e.message}" }
-            throw OdinClientException(
-                "Delete file failed: ${e.message}",
-                OdinClientErrorCode.UnhandledScenario,
-                e
-            )
-        } finally {
-            // httpClient.close()
-        }
+        throwForFailure(response);
+
+        return response.status == 200;
     }
 
     /** Deletes multiple files from the drive by file IDs. */
     suspend fun deleteFiles(
         driveId: Uuid,
         fileIds: List<Uuid>,
-        recipients: List<String>? = null,
-        fileSystemType: FileSystemType? = null
-    ): Boolean {
+        recipients: List<String>? = null
+    ): DeleteFileIdBatchResult {
         ValidationUtil.requireValidUuid(driveId, "driveId")
         ValidationUtil.requireValidUuidList(fileIds, "fileIds")
+        val creds = requireCreds()
 
+        val endpoint = "/drives/${driveId}/files/delete-batch/by-file-id";
         val request =
             DeleteFilesBatchRequest(
                 requests =
@@ -422,38 +423,31 @@ public class DriveFileProvider(
                     }
             )
 
-        try {
-            val response: HttpResponse =
-                httpClient.post("/drives/${driveId}/files/delete-batch/by-file-id") {
-                    contentType(ContentType.Application.Json)
-                    setBody(request)
-                }
+        val response = encryptedPostJson(
+            url = apiUrl(creds.domain, endpoint),
+            token = creds.accessToken,
+            jsonBody = OdinSystemSerializer.serialize(request),
+            secret = creds.secret
+        )
 
-            return response.status.isSuccess()
-        } catch (e: OdinClientException) {
-            throw e
-        } catch (e: Exception) {
-            KLogger.e(TAG) { "[odin-kt:deleteFiles] ${e.message}" }
-            throw OdinClientException(
-                "Delete files batch failed: ${e.message}",
-                OdinClientErrorCode.UnhandledScenario,
-                e
-            )
-        } finally {
-            // httpClient.close()
-        }
+        throwForFailure(response);
+
+        return deserialize<DeleteFileIdBatchResult>(response.body)
+
     }
 
     /** Deletes files from the drive by group IDs. */
     suspend fun deleteFilesByGroupId(
         driveId: Uuid,
         groupIds: List<Uuid>,
-        recipients: List<String>? = null,
-        fileSystemType: FileSystemType? = null
-    ): Boolean {
+        recipients: List<String>? = null
+    ): DeleteFilesByGroupIdBatchResult {
         ValidationUtil.requireValidUuid(driveId, "driveId")
         ValidationUtil.requireValidUuidList(groupIds, "groupIds")
 
+        val creds = requireCreds()
+
+        val endpoint = "/drives/${driveId}/files/delete-batch/by-group-id";
         val request =
             DeleteByGroupIdBatchRequest(
                 requests =
@@ -465,26 +459,17 @@ public class DriveFileProvider(
                     }
             )
 
-        try {
-            val response: HttpResponse =
-                httpClient.post("/drives/${driveId}/files/delete-batch/by-group-id") {
-                    contentType(ContentType.Application.Json)
-                    setBody(request)
-                }
+        val response = encryptedPostJson(
+            url = apiUrl(creds.domain, endpoint),
+            token = creds.accessToken,
+            jsonBody = OdinSystemSerializer.serialize(request),
+            secret = creds.secret
+        )
 
-            return response.status.isSuccess()
-        } catch (e: OdinClientException) {
-            throw e
-        } catch (e: Exception) {
-            KLogger.e(TAG) { "[odin-kt:deleteFilesByGroupId] ${e.message}" }
-            throw OdinClientException(
-                "Delete files by group ID batch failed: ${e.message}",
-                OdinClientErrorCode.UnhandledScenario,
-                e
-            )
-        } finally {
-            // httpClient.close()
-        }
+        throwForFailure(response);
+
+        return deserialize<DeleteFilesByGroupIdBatchResult>(response.body)
+
     }
 
     // ==================== PRIVATE HELPER METHODS ====================
@@ -651,6 +636,40 @@ public class DriveFileProvider(
 
 @Serializable
 private data class DeleteFileRequest(val fileId: Uuid, val recipients: List<String>? = null)
+
+@Serializable
+enum class DeleteLinkedFileStatus(val value: String) {
+    @SerialName("enqueued")
+    Enqueued("enqueued"),
+
+    @SerialName("enqueuedfailed")
+    EnqueuedFailed("enqueuedfailed"),
+}
+
+@Serializable
+data class DeleteFileResult(
+    val fileId: Uuid,
+    var localFileDeleted: Boolean,
+    var localFileNotFound: Boolean,
+    val recipientStatus: Map<String, TransferUploadStatus>? = null
+)
+
+@Serializable
+data class DeleteFileIdBatchResult
+    (
+    val results: List<DeleteFileResult>
+)
+
+@Serializable
+data class DeleteFilesByGroupIdBatchResult(
+    val results: List<DeleteFileByGroupIdResult>
+)
+
+@Serializable
+data class DeleteFileByGroupIdResult(
+    val groupId: Uuid,
+    val deleteFileResults: List<DeleteFileResult>
+)
 
 @Serializable
 private data class DeleteFilesBatchRequest(val requests: List<DeleteFileRequest>)

@@ -33,7 +33,7 @@ class DriveFileProviderTest {
         )
 
     @Test
-    fun testDeleteFile_successfulResponse() = runTest {
+    fun testSoftDeleteFile_successfulResponse() = runTest {
         // Arrange
         val odinClient =
             MockOdinClientSetup.setupMockOdinClient(
@@ -44,7 +44,7 @@ class DriveFileProviderTest {
 
         // Act
         val result =
-            provider.deleteFile(
+            provider.softDeleteFile(
                 driveId = testTargetDrive.alias,
                 fileId = Uuid.parse("cfc97c30-7ee0-49d5-b303-c9fa1db6e252")
             )
@@ -54,7 +54,7 @@ class DriveFileProviderTest {
     }
 
     @Test
-    fun testDeleteFile_hardDelete() = runTest {
+    fun testDeleteFile_hardSoftDelete() = runTest {
         // Arrange
         var requestedEndpoint: String? = null
         val mockClient =
@@ -85,7 +85,7 @@ class DriveFileProviderTest {
 
         // Act
         val result =
-            provider.deleteFile(
+            provider.softDeleteFile(
                 driveId = testTargetDrive.alias,
                 fileId = Uuid.parse("cfc97c30-7ee0-49d5-b303-c9fa1db6e252"),
                 hardDelete = true
@@ -97,7 +97,7 @@ class DriveFileProviderTest {
     }
 
     @Test
-    fun testDeleteFile_softDelete() = runTest {
+    fun testDeleteFile_softSoftDelete() = runTest {
         // Arrange
         var requestedEndpoint: String? = null
         val mockClient =
@@ -128,7 +128,7 @@ class DriveFileProviderTest {
 
         // Act
         val result =
-            provider.deleteFile(
+            provider.softDeleteFile(
                 driveId = testTargetDrive.alias,
                 fileId = Uuid.parse("cfc97c30-7ee0-49d5-b303-c9fa1db6e252"),
                 hardDelete = false
@@ -141,7 +141,7 @@ class DriveFileProviderTest {
     }
 
     @Test
-    fun testDeleteFile_withRecipients() = runTest {
+    fun testSoftDeleteFile_withRecipients() = runTest {
         // Arrange
         val odinClient =
             MockOdinClientSetup.setupMockOdinClient(
@@ -152,7 +152,7 @@ class DriveFileProviderTest {
 
         // Act
         val result =
-            provider.deleteFile(
+            provider.softDeleteFile(
                 driveId = testTargetDrive.alias,
                 fileId = Uuid.parse("cfc97c30-7ee0-49d5-b303-c9fa1db6e252"),
                 recipients =
@@ -164,7 +164,7 @@ class DriveFileProviderTest {
     }
 
     @Test
-    fun testDeleteFile_notFound_returnsFalse() = runTest {
+    fun testSoftDeleteFile_notFound_returnsFalse() = runTest {
         // Arrange
         val errorJson = """{"errorCode": "FileNotFound", "message": "File not found"}"""
         val odinClient =
@@ -176,7 +176,7 @@ class DriveFileProviderTest {
 
         // Act
         val result =
-            provider.deleteFile(
+            provider.softDeleteFile(
                 driveId = testTargetDrive.alias,
                 fileId = Uuid.parse("92e7c962-2449-47b8-894c-de1bff1b304d")
             )
@@ -186,7 +186,7 @@ class DriveFileProviderTest {
     }
 
     @Test
-    fun testDeleteFile_emptyTargetDrive_throwsIllegalArgument() = runTest {
+    fun testSoftDeleteFile_emptyTargetDrive_throwsIllegalArgument() = runTest {
         // Arrange
         val odinClient = MockOdinClientSetup.setupMockOdinClient("{}")
         val provider = DriveFileProvider(odinClient)
@@ -194,7 +194,7 @@ class DriveFileProviderTest {
 
         // Act & Assert
         assertFailsWith<IllegalArgumentException> {
-            provider.deleteFile(
+            provider.softDeleteFile(
                 driveId = emptyDrive.alias,
                 fileId = Uuid.parse("cfc97c30-7ee0-49d5-b303-c9fa1db6e252")
             )
@@ -202,19 +202,19 @@ class DriveFileProviderTest {
     }
 
     @Test
-    fun testDeleteFile_emptyFileId_throwsIllegalArgument() = runTest {
+    fun testSoftDeleteFile_emptyFileId_throwsIllegalArgument() = runTest {
         // Arrange
         val odinClient = MockOdinClientSetup.setupMockOdinClient("{}")
         val provider = DriveFileProvider(odinClient)
 
         // Act & Assert
         assertFailsWith<IllegalArgumentException> {
-            provider.deleteFile(driveId = testTargetDrive.alias, fileId = Uuid.NIL)
+            provider.softDeleteFile(driveId = testTargetDrive.alias, fileId = Uuid.NIL)
         }
     }
 
     @Test
-    fun testDeleteFiles_successfulBatchDelete() = runTest {
+    fun testDeleteFiles_successfulBatchSoftDelete() = runTest {
         // Arrange
         val odinClient =
             MockOdinClientSetup.setupMockOdinClient(
@@ -235,7 +235,7 @@ class DriveFileProviderTest {
     }
 
     @Test
-    fun testDeleteFiles_usesCorrectEndpoint() = runTest {
+    fun testSoftDeleteFiles_usesCorrectEndpoint() = runTest {
         // Arrange
         var requestedEndpoint: String? = null
         val mockClient =
@@ -275,7 +275,7 @@ class DriveFileProviderTest {
     }
 
     @Test
-    fun testDeleteFiles_emptyList_throwsIllegalArgument() = runTest {
+    fun testSoftDeleteFiles_emptyList_throwsIllegalArgument() = runTest {
         // Arrange
         val odinClient = MockOdinClientSetup.setupMockOdinClient("{}")
         val provider = DriveFileProvider(odinClient)
@@ -287,7 +287,7 @@ class DriveFileProviderTest {
     }
 
     @Test
-    fun testDeleteFilesByGroupId_successfulBatchDelete() = runTest {
+    fun testDeleteFilesByGroupId_successfulBatchSoftDelete() = runTest {
         // Arrange
         val odinClient =
             MockOdinClientSetup.setupMockOdinClient(
@@ -308,7 +308,7 @@ class DriveFileProviderTest {
     }
 
     @Test
-    fun testDeleteFilesByGroupId_usesCorrectEndpoint() = runTest {
+    fun testSoftDeleteFilesByGroupId_usesCorrectEndpoint() = runTest {
         // Arrange
         var requestedEndpoint: String? = null
         val mockClient =
@@ -348,7 +348,7 @@ class DriveFileProviderTest {
     }
 
     @Test
-    fun testDeleteFilesByGroupId_emptyList_throwsIllegalArgument() = runTest {
+    fun testSoftDeleteFilesByGroupId_emptyList_throwsIllegalArgument() = runTest {
         // Arrange
         val odinClient = MockOdinClientSetup.setupMockOdinClient("{}")
         val provider = DriveFileProvider(odinClient)
@@ -363,7 +363,7 @@ class DriveFileProviderTest {
     }
 
     @Test
-    fun testDeleteFiles_serverError_returnsFalse() = runTest {
+    fun testSoftDeleteFiles_serverError_returnsFalse() = runTest {
         // Arrange
         val errorJson = """{"message": "Internal server error"}"""
         val odinClient =
@@ -385,7 +385,7 @@ class DriveFileProviderTest {
     }
 
     @Test
-    fun testDeleteFile_withFileSystemType() = runTest {
+    fun testSoftDeleteFile_withFileSystemType() = runTest {
         // Arrange
         val odinClient =
             MockOdinClientSetup.setupMockOdinClient(
@@ -396,7 +396,7 @@ class DriveFileProviderTest {
 
         // Act
         val result =
-            provider.deleteFile(
+            provider.softDeleteFile(
                 driveId = testTargetDrive.alias,
                 fileId = Uuid.parse("cfc97c30-7ee0-49d5-b303-c9fa1db6e252"),
                 fileSystemType = FileSystemType.Comment

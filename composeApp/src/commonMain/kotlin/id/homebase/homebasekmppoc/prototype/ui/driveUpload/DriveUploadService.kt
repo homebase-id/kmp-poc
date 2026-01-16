@@ -1,7 +1,10 @@
 package id.homebase.homebasekmppoc.prototype.ui.driveUpload
 
 import id.homebase.homebasekmppoc.lib.image.createThumbnails
+import id.homebase.homebasekmppoc.prototype.lib.base.CredentialsManager
 import id.homebase.homebasekmppoc.prototype.lib.crypto.ByteArrayUtil
+import id.homebase.homebasekmppoc.prototype.lib.crypto.KeyHeader
+import id.homebase.homebasekmppoc.prototype.lib.drives.files.HomebaseFile
 import co.touchlab.kermit.Logger as KLogger
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.ThumbnailFile
@@ -21,6 +24,7 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.upload.CreateFileResult
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.FileUpdateInstructionSet
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UpdateFileByFileIdRequest
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UpdateFileByUniqueIdRequest
+import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UpdateFileResult
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UpdateLocale
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UpdateManifest
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UploadFileRequest
@@ -55,7 +59,10 @@ data class ImageUploadResult(val fileId: String?, val versionTag: String?)
  * @param driveUploadProvider The underlying provider for drive upload operations
  */
 @OptIn(ExperimentalUuidApi::class)
-class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
+class DriveUploadService(
+    private val driveUploadProvider: DriveUploadProvider,
+    private val credentialsManager: CredentialsManager
+) {
 
     companion object {
         private const val TAG = "DriveUploadService"
@@ -267,18 +274,39 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
      *
      * @param driveId The drive containing the file
      * @param fileId The file to update
-     * @param payloadText The new text content
+     * @param newPayloadText The new text content
      */
     suspend fun updateTextPost(
         driveId: Uuid,
         target: UpdateTarget,
-        versionTag: Uuid,
-        contentText: String,
-        payloadText: String
-    ) {
+        header: HomebaseFile,
+        newContentText: String,
+        newPayloadText: String,
+    ): UpdateFileResult? {
         KLogger.d(TAG) { "Updating text post target=$target" }
 
-        val isEncrypted = false
+        val isEncrypted = header.fileMetadata.isEncrypted
+        val versionTag = header.fileMetadata.versionTag
+
+        val credentials = credentialsManager.getActiveCredentials();
+        val secret = credentials!!.sharedSecret
+
+        val keyHeader: KeyHeader =
+            if (isEncrypted) {
+                header.sharedSecretEncryptedKeyHeader
+                    .decryptAesToKeyHeader(secret)
+                    .also {
+                        it.iv = ByteArrayUtil.getRndByteArray(16)
+                    }
+            } else {
+                KeyHeader.empty()
+            }
+
+        if (isEncrypted) {
+            //
+            // TODO: need to encrypt the newContentText and newPayloadText
+            //
+        }
 
         val payloads =
             listOf(
@@ -288,7 +316,7 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
                     filePath = writeTextToTempFile(
                         prefix = "payload_",
                         suffix = ".txt",
-                        content = payloadText
+                        content = newPayloadText
                     )
                 )
             )
@@ -320,7 +348,7 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
                         uniqueId = null,
                         fileType = FILE_TYPE_POST,
                         dataType = DATA_TYPE_POST,
-                        content = OdinSystemSerializer.serialize(contentText)
+                        content = OdinSystemSerializer.serialize(newContentText)
                     )
             )
 
@@ -330,14 +358,14 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
                     UpdateFileByFileIdRequest(
                         driveId = driveId,
                         fileId = target.fileId,
-                        keyHeader = null,
+                        keyHeader = keyHeader,
                         instructions = instructions,
                         metadata = metadata,
                         payloads = payloads,
                         thumbnails = null
                     )
 
-                driveUploadProvider.updateFileByFileId(request)
+                return driveUploadProvider.updateFileByFileId(request)
             }
 
             is UpdateTarget.ByUniqueId -> {
@@ -345,20 +373,19 @@ class DriveUploadService(private val driveUploadProvider: DriveUploadProvider) {
                     UpdateFileByUniqueIdRequest(
                         driveId = driveId,
                         uniqueId = target.uniqueId,
-                        keyHeader = null,
+                        keyHeader = keyHeader,
                         instructions = instructions,
                         metadata = metadata,
                         payloads = payloads,
                         thumbnails = null
                     )
 
-                driveUploadProvider.updateFileByUniqueId(request)
+                return driveUploadProvider.updateFileByUniqueId(request)
             }
         }
 
         KLogger.i(TAG) { "Text post updated successfully: target=$target" }
     }
-
 
 
     /**

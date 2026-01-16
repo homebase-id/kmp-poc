@@ -21,8 +21,6 @@ import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
 import io.ktor.http.content.TextContent
 import io.ktor.http.contentType
-import io.ktor.utils.io.core.String
-
 
 data class ByteApiResponse(
     val status: Int,
@@ -35,6 +33,8 @@ abstract class OdinApiProviderBase(
     protected val httpClient: HttpClient,
     protected val credentialsManager: CredentialsManager
 ) {
+
+    private val HOST_URL_REGEX = Regex("""^[a-zA-Z][a-zA-Z0-9+.-]*://[^/]+""")
 
     protected data class ActiveCreds(
         val domain: String,
@@ -100,12 +100,13 @@ abstract class OdinApiProviderBase(
     // ------------------------------------------------------------
     // Plain requests (JSON already serialized)
     // ------------------------------------------------------------
-
     protected suspend fun plainGet(
         url: String,
         token: String
-    ): ApiResponse =
-        request(
+    ): ApiResponse {
+        requireHostInUrl(url)
+
+        return request(
             {
                 httpClient.get(url) {
                     bearerAuth(token)
@@ -114,13 +115,16 @@ abstract class OdinApiProviderBase(
             },
             secret = null
         )
+    }
 
     protected suspend fun plainPutJson(
         url: String,
         token: String,
         jsonBody: String
-    ): ApiResponse =
-        request(
+    ): ApiResponse {
+        requireHostInUrl(url)
+
+        return request(
             {
                 httpClient.put(url) {
                     bearerAuth(token)
@@ -131,13 +135,16 @@ abstract class OdinApiProviderBase(
             },
             secret = null
         )
+    }
 
     protected suspend fun plainPatchJson(
         url: String,
         token: String,
         jsonBody: String
-    ): ApiResponse =
-        request(
+    ): ApiResponse {
+        requireHostInUrl(url)
+
+        return request(
             {
                 httpClient.patch(url) {
                     bearerAuth(token)
@@ -148,13 +155,16 @@ abstract class OdinApiProviderBase(
             },
             secret = null
         )
+    }
 
     protected suspend fun plainPostMultipart(
         url: String,
         token: String,
         formData: MultiPartFormDataContent
-    ): ApiResponse =
-        request(
+    ): ApiResponse {
+        requireHostInUrl(url)
+
+        return request(
             {
                 httpClient.post(url) {
                     bearerAuth(token)
@@ -163,13 +173,16 @@ abstract class OdinApiProviderBase(
             },
             secret = null
         )
+    }
 
     protected suspend fun plainPatchMultipart(
         url: String,
         token: String,
         formData: MultiPartFormDataContent
-    ): ApiResponse =
-        request(
+    ): ApiResponse {
+        requireHostInUrl(url)
+
+        return request(
             {
                 httpClient.patch(url) {
                     bearerAuth(token)
@@ -178,18 +191,16 @@ abstract class OdinApiProviderBase(
             },
             secret = null
         )
-
-
-    // ------------------------------------------------------------
-    // Encrypted requests (JSON already serialized)
-    // ------------------------------------------------------------
+    }
 
     protected suspend fun encryptedGet(
         url: String,
         token: String,
         secret: SecureByteArray
-    ): ApiResponse =
-        request(
+    ): ApiResponse {
+        requireHostInUrl(url)
+
+        return request(
             {
                 httpClient.get(url) {
                     bearerAuth(token)
@@ -198,14 +209,17 @@ abstract class OdinApiProviderBase(
             },
             secret = secret
         )
+    }
 
     protected suspend fun encryptedPostJson(
         url: String,
         token: String,
         jsonBody: String,
         secret: SecureByteArray
-    ): ApiResponse =
-        request(
+    ): ApiResponse {
+        requireHostInUrl(url)
+
+        return request(
             {
                 httpClient.post(url) {
                     bearerAuth(token)
@@ -226,39 +240,17 @@ abstract class OdinApiProviderBase(
             },
             secret = secret
         )
-
-    protected suspend fun encryptedPutJson(
-        url: String,
-        token: String,
-        jsonBody: String,
-        secret: SecureByteArray
-    ): ApiResponse =
-        request(
-            {
-                httpClient.put(url) {
-                    bearerAuth(token)
-                    contentType(ContentType.Application.Json)
-                    accept(ContentType.Application.Json)
-                    setBody(
-                        TextContent(
-                            OdinSystemSerializer.json.encodeToString(
-                                CryptoHelper.encryptData(jsonBody, secret.unsafeBytes)
-                            ),
-                            ContentType.Application.Json
-                        )
-                    )
-                }
-            },
-            secret = secret
-        )
+    }
 
     protected suspend fun encryptedPatchJson(
         url: String,
         token: String,
         jsonBody: String,
         secret: SecureByteArray
-    ): ApiResponse =
-        request(
+    ): ApiResponse {
+        requireHostInUrl(url)
+
+        return request(
             {
                 httpClient.patch(url) {
                     bearerAuth(token)
@@ -276,6 +268,7 @@ abstract class OdinApiProviderBase(
             },
             secret = secret
         )
+    }
 
     protected inline fun <reified T> deserialize(json: String): T =
         OdinSystemSerializer.deserialize(json)
@@ -354,6 +347,12 @@ abstract class OdinApiProviderBase(
                 body = body
             )
         )
+    }
+
+    fun requireHostInUrl(url: String) {
+        if (!HOST_URL_REGEX.containsMatchIn(url)) {
+            throw IllegalArgumentException("URL must include a scheme and host: $url")
+        }
     }
 
 }

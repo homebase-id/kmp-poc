@@ -68,10 +68,7 @@ val appModule = module {
 
     single { OdinClientFactory }
 
-    factory<DriveUploadService?> {
-        val provider: DriveUploadProvider? = get()
-        provider?.let { DriveUploadService(it) }
-    }
+    factoryOf(::DriveUploadService)
 
     /* ───────────────────────────
      * ViewModels

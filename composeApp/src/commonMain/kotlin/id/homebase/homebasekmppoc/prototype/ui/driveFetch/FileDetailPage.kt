@@ -133,7 +133,6 @@ fun FileDetailPage(
                 }
             }
 
-
             Spacer(Modifier.height(24.dp))
 
             when {
@@ -148,7 +147,7 @@ fun FileDetailPage(
                         CircularProgressIndicator()
                         Spacer(Modifier.height(12.dp))
                         Text(
-                            text = "Loading file header…",
+                            text = "Loading…",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -186,7 +185,23 @@ fun FileDetailPage(
                     }
                 }
 
-                !state.hasTriedToLoadHeader && !state.error.isNullOrEmpty() -> {
+                !state.successMessage.isNullOrEmpty() -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = state.successMessage ?: "",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+
+                !state.error.isNullOrEmpty() -> {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -198,28 +213,6 @@ fun FileDetailPage(
                             text = state.error ?: "error text empty",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.error
-                        )
-                    }
-                }
-
-                state.hasTriedToLoadHeader -> {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = state.error ?: "File not found",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            text = "The file could not be loaded or does not exist.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
