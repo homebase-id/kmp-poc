@@ -85,14 +85,11 @@ suspend fun buildUploadFormData(
     val runtimePayloads =
         payloads?.map { it.toRuntime(::openFileInput) }
 
-    val runtimeThumbnails =
-        thumbnails?.map { it.toRuntime(::openFileInput) }
-
     return buildFormDataInternal(
         instructionSet = instructionSet,
         sharedSecretEncryptedDescriptor = sharedSecretEncryptedDescriptor,
         payloads = runtimePayloads,
-        thumbnails = runtimeThumbnails
+        thumbnails = thumbnails
     )
 }
 
@@ -115,14 +112,11 @@ suspend fun buildUpdateFormData(
         val runtimePayloads =
             payloads?.map { it.toRuntime(::openFileInput) }
 
-        val runtimeThumbnails =
-            thumbnails?.map { it.toRuntime(::openFileInput) }
-
         return buildFormDataInternal(
             instructionSet = instructionSet,
             sharedSecretEncryptedDescriptor = sharedSecretEncryptedDescriptor,
             payloads = runtimePayloads,
-            thumbnails = runtimeThumbnails
+            thumbnails = thumbnails
         )
     }
 
@@ -134,7 +128,7 @@ private inline fun <reified T> buildFormDataInternal(
     instructionSet: T,
     sharedSecretEncryptedDescriptor: ByteArray?,
     payloads: List<RuntimePayloadFile>?,
-    thumbnails: List<RuntimeThumbnailFile>?
+    thumbnails: List<ThumbnailFile>?
 ): MultiPartFormDataContent {
 
     val instructionsJson =
@@ -185,7 +179,7 @@ private inline fun <reified T> buildFormDataInternal(
             thumbnails?.forEach { thumbnail ->
                 append(
                     "thumbnail",
-                    thumbnail.input,
+                    thumbnail.payload,
                     Headers.build {
                         append(HttpHeaders.ContentType, thumbnail.contentType)
                         append(
@@ -213,23 +207,3 @@ fun PayloadFile.toRuntime(
         contentType = contentType,
         input = openInput(filePath)
     )
-
-data class RuntimeThumbnailFile(
-    val key: String,
-    val pixelWidth: Int,
-    val pixelHeight: Int,
-    val contentType: String,
-    val input: InputProvider
-)
-
-fun ThumbnailFile.toRuntime(
-    openInput: (String) -> InputProvider
-): RuntimeThumbnailFile =
-    RuntimeThumbnailFile(
-        key = key,
-        pixelWidth = pixelWidth,
-        pixelHeight = pixelHeight,
-        contentType = contentType,
-        input = openInput(filePath)
-    )
-

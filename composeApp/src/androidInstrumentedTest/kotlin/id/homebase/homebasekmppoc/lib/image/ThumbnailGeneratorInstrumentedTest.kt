@@ -2,11 +2,6 @@ package id.homebase.homebasekmppoc.lib.image
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import id.homebase.homebasekmppoc.lib.image.ImageSize
-import id.homebase.homebasekmppoc.lib.image.ThumbnailInstruction
-import id.homebase.homebasekmppoc.lib.image.baseThumbSizes
-import id.homebase.homebasekmppoc.lib.image.createThumbnails
-import id.homebase.homebasekmppoc.lib.image.getRevisedThumbs
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.runner.RunWith

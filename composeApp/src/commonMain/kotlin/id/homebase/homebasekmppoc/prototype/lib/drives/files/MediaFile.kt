@@ -84,15 +84,15 @@ data class PayloadFile(
     }
 }
 
+@Serializable
 data class ThumbnailFile(
     val pixelWidth: Int,
     val pixelHeight: Int,
-    // Per GPT - There is no single stream abstraction that works across JVM, Android, iOS, and JS and is safe to serialize or reuse.
-    // So filePath is the only way to hand in a thumbnail
-    val filePath: String,
+    val payload: ByteArray, // raw bytes -> equivalent to Blob
     val key: String,
     val contentType: String = "image/webp",
-    val quality: Int = 76
+    val quality: Int = 76,
+    val skipEncryption: Boolean = false
 ) {
     // Convenience property to match test expectations
     val imageSize: ImageSize
@@ -106,10 +106,11 @@ data class ThumbnailFile(
 
         if (pixelWidth != other.pixelWidth) return false
         if (pixelHeight != other.pixelHeight) return false
-        if (!filePath.contentEquals(other.filePath)) return false
+        if (!payload.contentEquals(other.payload)) return false
         if (key != other.key) return false
         if (contentType != other.contentType) return false
         if (quality != other.quality) return false
+        if (skipEncryption != other.skipEncryption) return false
 
         return true
     }
@@ -117,13 +118,15 @@ data class ThumbnailFile(
     override fun hashCode(): Int {
         var result = pixelWidth
         result = 31 * result + pixelHeight
-        result = 31 * result + filePath.hashCode()
+        result = 31 * result + payload.contentHashCode()
         result = 31 * result + key.hashCode()
         result = 31 * result + contentType.hashCode()
         result = 31 * result + quality
+        result = 31 * result + skipEncryption.hashCode()
         return result
     }
 }
+
 
 @Serializable
 data class ThumbnailDescriptor(

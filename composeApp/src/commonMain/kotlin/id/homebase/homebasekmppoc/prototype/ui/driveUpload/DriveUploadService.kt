@@ -8,6 +8,7 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.files.HomebaseFile
 import co.touchlab.kermit.Logger as KLogger
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.ThumbnailFile
+import id.homebase.homebasekmppoc.prototype.lib.drives.readFileBytes
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.DriveUploadProvider
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.EmbeddedThumb
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.PostContent
@@ -166,8 +167,9 @@ class DriveUploadService(
 
         val post = createSamplePostContent();
         val contentJson = OdinSystemSerializer.serialize(post)
+        val imageBytes = readFileBytes(filePath)
         val (imageSize, previewThumb, thumbnails) = createThumbnails(
-            filePath,
+            imageBytes,
             payloadKey = payloadKey
         );
 

@@ -1,27 +1,21 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives.query
 
+import id.homebase.homebasekmppoc.prototype.lib.base.ApiCredentials
+import id.homebase.homebasekmppoc.prototype.lib.base.CredentialsManager
+import id.homebase.homebasekmppoc.prototype.lib.core.SecureByteArray
 import id.homebase.homebasekmppoc.prototype.lib.crypto.EncryptedKeyHeader
-import id.homebase.homebasekmppoc.prototype.lib.drives.query.FileQueryParams
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileSystemType
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchRequest
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResponse
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResultOptionsRequest
 import id.homebase.homebasekmppoc.prototype.lib.drives.ServerMetadata
 import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
-import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.AppFileMetaData
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.FileMetadata
 import id.homebase.homebasekmppoc.prototype.lib.http.MockOdinClientSetup
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.mock.MockEngine
-import io.ktor.client.engine.mock.respond
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.headersOf
-import io.ktor.serialization.kotlinx.json.json
-import io.ktor.utils.io.ByteReadChannel
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -30,7 +24,6 @@ import kotlin.test.assertTrue
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.test.runTest
-import kotlin.test.Ignore
 
 /**
  * Unit tests for DriveQueryProvider (new query module version) using OdinClient
@@ -84,8 +77,7 @@ class DriveQueryProviderTest {
         val expectedResponse = createTestResponse()
         val responseJson = OdinSystemSerializer.serialize(expectedResponse)
         val mockClient = createMockClient(responseJson)
-        val odinClient = createTestOdinClient(mockClient)
-        val provider = DriveQueryProvider(odinClient)
+        val provider = DriveQueryProvider(mockClient, testCredentialsManager())
 
         val driveId = Uuid.parse("00000000-0000-0000-0000-000000000001")
 
@@ -105,8 +97,7 @@ class DriveQueryProviderTest {
         val expectedResponse = QueryBatchResponse.fromInvalidDrive("test-drive")
         val responseJson = OdinSystemSerializer.serialize(expectedResponse)
         val mockClient = createMockClient(responseJson)
-        val odinClient = createTestOdinClient(mockClient)
-        val provider = DriveQueryProvider(odinClient)
+        val provider = DriveQueryProvider(mockClient, testCredentialsManager())
         val driveId = Uuid.parse("00000000-0000-0000-0000-000000000001")
 
         // Act
@@ -151,7 +142,7 @@ class DriveQueryProviderTest {
         val responseJson = OdinSystemSerializer.serialize(expectedResponse)
         val mockClient = createMockClient(responseJson)
         val odinClient = createTestOdinClient(mockClient)
-        val provider = DriveQueryProvider(odinClient)
+        val provider = DriveQueryProvider(mockClient, testCredentialsManager())
         val driveId = Uuid.parse("00000000-0000-0000-0000-000000000001")
 
         // Act
@@ -176,7 +167,7 @@ class DriveQueryProviderTest {
         val responseJson = OdinSystemSerializer.serialize(expectedResponse)
         val mockClient = createMockClient(responseJson)
         val odinClient = createTestOdinClient(mockClient)
-        val provider = DriveQueryProvider(odinClient)
+        val provider = DriveQueryProvider(mockClient, testCredentialsManager())
 
         val driveId = Uuid.parse("00000000-0000-0000-0000-000000000001")
 
@@ -187,4 +178,15 @@ class DriveQueryProviderTest {
         assertTrue(result.searchResults.isEmpty())
         assertEquals("empty", result.name)
     }
+
+    suspend fun testCredentialsManager(): CredentialsManager =
+        CredentialsManager().apply {
+            setActiveCredentials(
+                ApiCredentials.create(
+                    domain = "test",
+                    clientAccessToken = "fake-token",
+                    sharedSecret = SecureByteArray(ByteArray(32))
+                )
+            )
+        }
 }

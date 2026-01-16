@@ -1,9 +1,7 @@
 package id.homebase.homebasekmppoc.lib.image
 
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.ThumbnailFile
-import id.homebase.homebasekmppoc.prototype.lib.drives.readFileBytes
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.EmbeddedThumb
-import id.homebase.homebasekmppoc.prototype.lib.drives.writeBytesToTempFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.io.encoding.Base64
@@ -11,11 +9,6 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
-
-data class ThumbnailResult(
-    val file: ThumbnailFile,
-    val bytes: ByteArray
-)
 
 // Thumb presets
 val baseThumbSizes = listOf(
@@ -30,10 +23,7 @@ val tinyThumbSize = ThumbnailInstruction(quality = 76, maxPixelDimension = 20, m
 @OptIn(ExperimentalEncodingApi::class)
 private fun toBase64(bytes: ByteArray): String = Base64.encode(bytes)
 
-fun getRevisedThumbs(
-    sourceSize: ImageSize,
-    thumbs: List<ThumbnailInstruction>
-): List<ThumbnailInstruction> {
+fun getRevisedThumbs(sourceSize: ImageSize, thumbs: List<ThumbnailInstruction>): List<ThumbnailInstruction> {
     val sourceMax = max(sourceSize.pixelWidth, sourceSize.pixelHeight)
     val thresholdMin = ((90 * sourceMax) / 100.0).roundToInt()
     val thresholdMax = ((110 * sourceMax) / 100.0).roundToInt()
@@ -55,13 +45,7 @@ fun getRevisedThumbs(
         }
 
         val q = if (sourceMax <= 640) 84 else 76
-        keptThumbs.add(
-            ThumbnailInstruction(
-                quality = q,
-                maxPixelDimension = sourceMax,
-                maxBytes = maxBytes
-            )
-        )
+        keptThumbs.add(ThumbnailInstruction(quality = q, maxPixelDimension = sourceMax, maxBytes = maxBytes))
     }
 
     return keptThumbs.sortedBy { it.maxPixelDimension }
@@ -71,19 +55,16 @@ fun getRevisedThumbs(
  * Main entry — mirrors createThumbnails in JS
  */
 suspend fun createThumbnails(
-    filePath: String,
+    imageBytes: ByteArray,
     payloadKey: String,
     thumbSizes: List<ThumbnailInstruction>? = null
 ): Triple<ImageSize, EmbeddedThumb, List<ThumbnailFile>> = withContext(Dispatchers.Default) {
-
-    val imageBytes = readFileBytes(filePath)
 
     // GIF and SVG handling: for SVG files we expect bytes to be svg xml; for GIFs we treat them specially
     // Check these FIRST before trying to decode, as Skia can't decode SVG
     val header = imageBytes.take(16).toByteArray().decodeToString().lowercase()
     val isSvg = header.contains("<svg") || header.contains("<?xml")
-    val isGif =
-        imageBytes.size >= 3 && imageBytes[0] == 0x47.toByte() /* G */ && imageBytes[1] == 0x49.toByte() /* I */ && imageBytes[2] == 0x46.toByte() /* F */
+    val isGif = imageBytes.size >= 3 && imageBytes[0] == 0x47.toByte() /* G */ && imageBytes[1] == 0x49.toByte() /* I */ && imageBytes[2] == 0x46.toByte() /* F */
 
     if (isSvg) {
         // For SVG, we return the original vector format
@@ -93,7 +74,7 @@ suspend fun createThumbnails(
         val vectorThumb = ThumbnailFile(
             pixelWidth = naturalSize.pixelWidth,
             pixelHeight = naturalSize.pixelHeight,
-            filePath = filePath,
+            payload = imageBytes,
             key = payloadKey,
             contentType = "image/svg+xml",
             quality = 100
@@ -102,7 +83,7 @@ suspend fun createThumbnails(
             pixelWidth = naturalSize.pixelWidth,
             pixelHeight = naturalSize.pixelHeight,
             contentType = "image/svg+xml",
-            content = toBase64(imageBytes)
+            content = toBase64(vectorThumb.payload)
         )
 
         return@withContext Triple(naturalSize, embedded, listOf(vectorThumb))
@@ -113,20 +94,18 @@ suspend fun createThumbnails(
 
     if (isGif) {
         // For GIF, create tiny thumb only (webp), no additional thumbnails
-        val tinyThumbFile =
-            createImageThumbnail(filePath, payloadKey, tinyThumbSize, isTinyThumb = true)
+        val tinyThumbFile = createImageThumbnail(imageBytes, payloadKey, tinyThumbSize, isTinyThumb = true)
         val embeddedTiny = EmbeddedThumb(
             pixelWidth = naturalSize.pixelWidth,
             pixelHeight = naturalSize.pixelHeight,
             contentType = "image/webp",
-            content = toBase64(tinyThumbFile.bytes)
+            content = toBase64(tinyThumbFile.payload)
         )
-        return@withContext Triple(naturalSize, embeddedTiny, listOf(tinyThumbFile.file))
+        return@withContext Triple(naturalSize, embeddedTiny, emptyList())
     }
 
     // general image case
-    val tinyThumbFile =
-        createImageThumbnail(filePath, payloadKey, tinyThumbSize, isTinyThumb = true)
+    val tinyThumbFile = createImageThumbnail(imageBytes, payloadKey, tinyThumbSize, isTinyThumb = true)
 
     val requestedSizes = thumbSizes ?: baseThumbSizes
     val applicableThumbs = getRevisedThumbs(naturalSize, requestedSizes)
@@ -134,14 +113,14 @@ suspend fun createThumbnails(
     // Create additional thumbnails (NOT including tiny thumb - only the applicable thumbs)
     val additional = applicableThumbs.map { instr ->
         // create with no tiny flag
-        createImageThumbnail(filePath, payloadKey, instr, isTinyThumb = false).file
+        createImageThumbnail(imageBytes, payloadKey, instr, isTinyThumb = false)
     }
 
     val embeddedTiny = EmbeddedThumb(
-        pixelWidth = tinyThumbFile.file.pixelWidth,
-        pixelHeight = tinyThumbFile.file.pixelHeight,
+        pixelWidth = tinyThumbFile.pixelWidth,
+        pixelHeight = tinyThumbFile.pixelHeight,
         contentType = "image/webp",
-        content = toBase64(tinyThumbFile.bytes)
+        content = toBase64(tinyThumbFile.payload)
     )
 
     return@withContext Triple(naturalSize, embeddedTiny, additional)
@@ -154,19 +133,17 @@ suspend fun createThumbnails(
  * - Returns ThumbnailFile (payload bytes).
  */
 suspend fun createImageThumbnail(
-    filePath: String,
+    imageBytes: ByteArray,
     payloadKey: String,
     instruction: ThumbnailInstruction,
     isTinyThumb: Boolean = false
-): ThumbnailResult = withContext(Dispatchers.Default) {
+): ThumbnailFile = withContext(Dispatchers.Default) {
     // Determine target format (tiny -> webp forced)
     val targetFormat = if (isTinyThumb) ImageFormat.WEBP else instruction.type
 
     val maxDim = instruction.maxPixelDimension
 
     var quality = instruction.quality.coerceIn(1, 100)
-
-    val imageBytes = readFileBytes(filePath)
     var currentInputBytes = imageBytes
 
     // Check if image is already at perfect size and doesn't need processing
@@ -177,20 +154,15 @@ suspend fun createImageThumbnail(
     // This optimization avoids unnecessary re-encoding
     if (naturalMax == maxDim &&
         imageBytes.size <= instruction.maxBytes &&
-        !isTinyThumb
-    ) {
-        return@withContext ThumbnailResult(
-            file = ThumbnailFile(
-                pixelWidth = naturalSize.pixelWidth,
-                pixelHeight = naturalSize.pixelHeight,
-                filePath = filePath,
-                key = payloadKey,
-                contentType = "image/${targetFormat.name.lowercase()}",
-                quality = quality
-            ),
-            bytes = imageBytes
+        !isTinyThumb) {
+        return@withContext ThumbnailFile(
+            pixelWidth = naturalSize.pixelWidth,
+            pixelHeight = naturalSize.pixelHeight,
+            payload = imageBytes,
+            key = payloadKey,
+            contentType = "image/${targetFormat.name.lowercase()}",
+            quality = quality
         )
-
     }
 
     // First resize attempt
@@ -239,12 +211,10 @@ suspend fun createImageThumbnail(
     }
 
     val finalBytes = result.bytes
-
-    // write to a temp file
     val thumb = ThumbnailFile(
         pixelWidth = result.size.pixelWidth,
         pixelHeight = result.size.pixelHeight,
-        filePath = writeBytesToTempFile(finalBytes, "thumb_", suffix = ".${targetFormat.name}"),
+        payload = finalBytes,
         key = payloadKey,
         contentType = when (targetFormat) {
             ImageFormat.WEBP -> "image/webp"
@@ -256,10 +226,7 @@ suspend fun createImageThumbnail(
         quality = quality
     )
 
-    return@withContext ThumbnailResult(
-        file = thumb,
-        bytes = finalBytes
-    )
+    return@withContext thumb
 }
 
 /**
@@ -291,4 +258,3 @@ private fun getSvgDimensions(svgData: ByteArray): ImageSize? {
         null
     }
 }
-

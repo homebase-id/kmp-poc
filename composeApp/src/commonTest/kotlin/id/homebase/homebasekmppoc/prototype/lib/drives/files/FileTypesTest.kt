@@ -15,10 +15,10 @@ class FileTypesTest {
 
     // Test data
     private val testTargetDrive =
-            TargetDrive(
-                    alias = Uuid.parse("00000000-0000-0000-0000-000000000001"),
-                    type = Uuid.parse("00000000-0000-0000-0000-000000000002")
-            )
+        TargetDrive(
+            alias = Uuid.parse("00000000-0000-0000-0000-000000000001"),
+            type = Uuid.parse("00000000-0000-0000-0000-000000000002")
+        )
 
     private val testFileId = Uuid.parse("00000000-0000-0000-0000-000000000003")
 
@@ -40,8 +40,8 @@ class FileTypesTest {
         assertEquals(SecurityGroupType.Connected, SecurityGroupType.fromString("connected"))
         assertEquals(SecurityGroupType.Owner, SecurityGroupType.fromString("owner"))
         assertEquals(
-                SecurityGroupType.Anonymous,
-                SecurityGroupType.fromString("unknown")
+            SecurityGroupType.Anonymous,
+            SecurityGroupType.fromString("unknown")
         ) // Default
     }
 
@@ -52,8 +52,8 @@ class FileTypesTest {
         assertEquals("none", TransferStatus.None.value)
         assertEquals("delivered", TransferStatus.Delivered.value)
         assertEquals(
-                "recipientidentityreturnedaccessdenied",
-                TransferStatus.RecipientIdentityReturnedAccessDenied.value
+            "recipientidentityreturnedaccessdenied",
+            TransferStatus.RecipientIdentityReturnedAccessDenied.value
         )
     }
 
@@ -62,8 +62,8 @@ class FileTypesTest {
         assertEquals(TransferStatus.None, TransferStatus.fromString("none"))
         assertEquals(TransferStatus.Delivered, TransferStatus.fromString("DELIVERED"))
         assertEquals(
-                TransferStatus.UnknownServerError,
-                TransferStatus.fromString("unknownservererror")
+            TransferStatus.UnknownServerError,
+            TransferStatus.fromString("unknownservererror")
         )
         assertEquals(TransferStatus.None, TransferStatus.fromString("unknown")) // Default
     }
@@ -72,11 +72,11 @@ class FileTypesTest {
     fun `TransferStatus failedStatuses contains all failure statuses`() {
         assertEquals(7, TransferStatus.failedStatuses.size)
         assertTrue(
-                TransferStatus.RecipientIdentityReturnedAccessDenied in
-                        TransferStatus.failedStatuses
+            TransferStatus.RecipientIdentityReturnedAccessDenied in
+                    TransferStatus.failedStatuses
         )
         assertTrue(
-                TransferStatus.SourceFileDoesNotAllowDistribution in TransferStatus.failedStatuses
+            TransferStatus.SourceFileDoesNotAllowDistribution in TransferStatus.failedStatuses
         )
         assertTrue(TransferStatus.RecipientServerNotResponding in TransferStatus.failedStatuses)
         assertTrue(TransferStatus.UnknownServerError in TransferStatus.failedStatuses)
@@ -87,7 +87,7 @@ class FileTypesTest {
     @Test
     fun `TransferStatus isFailedStatus works correctly`() {
         assertTrue(
-                TransferStatus.isFailedStatus(TransferStatus.RecipientIdentityReturnedAccessDenied)
+            TransferStatus.isFailedStatus(TransferStatus.RecipientIdentityReturnedAccessDenied)
         )
         assertTrue(TransferStatus.isFailedStatus(TransferStatus.UnknownServerError))
         assertFalse(TransferStatus.isFailedStatus(TransferStatus.None))
@@ -99,12 +99,12 @@ class FileTypesTest {
     @Test
     fun `RichTextNode creation works correctly`() {
         val node =
-                RichTextNode(
-                        type = "paragraph",
-                        id = "p1",
-                        text = "Hello World",
-                        children = listOf(RichTextNode(type = "bold", text = "Bold text"))
-                )
+            RichTextNode(
+                type = "paragraph",
+                id = "p1",
+                text = "Hello World",
+                children = listOf(RichTextNode(type = "bold", text = "Bold text"))
+            )
 
         assertEquals("paragraph", node.type)
         assertEquals("p1", node.id)
@@ -118,12 +118,12 @@ class FileTypesTest {
         val richText: RichText = listOf(RichTextNode(type = "text", text = "Hello"))
 
         val reaction =
-                CommentReaction(
-                        authorOdinId = "user@example.com",
-                        body = "Great post!",
-                        bodyAsRichText = richText,
-                        mediaPayloadKey = "media-123"
-                )
+            CommentReaction(
+                authorOdinId = "user@example.com",
+                body = "Great post!",
+                bodyAsRichText = richText,
+                mediaPayloadKey = "media-123"
+            )
 
         assertEquals("user@example.com", reaction.authorOdinId)
         assertEquals("Great post!", reaction.body)
@@ -136,12 +136,12 @@ class FileTypesTest {
     @Test
     fun `RecipientTransferSummary creation works correctly`() {
         val summary =
-                RecipientTransferSummary(
-                        totalInOutbox = 5,
-                        totalFailed = 2,
-                        totalDelivered = 10,
-                        totalReadByRecipient = 8
-                )
+            RecipientTransferSummary(
+                totalInOutbox = 5,
+                totalFailed = 2,
+                totalDelivered = 10,
+                totalReadByRecipient = 8
+            )
 
         assertEquals(5, summary.totalInOutbox)
         assertEquals(2, summary.totalFailed)
@@ -152,14 +152,14 @@ class FileTypesTest {
     @Test
     fun `RecipientTransferHistoryEntry creation works correctly`() {
         val entry =
-                RecipientTransferHistoryEntry(
-                        recipient = "user@example.com",
-                        lastUpdated = 1702656000L,
-                        latestTransferStatus = TransferStatus.Delivered,
-                        isInOutbox = "false",
-                        latestSuccessfullyDeliveredVersionTag = "v1",
-                        isReadByRecipient = true
-                )
+            RecipientTransferHistoryEntry(
+                recipient = "user@example.com",
+                lastUpdated = 1702656000L,
+                latestTransferStatus = TransferStatus.Delivered,
+                isInOutbox = "false",
+                latestSuccessfullyDeliveredVersionTag = "v1",
+                isReadByRecipient = true
+            )
 
         assertEquals("user@example.com", entry.recipient)
         assertEquals(TransferStatus.Delivered, entry.latestTransferStatus)
@@ -184,13 +184,13 @@ class FileTypesTest {
     @Test
     fun `HomebaseFile isActive and isDeleted work correctly`() {
         val activeFile =
-                HomebaseFile(
-                        fileId = testFileId,
-                        fileSystemType = FileSystemType.Standard,
-                        fileState = HomebaseFileState.Active,
-                        fileMetadata = FileMetadata(),
-                        sharedSecretEncryptedKeyHeader = EncryptedKeyHeader.empty()
-                )
+            HomebaseFile(
+                fileId = testFileId,
+                fileSystemType = FileSystemType.Standard,
+                fileState = HomebaseFileState.Active,
+                fileMetadata = FileMetadata(),
+                sharedSecretEncryptedKeyHeader = EncryptedKeyHeader.empty()
+            )
 
         assertTrue(activeFile.isActive)
         assertFalse(activeFile.isDeleted)
@@ -215,7 +215,7 @@ class FileTypesTest {
     fun `GlobalTransitIdFileIdentifier creation works correctly`() {
         val gtid = Uuid.parse("00000000-0000-0000-0000-000000000004")
         val identifier =
-                GlobalTransitIdFileIdentifier(globalTransitId = gtid, targetDrive = testTargetDrive)
+            GlobalTransitIdFileIdentifier(globalTransitId = gtid, targetDrive = testTargetDrive)
 
         assertEquals(gtid, identifier.globalTransitId)
         assertEquals(testTargetDrive, identifier.targetDrive)
@@ -247,7 +247,7 @@ class FileTypesTest {
     @Test
     fun `MediaFile creation works correctly`() {
         val mediaFile =
-                MediaFile(fileId = "file-123", key = "payload-key", contentType = "image/jpeg")
+            MediaFile(fileId = "file-123", key = "payload-key", contentType = "image/jpeg")
 
         assertEquals("file-123", mediaFile.fileId)
         assertEquals("payload-key", mediaFile.key)
@@ -256,33 +256,34 @@ class FileTypesTest {
 
     @Test
     fun `PayloadFile creation works correctly`() {
-        val testPayload = byteArrayOf(1, 2, 3, 4)
+        val testPayload = "some file"
         val payloadFile =
-                PayloadFile(
-                        key = "payload-1",
-                        payload = testPayload,
-                        descriptorContent = "description",
-                        skipEncryption = false
-                )
+            PayloadFile(
+                key = "payload-1",
+                filePath = testPayload,
+                descriptorContent = "description",
+                skipEncryption = false
+            )
 
         assertEquals("payload-1", payloadFile.key)
-        assertTrue(testPayload.contentEquals(payloadFile.payload))
+        assertEquals(testPayload, payloadFile.filePath)
         assertEquals("description", payloadFile.descriptorContent)
         assertFalse(payloadFile.skipEncryption)
     }
 
     @Test
     fun `PayloadFile with manual encryption sets iv`() {
-        val testPayload = byteArrayOf(1, 2, 3, 4)
+        val testPayload = "some file"
+
         val testIv = byteArrayOf(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
 
         val payloadFile =
-                PayloadFile(
-                        key = "payload-1",
-                        payload = testPayload,
-                        skipEncryption = true,
-                        iv = testIv
-                )
+            PayloadFile(
+                key = "payload-1",
+                filePath = testPayload,
+                skipEncryption = true,
+                iv = testIv
+            )
 
         assertTrue(payloadFile.skipEncryption)
         assertTrue(testIv.contentEquals(payloadFile.iv!!))
@@ -309,13 +310,13 @@ class FileTypesTest {
     @Test
     fun `NewAppFileMetaData creation works correctly`() {
         val appData =
-                NewAppFileMetaData(
-                        content = "Test content",
-                        fileType = 100,
-                        dataType = 200,
-                        tags = listOf("tag1", "tag2"),
-                        archivalStatus = ArchivalStatus.None
-                )
+            NewAppFileMetaData(
+                content = "Test content",
+                fileType = 100,
+                dataType = 200,
+                tags = listOf("tag1", "tag2"),
+                archivalStatus = ArchivalStatus.None
+            )
 
         assertEquals("Test content", appData.content)
         assertEquals(100, appData.fileType)
@@ -328,12 +329,12 @@ class FileTypesTest {
     fun `NewFileMetadata creation works correctly`() {
         val appData = NewAppFileMetaData(content = "Test")
         val metadata =
-                NewFileMetadata(
-                        isEncrypted = true,
-                        originalAuthor = "author@example.com",
-                        appData = appData,
-                        versionTag = "v1"
-                )
+            NewFileMetadata(
+                isEncrypted = true,
+                originalAuthor = "author@example.com",
+                appData = appData,
+                versionTag = "v1"
+            )
 
         assertTrue(metadata.isEncrypted)
         assertEquals("author@example.com", metadata.originalAuthor)
@@ -344,11 +345,11 @@ class FileTypesTest {
     @Test
     fun `FileAccessControlList creation with SecurityGroupType works`() {
         val acl =
-                FileAccessControlList(
-                        requiredSecurityGroup = SecurityGroupType.Connected,
-                        circleIdList = listOf("circle1", "circle2"),
-                        odinIdList = listOf("user1@example.com")
-                )
+            FileAccessControlList(
+                requiredSecurityGroup = SecurityGroupType.Connected,
+                circleIdList = listOf("circle1", "circle2"),
+                odinIdList = listOf("user1@example.com")
+            )
 
         assertEquals(SecurityGroupType.Connected, acl.requiredSecurityGroup)
         assertEquals(2, acl.circleIdList?.size)
@@ -368,26 +369,26 @@ class FileTypesTest {
         val appData = NewAppFileMetaData(content = "New file content")
         val metadata = NewFileMetadata(appData = appData)
         val newFile =
-                NewHomebaseFile(
-                        fileId = testFileId,
-                        fileSystemType = "Standard",
-                        fileMetadata = metadata,
-                        serverMetadata =
-                                NewServerMetaData(
-                                        accessControlList =
-                                                FileAccessControlList(
-                                                        requiredSecurityGroup =
-                                                                SecurityGroupType.Owner
-                                                )
-                                )
-                )
+            NewHomebaseFile(
+                fileId = testFileId,
+                fileSystemType = "Standard",
+                fileMetadata = metadata,
+                serverMetadata =
+                    NewServerMetaData(
+                        accessControlList =
+                            FileAccessControlList(
+                                requiredSecurityGroup =
+                                    SecurityGroupType.Owner
+                            )
+                    )
+            )
 
         assertEquals(testFileId, newFile.fileId)
         assertEquals("Standard", newFile.fileSystemType)
         assertEquals("New file content", newFile.fileMetadata.appData.content)
         assertEquals(
-                SecurityGroupType.Owner,
-                newFile.serverMetadata?.accessControlList?.requiredSecurityGroup
+            SecurityGroupType.Owner,
+            newFile.serverMetadata?.accessControlList?.requiredSecurityGroup
         )
     }
 }

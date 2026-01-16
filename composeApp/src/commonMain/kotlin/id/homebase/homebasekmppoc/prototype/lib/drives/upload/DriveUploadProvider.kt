@@ -101,16 +101,12 @@ data class UpdateFileByUniqueIdRequest(
 /** Provider for drive upload and update operations. Ported from JS/TS odin-js UploadProvider. */
 @OptIn(ExperimentalEncodingApi::class)
 class DriveUploadProvider(
-    private val client: OdinClient,
     httpClient: HttpClient,
     credentialsManager: CredentialsManager
 ) : OdinApiProviderBase(httpClient, credentialsManager) {
 
     companion object {
         private const val TAG = "DriveUploadProvider"
-        private const val LOCAL_METADATA_TAGS_ENDPOINT = "drive/files/update-local-metadata-tags"
-        private const val LOCAL_METADATA_CONTENT_ENDPOINT =
-            "drive/files/update-local-metadata-content"
     }
 
     // ==================== HIGH-LEVEL UPLOAD METHODS ====================
@@ -131,7 +127,8 @@ class DriveUploadProvider(
         val serializableInstructions =
             request.instructions.toSerializable(manifest)
 
-        val sharedSecret = client.getSharedSecret()
+        val creds = requireCreds();
+        val sharedSecret = creds.secret.unsafeBytes
 
         val sharedSecretEncryptedDescriptor =
             if (sharedSecret != null) {
@@ -167,7 +164,8 @@ class DriveUploadProvider(
         onVersionConflict: (suspend () -> UpdateFileResult?)? = null
     ): UpdateFileResult? {
 
-        val sharedSecret = client.getSharedSecret()
+        val creds = requireCreds();
+        val sharedSecret = creds.secret.unsafeBytes
 
         // Build encrypted descriptor
         val sharedSecretEncryptedDescriptor =
@@ -199,8 +197,8 @@ class DriveUploadProvider(
         onVersionConflict: (suspend () -> UpdateFileResult?)? = null
     ): UpdateFileResult? {
 
-        val sharedSecret = client.getSharedSecret()
-
+        val creds = requireCreds();
+        val sharedSecret = creds.secret.unsafeBytes
         // Build encrypted descriptor
         val sharedSecretEncryptedDescriptor =
             if (sharedSecret != null) {
@@ -234,7 +232,9 @@ class DriveUploadProvider(
         localAppData: LocalAppData,
         onVersionConflict: (suspend () -> LocalMetadataUploadResult?)? = null
     ): LocalMetadataUploadResult? {
-        val httpClient = client.createHttpClient(CreateHttpClientOptions(overrideEncryption = true))
+
+        val driveId = file.targetDrive.alias
+        val fileId = file.fileId
 
         val requestBody =
             UpdateLocalMetadataTagsRequest(
@@ -256,22 +256,22 @@ class DriveUploadProvider(
             )
                 .let { OdinSystemSerializer.json.encodeToString(it) }
 
-        try {
-            val response =
-                httpClient.patch(LOCAL_METADATA_TAGS_ENDPOINT) {
-                    contentType(ContentType.Application.Json)
-                    setBody(requestBody)
-                }
+        val creds = requireCreds()
 
-            if (response.status.isSuccess()) {
-                val body = response.bodyAsText()
-                return OdinSystemSerializer.json.decodeFromString<LocalMetadataUploadResult>(body)
-            }
+        val endpoint = "/drives/${driveId}/files/${fileId}/update-local-metadata-tags"
+        val response =
+            encryptedPatchJson(
+                url = apiUrl(creds.domain, endpoint),
+                token = creds.accessToken,
+                jsonBody = requestBody,
+                secret = creds.secret
+            )
 
-            return handleLocalMetadataError(response, onVersionConflict)
-        } finally {
-            // httpClient.close()
+        if (response.status in 200..299) {
+            return deserialize(response.body)
         }
+
+        return handleErrorResponse(response, onVersionConflict) { it() }
     }
 
     /** Updates local metadata content for a file. */
@@ -281,28 +281,22 @@ class DriveUploadProvider(
         localAppData: LocalAppData,
         onVersionConflict: (suspend () -> LocalMetadataUploadResult?)? = null
     ): LocalMetadataUploadResult? {
+
         val fileIdentifier =
             FileIdFileIdentifier(fileId = file.fileId.toString(), targetDrive = targetDrive)
 
-        // Decrypt key header if file is encrypted
+        val driveId = targetDrive.alias
+        val fileId = file.fileId
+
+        val creds = requireCreds()
+
+        // Decrypt key header if needed
         val decryptedKeyHeader: KeyHeader? =
             if (file.fileMetadata.isEncrypted) {
-                val sharedSecret = client.getSharedSecret()
-                if (sharedSecret != null) {
-                    file.sharedSecretEncryptedKeyHeader.decryptAesToKeyHeader(
-                        SecureByteArray(sharedSecret)
-                    )
-                } else {
-                    throw OdinClientException(
-                        "Missing shared secret for encrypted file",
-                        OdinClientErrorCode.SharedSecretEncryptionIsInvalid
-                    )
-                }
-            } else {
-                null
-            }
+                file.sharedSecretEncryptedKeyHeader.decryptAesToKeyHeader(creds.secret)
+            } else null
 
-        // Generate new IV and encrypt content if needed
+        // Build key header with new IV
         val keyHeader: KeyHeader? =
             if (file.fileMetadata.isEncrypted && decryptedKeyHeader != null) {
                 KeyHeader(
@@ -310,20 +304,15 @@ class DriveUploadProvider(
                         ?: ByteArrayUtil.getRndByteArray(16),
                     aesKey = decryptedKeyHeader.aesKey
                 )
-            } else {
-                null
-            }
+            } else null
 
         val (ivToSend, encryptedContent) =
             if (keyHeader != null && localAppData.content != null) {
-                val contentBytes = localAppData.content.encodeToByteArray()
-                val encrypted = keyHeader.encryptDataAes(contentBytes)
+                val encrypted = keyHeader.encryptDataAes(localAppData.content.encodeToByteArray())
                 Base64.encode(keyHeader.iv) to Base64.encode(encrypted)
             } else {
                 null to localAppData.content
             }
-
-        val httpClient = client.createHttpClient(CreateHttpClientOptions(overrideEncryption = true))
 
         val requestBody =
             UpdateLocalMetadataContentRequest(
@@ -334,35 +323,30 @@ class DriveUploadProvider(
                         fileId = fileIdentifier.fileId,
                         targetDrive =
                             LocalMetadataTargetDrive(
-                                alias =
-                                    fileIdentifier.targetDrive
-                                        .alias.toString(),
-                                type =
-                                    fileIdentifier.targetDrive
-                                        .type.toString()
+                                alias = fileIdentifier.targetDrive.alias.toString(),
+                                type = fileIdentifier.targetDrive.type.toString()
                             )
                     ),
                 content = encryptedContent
+            ).let { OdinSystemSerializer.serialize(it) }
+
+        val endpoint = "/drives/${driveId}/files/${fileId}/update-local-metadata-content"
+        val response =
+            encryptedPatchJson(
+                url = apiUrl(creds.domain, endpoint),
+                token = creds.accessToken,
+                jsonBody = requestBody,
+                secret = creds.secret
             )
-                .let { OdinSystemSerializer.json.encodeToString(it) }
 
-        try {
-            val response =
-                httpClient.patch(LOCAL_METADATA_CONTENT_ENDPOINT) {
-                    contentType(ContentType.Application.Json)
-                    setBody(requestBody)
-                }
-
-            if (response.status.isSuccess()) {
-                val body = response.bodyAsText()
-                return OdinSystemSerializer.json.decodeFromString<LocalMetadataUploadResult>(body)
-            }
-
-            return handleLocalMetadataError(response, onVersionConflict)
-        } finally {
-            // httpClient.close()
+        if (response.status in 200..299) {
+            return deserialize(response.body)
         }
+
+        return handleErrorResponse(response, onVersionConflict) { it() }
+
     }
+
 
     // ==================== LOW-LEVEL UPLOAD METHODS ====================
 
