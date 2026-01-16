@@ -1,5 +1,6 @@
 package id.homebase.homebasekmppoc.prototype
 
+import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.usePinned
@@ -9,7 +10,7 @@ import platform.Foundation.NSUUID
 import platform.Foundation.create
 import platform.Foundation.writeToFile
 
-@OptIn(ExperimentalForeignApi::class)
+@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 private fun ByteArray.toNSData(): NSData =
     usePinned { pinned ->
         NSData.create(

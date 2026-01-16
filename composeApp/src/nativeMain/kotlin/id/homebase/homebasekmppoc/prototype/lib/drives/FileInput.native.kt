@@ -10,7 +10,7 @@ import platform.Foundation.dataWithContentsOfFile
 import platform.posix.memcpy
 import platform.Foundation.*
 
-@OptIn(ExperimentalForeignApi::class)
+@OptIn(ExperimentalForeignApi::class, kotlinx.cinterop.BetaInteropApi::class)
 actual fun openFileInput(path: String): InputProvider =
     InputProvider {
         val data = NSData.dataWithContentsOfFile(path)
@@ -27,7 +27,7 @@ actual fun openFileInput(path: String): InputProvider =
     }
 
 
-@OptIn(ExperimentalForeignApi::class)
+@OptIn(ExperimentalForeignApi::class, kotlinx.cinterop.BetaInteropApi::class)
 actual suspend fun readFileBytes(path: String): ByteArray {
     val data = NSData.dataWithContentsOfFile(path)
         ?: error("Unable to read file at $path")
@@ -39,7 +39,7 @@ actual suspend fun readFileBytes(path: String): ByteArray {
     return bytes
 }
 
-@OptIn(ExperimentalForeignApi::class)
+@OptIn(ExperimentalForeignApi::class, kotlinx.cinterop.BetaInteropApi::class)
 actual suspend fun writeBytesToTempFile(
     bytes: ByteArray,
     prefix: String,
