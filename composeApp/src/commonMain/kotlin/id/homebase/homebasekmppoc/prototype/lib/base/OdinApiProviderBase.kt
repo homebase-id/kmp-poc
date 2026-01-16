@@ -21,6 +21,7 @@ import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
 import io.ktor.http.content.TextContent
 import io.ktor.http.contentType
+import io.ktor.utils.io.core.String
 
 
 data class ByteApiResponse(
@@ -95,9 +96,6 @@ abstract class OdinApiProviderBase(
             contentType = contentType
         )
     }
-
-
-
 
     // ------------------------------------------------------------
     // Plain requests (JSON already serialized)
@@ -324,4 +322,38 @@ abstract class OdinApiProviderBase(
             }
         }
     }
+
+    protected fun throwForFailure(response: Any) {
+        val status: Int
+        val headers: Headers
+        val body: String
+
+        when (response) {
+            is ApiResponse -> {
+                status = response.status
+                headers = response.headers
+                body = response.body
+            }
+
+            is ByteApiResponse -> {
+                status = response.status
+                headers = response.headers
+                body = runCatching { response.bytes.decodeToString() }
+                    .getOrDefault("")
+            }
+
+            else -> error("Unsupported response type")
+        }
+
+        if (status in 200..299) return
+
+        throwForFailure(
+            ApiResponse(
+                status = status,
+                headers = headers,
+                body = body
+            )
+        )
+    }
+
 }

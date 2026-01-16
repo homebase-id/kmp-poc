@@ -1,6 +1,7 @@
 package id.homebase.homebasekmppoc.di
 
 import id.homebase.homebasekmppoc.lib.youauth.OdinClientFactory
+import id.homebase.homebasekmppoc.lib.youauth.SecurityContextProvider
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.DriveFileProvider
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthProvider
@@ -59,6 +60,8 @@ val appModule = module {
 
     factoryOf(::DriveFileProvider)
 
+    factoryOf(::SecurityContextProvider)
+
     /* ───────────────────────────
      * Services
      * ─────────────────────────── */
@@ -95,7 +98,8 @@ val appModule = module {
         FileDetailViewModel(
             driveId = driveId,
             fileId = fileId,
-            driveFileProvider = getOrNull<DriveFileProvider>()
+            driveFileProvider = get<DriveFileProvider>(),
+            driveUploadService = get<DriveUploadService>()
         )
     }
 }

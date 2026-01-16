@@ -34,14 +34,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalDensity
 import id.homebase.homebasekmppoc.lib.image.toImageBitmap
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.BytesResponse
-import id.homebase.homebasekmppoc.prototype.lib.drives.files.FileOperationOptions
-import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadOperationOptions
+import id.homebase.homebasekmppoc.prototype.ui.driveUpload.DriveUploadService
 
 
 class FileDetailViewModel(
     val driveId: Uuid,
     val fileId: Uuid,
-    private val driveFileProvider: DriveFileProvider?
+    private val driveFileProvider: DriveFileProvider,
+    private val driveUploadService: DriveUploadService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FileDetailUiState())
@@ -72,23 +72,85 @@ class FileDetailViewModel(
 
             is FileDetailUiAction.GetPayloadRangeClicked ->
                 loadPayloadRange(action)
+
+            is FileDetailUiAction.UpdateFileClicked ->
+                updateFile(action)
+        }
+    }
+
+    private fun updateFile(action: FileDetailUiAction.UpdateFileClicked) {
+        val provider = driveUploadService
+
+        val header = _uiState.value.header
+
+        val versionTag = header?.fileMetadata?.versionTag
+        if (versionTag == null) {
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    hasTriedToLoadHeader = false,
+                    error = "Click get header so we know the version tag"
+                )
+            }
+            return
+        }
+
+        val target =
+            when (action) {
+                FileDetailUiAction.UpdateFileClicked.ByFileId ->
+                    DriveUploadService.UpdateTarget.ByFileId(fileId)
+
+                FileDetailUiAction.UpdateFileClicked.ByUniqueId -> {
+                    val uniqueId = header.fileMetadata.appData.uniqueId
+
+                    if (uniqueId == null) {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                hasTriedToLoadHeader = false,
+                                error = "File has no uniqueId; cannot update by uniqueId"
+                            )
+                        }
+                        return
+                    }
+
+                    DriveUploadService.UpdateTarget.ByUniqueId(uniqueId)
+                }
+            }
+
+        viewModelScope.launch {
+            try {
+                provider.updateTextPost(
+                    driveId = driveId,
+                    target = target,
+                    versionTag = versionTag,
+                    contentText = "content post ${Uuid.random()}",
+                    payloadText = "payload text ${Uuid.random()}"
+                )
+            } catch (t: Throwable) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        hasTriedToLoadHeader = false,
+                        error = t.message ?: "Failed to update file"
+                    )
+                }
+            }
         }
     }
 
     private fun loadPayloadRange(action: FileDetailUiAction.GetPayloadRangeClicked) {
-        val provider = driveFileProvider ?: return
+        val provider = driveFileProvider
 
         viewModelScope.launch {
             try {
                 val rangeBytes =
-                    provider.getPayloadBytes(
+                    provider.getPayloadBytesDecrypted(
                         driveId = driveId,
                         fileId = fileId,
                         key = action.payloadKey,
-                        options = PayloadOperationOptions(
-                            chunkStart = action.start,
-                            chunkLength = action.length
-                        )
+                        chunkStart = action.start,
+                        chunkLength = action.length
                     )
 
                 if (rangeBytes != null) {
@@ -104,13 +166,6 @@ class FileDetailViewModel(
     }
 
     private fun softDeleteFile() {
-        if (driveFileProvider == null) {
-            _uiState.update {
-                it.copy(error = "Not authenticated")
-            }
-            return
-        }
-
         viewModelScope.launch {
             _uiState.update {
                 it.copy(isLoading = true, error = null)
@@ -142,13 +197,6 @@ class FileDetailViewModel(
     }
 
     private fun hardDeleteFile() {
-        if (driveFileProvider == null) {
-            _uiState.update {
-                it.copy(error = "Not authenticated")
-            }
-            return
-        }
-
         viewModelScope.launch {
             _uiState.update {
                 it.copy(isLoading = true, error = null)
@@ -180,13 +228,6 @@ class FileDetailViewModel(
     }
 
     private fun loadHeader() {
-        if (driveFileProvider == null) {
-            _uiState.update {
-                it.copy(error = "Not authenticated")
-            }
-            return
-        }
-
         viewModelScope.launch {
             _uiState.update {
                 it.copy(
@@ -217,7 +258,7 @@ class FileDetailViewModel(
     }
 
     private fun loadPayload(action: FileDetailUiAction.ViewPayloadClicked) {
-        val provider = driveFileProvider ?: return
+        val provider = driveFileProvider
 
         viewModelScope.launch {
             val current = _uiState.value
@@ -240,11 +281,10 @@ class FileDetailViewModel(
 
             try {
                 val bytes =
-                    provider.getPayloadBytes(
+                    provider.getPayloadBytesDecrypted(
                         driveId = driveId,
                         fileId = fileId,
-                        key = action.payloadKey,
-                        options = PayloadOperationOptions()
+                        key = action.payloadKey
                     )
 
                 if (bytes != null) {
@@ -262,7 +302,7 @@ class FileDetailViewModel(
 
 
     private fun loadThumbnail(action: FileDetailUiAction.GetThumbnailClicked) {
-        val provider = driveFileProvider ?: return
+        val provider = driveFileProvider
 
         val key = thumbKey(action.payloadKey, action.width, action.height)
 
@@ -272,13 +312,12 @@ class FileDetailViewModel(
         viewModelScope.launch {
             try {
                 val bytes =
-                    provider.getThumbBytes(
+                    provider.getThumbBytesDecrypted(
                         driveId = driveId,
                         fileId = fileId,
                         payloadKey = action.payloadKey,
                         width = action.width,
-                        height = action.height,
-                        options = FileOperationOptions(decrypt = true)
+                        height = action.height
                     )
 
                 if (bytes != null) {
@@ -596,6 +635,11 @@ sealed interface FileDetailUiEvent {
 sealed interface FileDetailUiAction {
     object BackClicked : FileDetailUiAction
     object GetFileHeaderClicked : FileDetailUiAction
+
+    sealed interface UpdateFileClicked : FileDetailUiAction {
+        object ByFileId : UpdateFileClicked
+        object ByUniqueId : UpdateFileClicked
+    }
 
     object HardDeleteClicked : FileDetailUiAction
     object SoftDeleteClicked : FileDetailUiAction
