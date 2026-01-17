@@ -36,6 +36,14 @@ interface BaseConversation {
 data class UnifiedConversation(
         override val title: String = "",
         val recipients: List<String> = emptyList()
+
+        // For ALL converstaion items, single and groups, we need this data here or on the
+        // conversationData to be able to render the overview item without doing additional
+        // lookups:
+        // TODO: Missing tinyThumb
+        // TODO: Latest message 40 chars String
+        // TODO: Latest message timestamp UnixTimeUtc
+        // TODO: function that returns URL to profile picture to load in the background
 ) : BaseConversation
 
 /**
@@ -45,6 +53,8 @@ data class UnifiedConversation(
 data class ConversationData(
         /** FileType of conversation (8888) */
         val fileType: Int = CHAT_CONVERSATION_FILE_TYPE,
+
+        // TODO: Think we're missing a lastRead (localAppData) - anything else?
 
         /** FileId of the conversation */
         val fileId: Uuid?,

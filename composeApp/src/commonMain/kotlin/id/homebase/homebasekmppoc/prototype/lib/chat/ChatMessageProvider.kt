@@ -73,8 +73,19 @@ data class ChatMessageContent(
         /** Optional reply ID if this message is a reply to another message */
         val replyId: Uuid? = null,
 
+        // TODO: redesign replyId
+        // TODO: replyText (the chopped text)
+        // TODO: replyTinyThumb (perhaps even just a 1px background color - dimensions?)
+        // TODO: and a helper function to return the URL to the image (if any)
+
+        // TODO: I think we're also missing the URL preview data here. We need it so we
+        // TODO: don't have to lookup another item.
+        // TODO: And a helper function that returns the URL to the image (background loaded)
+
         /** Content of the message - can be a simple string or rich text */
         val message: String = "",
+        // contentIsComplete is a boolean if true write "more..."
+        // TODO: A helper function to load the text when the user presses "more..."
 
         /** Delivery status of the message (as int value) */
         val deliveryStatus: Int = ChatDeliveryStatus.Sent.value,
