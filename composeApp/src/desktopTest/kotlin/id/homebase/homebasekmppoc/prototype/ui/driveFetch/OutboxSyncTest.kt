@@ -11,7 +11,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlin.test.*
@@ -150,7 +149,14 @@ class OutboxSyncTest {
                 files = null
             )
 
-            sync.send()
+            try
+            {
+                sync.send()
+            }
+            catch (e : Exception)
+            {
+                // It's meant to fail, snatch the exception without an error in the log
+            }
             advanceUntilIdle()
 
             // Wait for the final events too

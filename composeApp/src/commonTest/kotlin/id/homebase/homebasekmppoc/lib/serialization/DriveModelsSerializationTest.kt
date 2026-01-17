@@ -4,13 +4,11 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.AccessControlList
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileState
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileSystemType
 import id.homebase.homebasekmppoc.prototype.lib.drives.ServerMetadata
-import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.AppFileMetaData
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.ArchivalStatus
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.CommentPreview
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.DataSource
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.FileMetadata
-import id.homebase.homebasekmppoc.prototype.lib.drives.files.GlobalTransitIdFileIdentifier
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadDescriptor
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.ReactionEntry
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.ReactionSummary
@@ -28,28 +26,6 @@ import kotlin.uuid.ExperimentalUuidApi
  */
 @ExperimentalUuidApi
 class DriveModelsSerializationTest {
-
-    // ========================================================================
-    // TargetDrive Tests
-    // ========================================================================
-
-    @Test
-    fun testTargetDrive_serialization() {
-        val json =
-                """
-        {
-            "alias": "4db49422ebad02e99ab96e9c477d1e08",
-            "type": "a3227ffba87608beeb24fee9b70d92a6"
-        }
-        """.trimIndent()
-
-        val targetDrive = OdinSystemSerializer.deserialize<TargetDrive>(json)
-
-        assertNotNull(targetDrive)
-        assertEquals("4db49422-ebad-02e9-9ab9-6e9c477d1e08", targetDrive.alias.toString())
-        assertEquals("a3227ffb-a876-08be-eb24-fee9b70d92a6", targetDrive.type.toString())
-        assertTrue(targetDrive.isValid())
-    }
 
     // ========================================================================
     // ThumbnailDescriptor Tests
@@ -403,31 +379,6 @@ class DriveModelsSerializationTest {
         assertNotNull(appData.previewThumbnail)
         assertEquals(2912, appData.previewThumbnail.pixelWidth)
         assertEquals(ArchivalStatus.None, appData.archivalStatus)
-    }
-
-    // ========================================================================
-    // GlobalTransitIdFileIdentifier Tests
-    // ========================================================================
-
-    @Test
-    fun testGlobalTransitIdFileIdentifier_serialization() {
-        val json =
-                """
-        {
-            "targetDrive": {
-                "alias": "4db49422ebad02e99ab96e9c477d1e08",
-                "type": "a3227ffba87608beeb24fee9b70d92a6"
-            },
-            "globalTransitId": "d3faaaf3-9c75-4fe3-9a4f-cee91ab3d667"
-        }
-        """.trimIndent()
-
-        val identifier = OdinSystemSerializer.deserialize<GlobalTransitIdFileIdentifier>(json)
-
-        assertNotNull(identifier)
-        assertEquals("d3faaaf3-9c75-4fe3-9a4f-cee91ab3d667", identifier.globalTransitId.toString())
-        assertNotNull(identifier.targetDrive)
-        assertNotNull(identifier.targetDrive)
     }
 
     // ========================================================================

@@ -10,7 +10,7 @@ data class DriveUploadUiState(
     val isPickingImage: Boolean = false,
     val uploadResult: String? = null,
     val errorMessage: String? = null,
-    val selectedImageBytes: ByteArray? = null,
+    val selectImageFilePath: String? = null,
     val selectedImageName: String? = null,
     val postContent: PostContent? = null
 ) {
@@ -24,10 +24,10 @@ data class DriveUploadUiState(
         if (isPickingImage != other.isPickingImage) return false
         if (uploadResult != other.uploadResult) return false
         if (errorMessage != other.errorMessage) return false
-        if (selectedImageBytes != null) {
-            if (other.selectedImageBytes == null) return false
-            if (!selectedImageBytes.contentEquals(other.selectedImageBytes)) return false
-        } else if (other.selectedImageBytes != null) return false
+        if (selectImageFilePath != null) {
+            if (other.selectImageFilePath == null) return false
+            if (!selectImageFilePath.contentEquals(other.selectImageFilePath)) return false
+        } else if (other.selectImageFilePath != null) return false
         if (selectedImageName != other.selectedImageName) return false
         if (postContent != other.postContent) return false
         return true
@@ -40,7 +40,7 @@ data class DriveUploadUiState(
         result = 31 * result + isPickingImage.hashCode()
         result = 31 * result + (uploadResult?.hashCode() ?: 0)
         result = 31 * result + (errorMessage?.hashCode() ?: 0)
-        result = 31 * result + (selectedImageBytes?.contentHashCode() ?: 0)
+        result = 31 * result + (selectImageFilePath?.hashCode() ?: 0)
         result = 31 * result + (selectedImageName?.hashCode() ?: 0)
         result = 31 * result + (postContent?.hashCode() ?: 0)
         return result
@@ -61,18 +61,18 @@ sealed interface DriveUploadUiAction {
     data object UploadImageClicked : DriveUploadUiAction
 
     /** Image was successfully picked from gallery */
-    data class ImagePicked(val bytes: ByteArray, val name: String) : DriveUploadUiAction {
+    data class ImagePicked(val filePath: String, val name: String) : DriveUploadUiAction {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (other == null || this::class != other::class) return false
             other as ImagePicked
-            if (!bytes.contentEquals(other.bytes)) return false
+            if (!filePath.contentEquals(other.filePath)) return false
             if (name != other.name) return false
             return true
         }
 
         override fun hashCode(): Int {
-            var result = bytes.contentHashCode()
+            var result = filePath.hashCode()
             result = 31 * result + name.hashCode()
             return result
         }

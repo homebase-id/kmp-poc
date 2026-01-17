@@ -1,33 +1,15 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives.upload
 
-import id.homebase.homebasekmppoc.prototype.lib.crypto.KeyHeader
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.ThumbnailFile
+import id.homebase.homebasekmppoc.prototype.lib.drives.openFileInput
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
+import io.ktor.client.request.forms.InputProvider
 import io.ktor.client.request.forms.MultiPartFormDataContent
 import io.ktor.client.request.forms.formData
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
 
-/** Common interface for payload descriptors that have an IV field. */
-interface PayloadDescriptorWithIv {
-    val payloadKey: String
-    val iv: ByteArray?
-}
-
-/** Extension to make UploadPayloadDescriptor compatible with PayloadDescriptorWithIv. */
-private fun UploadPayloadDescriptor.toPayloadDescriptorWithIv() =
-    object : PayloadDescriptorWithIv {
-        override val payloadKey: String = this@toPayloadDescriptorWithIv.payloadKey
-        override val iv: ByteArray? = this@toPayloadDescriptorWithIv.iv
-    }
-
-/** Extension to make UpdatePayloadInstruction compatible with PayloadDescriptorWithIv. */
-private fun UpdatePayloadInstruction.toPayloadDescriptorWithIv() =
-    object : PayloadDescriptorWithIv {
-        override val payloadKey: String = this@toPayloadDescriptorWithIv.payloadKey
-        override val iv: ByteArray? = this@toPayloadDescriptorWithIv.iv
-    }
 
 /** Pre-computed data for a payload ready to be added to form data. */
 private data class ProcessedPayload(
@@ -88,189 +70,121 @@ private data class ProcessedThumbnail(
  * function.
  *
  * @param instructionSet The serializable upload instruction set (with manifest embedded)
- * @param encryptedDescriptor Optional encrypted file descriptor
+ * @param sharedSecretEncryptedDescriptor Optional encrypted file descriptor
  * @param payloads Optional list of payload files to upload
  * @param thumbnails Optional list of thumbnail files to upload
- * @param keyHeader Optional key header for encryption
- * @param manifest Optional manifest for payload descriptor IVs (for encryption)
  * @return MultiPartFormDataContent ready for HTTP upload
  */
-suspend fun buildFormData(
+suspend fun buildUploadFormData(
     instructionSet: SerializableUploadInstructionSet,
-    encryptedDescriptor: ByteArray? = null,
+    sharedSecretEncryptedDescriptor: ByteArray? = null,
     payloads: List<PayloadFile>? = null,
-    thumbnails: List<ThumbnailFile>? = null,
-    keyHeader: KeyHeader? = null,
-    manifest: UploadManifest? = null
-): MultiPartFormDataContent =
-    buildFormDataInternal(
+    thumbnails: List<ThumbnailFile>? = null
+): MultiPartFormDataContent {
+
+    val runtimePayloads =
+        payloads?.map { it.toRuntime(::openFileInput) }
+
+    return buildFormDataInternal(
         instructionSet = instructionSet,
-        encryptedDescriptor = encryptedDescriptor,
-        payloads = payloads,
-        thumbnails = thumbnails,
-        keyHeader = keyHeader,
-        payloadDescriptors =
-            manifest?.payloadDescriptors?.map { it.toPayloadDescriptorWithIv() }
+        sharedSecretEncryptedDescriptor = sharedSecretEncryptedDescriptor,
+        payloads = runtimePayloads,
+        thumbnails = thumbnails
     )
+}
 
 /**
  * Builds a MultiPartFormDataContent for updating files.
  *
  * @param instructionSet The serializable update instruction set (with manifest embedded)
- * @param encryptedDescriptor Optional encrypted file descriptor
+ * @param sharedSecretEncryptedDescriptor Optional encrypted file descriptor
  * @param payloads Optional list of payload files to upload
  * @param thumbnails Optional list of thumbnail files to upload
- * @param keyHeader Optional key header for encryption
- * @param manifest Optional manifest for payload descriptor IVs (for encryption)
  * @return MultiPartFormDataContent ready for HTTP update
  */
-suspend fun buildFormData(
-    instructionSet: SerializableUpdateLocalInstructionSet,
-    encryptedDescriptor: ByteArray? = null,
+suspend fun buildUpdateFormData(
+    instructionSet: FileUpdateInstructionSet,
+    sharedSecretEncryptedDescriptor: ByteArray? = null,
     payloads: List<PayloadFile>? = null,
-    thumbnails: List<ThumbnailFile>? = null,
-    keyHeader: KeyHeader? = null,
-    manifest: UpdateManifest? = null
-): MultiPartFormDataContent =
-    buildFormDataInternal(
-        instructionSet = instructionSet,
-        encryptedDescriptor = encryptedDescriptor,
-        payloads = payloads,
-        thumbnails = thumbnails,
-        keyHeader = keyHeader,
-        payloadDescriptors =
-            manifest?.payloadDescriptors?.map { it.toPayloadDescriptorWithIv() }
-    )
+    thumbnails: List<ThumbnailFile>? = null
+): MultiPartFormDataContent
+    {
+        val runtimePayloads =
+            payloads?.map { it.toRuntime(::openFileInput) }
 
-/**
- * Builds a MultiPartFormDataContent for peer updates.
- *
- * @param instructionSet The update instruction set (peer)
- * @param encryptedDescriptor Optional encrypted file descriptor
- * @param payloads Optional list of payload files to upload
- * @param thumbnails Optional list of thumbnail files to upload
- * @param keyHeader Optional key header for encryption
- * @param manifest Optional manifest containing payload descriptors with IVs
- * @return MultiPartFormDataContent ready for HTTP update
- */
-suspend fun buildFormData(
-    instructionSet: UpdatePeerInstructionSet,
-    encryptedDescriptor: ByteArray? = null,
-    payloads: List<PayloadFile>? = null,
-    thumbnails: List<ThumbnailFile>? = null,
-    keyHeader: KeyHeader? = null,
-    manifest: UpdateManifest? = null
-): MultiPartFormDataContent =
-    buildFormDataInternal(
-        instructionSet = instructionSet,
-        encryptedDescriptor = encryptedDescriptor,
-        payloads = payloads,
-        thumbnails = thumbnails,
-        keyHeader = keyHeader,
-        payloadDescriptors =
-            manifest?.payloadDescriptors?.map { it.toPayloadDescriptorWithIv() }
-    )
+        return buildFormDataInternal(
+            instructionSet = instructionSet,
+            sharedSecretEncryptedDescriptor = sharedSecretEncryptedDescriptor,
+            payloads = runtimePayloads,
+            thumbnails = thumbnails
+        )
+    }
 
 /**
  * Internal implementation of buildFormData. Pre-computes all encrypted data before building the
  * form to avoid suspend issues.
  */
-private suspend inline fun <reified T> buildFormDataInternal(
+private inline fun <reified T> buildFormDataInternal(
     instructionSet: T,
-    encryptedDescriptor: ByteArray?,
-    payloads: List<PayloadFile>?,
-    thumbnails: List<ThumbnailFile>?,
-    keyHeader: KeyHeader?,
-    payloadDescriptors: List<PayloadDescriptorWithIv>?
+    sharedSecretEncryptedDescriptor: ByteArray?,
+    payloads: List<RuntimePayloadFile>?,
+    thumbnails: List<ThumbnailFile>?
 ): MultiPartFormDataContent {
-    // Pre-compute all encrypted payloads
-    val processedPayloads =
-        payloads?.map { payload ->
-            ProcessedPayload(
-                key = payload.key,
-                contentType = payload.contentType,
-                data = processPayload(payload, keyHeader, payloadDescriptors)
-            )
-        }
 
-    // Pre-compute all encrypted thumbnails
-    val processedThumbnails =
-        thumbnails?.map { thumbnail ->
-            ProcessedThumbnail(
-                filename = "${thumbnail.key}${thumbnail.pixelWidth}",
-                contentType = thumbnail.contentType,
-                data = processThumbnail(thumbnail, keyHeader, payloadDescriptors)
-            )
-        }
-
-    // Serialize instructions
     val instructionsJson =
         OdinSystemSerializer.json.encodeToString(instructionSet).encodeToByteArray()
 
     return MultiPartFormDataContent(
         formData {
-            // Append instructions as JSON blob
+
+            // Instructions
             append(
                 "instructions",
                 instructionsJson,
                 Headers.build {
                     append(HttpHeaders.ContentType, "application/json")
-                    append(
-                        HttpHeaders.ContentDisposition,
-                        "form-data; name=\"instructions\""
-                    )
+                    append(HttpHeaders.ContentDisposition, "form-data; name=\"instructions\"")
                 }
             )
 
-            // Append encrypted metadata if present
-            if (encryptedDescriptor != null) {
+            // Encrypted metadata
+            if (sharedSecretEncryptedDescriptor != null) {
                 append(
                     "metadata",
-                    encryptedDescriptor,
+                    sharedSecretEncryptedDescriptor,
                     Headers.build {
-                        append(
-                            HttpHeaders.ContentType,
-                            "application/octet-stream"
-                        )
-                        append(
-                            HttpHeaders.ContentDisposition,
-                            "form-data; name=\"metadata\""
-                        )
+                        append(HttpHeaders.ContentType, "application/octet-stream")
+                        append(HttpHeaders.ContentDisposition, "form-data; name=\"metadata\"")
                     }
                 )
             }
 
-            // Append pre-processed payloads
-            processedPayloads?.forEach { payload ->
+            // Payloads (streamed)
+            payloads?.forEach { payload ->
                 append(
                     "payload",
-                    payload.data,
+                    payload.input,
                     Headers.build {
-                        append(
-                            HttpHeaders.ContentType,
-                            payload.contentType
-                        )
+                        append(HttpHeaders.ContentType, payload.contentType)
                         append(
                             HttpHeaders.ContentDisposition,
                             "form-data; name=\"payload\"; filename=\"${payload.key}\""
                         )
                     }
                 )
+
             }
 
-            // Append pre-processed thumbnails
-            processedThumbnails?.forEach { thumbnail ->
+            // Thumbnails (streamed)
+            thumbnails?.forEach { thumbnail ->
                 append(
                     "thumbnail",
-                    thumbnail.data,
+                    thumbnail.payload,
                     Headers.build {
-                        append(
-                            HttpHeaders.ContentType,
-                            thumbnail.contentType
-                        )
+                        append(HttpHeaders.ContentType, thumbnail.contentType)
                         append(
                             HttpHeaders.ContentDisposition,
-                            "form-data; name=\"thumbnail\"; filename=\"${thumbnail.filename}\""
+                            "form-data; name=\"thumbnail\"; filename=\"${thumbnail.key}${thumbnail.pixelWidth}\""
                         )
                     }
                 )
@@ -279,36 +193,17 @@ private suspend inline fun <reified T> buildFormDataInternal(
     )
 }
 
-/** Processes a payload file with optional encryption. */
-private suspend fun processPayload(
-    payload: PayloadFile,
-    keyHeader: KeyHeader?,
-    payloadDescriptors: List<PayloadDescriptorWithIv>?
-): ByteArray {
-    return if (keyHeader != null && !payload.skipEncryption) {
-        // Find the IV from the manifest or use the keyHeader's IV
-        val iv =
-            payloadDescriptors?.find { it.payloadKey == payload.key }?.iv
-                ?: keyHeader.iv
-        keyHeader.encryptDataAes(payload.payload, iv)
-    } else {
-        payload.payload
-    }
-}
+data class RuntimePayloadFile(
+    val key: String,
+    val contentType: String,
+    val input: InputProvider
+)
 
-/** Processes a thumbnail file with optional encryption. */
-private suspend fun processThumbnail(
-    thumbnail: ThumbnailFile,
-    keyHeader: KeyHeader?,
-    payloadDescriptors: List<PayloadDescriptorWithIv>?
-): ByteArray {
-    return if (keyHeader != null && !thumbnail.skipEncryption) {
-        // Find the IV from the manifest or use the keyHeader's IV
-        val iv =
-            payloadDescriptors?.find { it.payloadKey == thumbnail.key }?.iv
-                ?: keyHeader.iv
-        keyHeader.encryptDataAes(thumbnail.payload, iv)
-    } else {
-        thumbnail.payload
-    }
-}
+fun PayloadFile.toRuntime(
+    openInput: (String) -> InputProvider
+): RuntimePayloadFile =
+    RuntimePayloadFile(
+        key = key,
+        contentType = contentType,
+        input = openInput(filePath)
+    )

@@ -1,8 +1,5 @@
 package id.homebase.homebasekmppoc.prototype.lib.database
 
-import app.cash.sqldelight.db.SqlDriver
-import id.homebase.homebasekmppoc.lib.database.OdinDatabase
-import id.homebase.homebasekmppoc.prototype.lib.core.time.UnixTimeUtc
 import io.ktor.utils.io.core.toByteArray
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -12,7 +9,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
-import kotlin.test.assertNotEquals
 import kotlin.uuid.Uuid
 
 class OutboxTest {
@@ -30,7 +26,6 @@ class OutboxTest {
             // Test data
             val data = "test data".toByteArray()
             val files = "test files".toByteArray()
-            val checkOutStamp = UnixTimeUtc.now()
 
             // Insert into outbox
             dbm.outbox.insert(
@@ -48,7 +43,7 @@ class OutboxTest {
             assertEquals(1L, countAfterInsert, "Should have exactly one item in outbox")
 
             // Checkout the item
-            val checkoutResult = dbm.outbox.checkout(checkOutStamp = checkOutStamp)
+            val checkoutResult = dbm.outbox.checkout()
             assertNotNull(checkoutResult, "Should successfully checkout the item")
 
             // Verify the retrieved item
@@ -58,7 +53,7 @@ class OutboxTest {
 
 
             // Select the checked out item
-            val nextItem = dbm.outbox.selectCheckedOut(checkOutStamp.milliseconds)
+            val nextItem = dbm.outbox.selectCheckedOut(checkoutResult.checkOutStamp!!)
             assertNotNull(nextItem, "Should retrieve the checked out item")
 
             // Verify the retrieved item
@@ -84,7 +79,7 @@ class OutboxTest {
             assertEquals(0L, countAfterDelete, "Should have no items after deletion")
 
             // Try to checkout from empty outbox
-            val checkoutResult2 = dbm.outbox.checkout(UnixTimeUtc.now())
+            val checkoutResult2 = dbm.outbox.checkout()
             assertNull(checkoutResult2, "Should return null when checking out from empty outbox")
         }
     }
@@ -93,7 +88,7 @@ class OutboxTest {
     fun testCheckoutWithEmptyOutbox() = runTest {
         DatabaseManager { createInMemoryDatabase() }.use { dbm ->        // Create a QueryBatchCursor with all fields populated
             // Try to checkout from empty outbox
-            val checkoutResult = dbm.outbox.checkout(UnixTimeUtc.now())
+            val checkoutResult = dbm.outbox.checkout()
 
             // Verify no rows updated
             assertNull(checkoutResult, "Should return null when checking out from empty outbox")
@@ -125,19 +120,17 @@ class OutboxTest {
             val count = dbm.outbox.count()
             assertEquals(1L, count, "Should have one item in outbox")
 
-            val ts4 = UnixTimeUtc.now()
             // Checkout and select item
-            dbm.outbox.checkout(ts4)
-            val item = dbm.outbox.selectCheckedOut(ts4.milliseconds)
+            val res = dbm.outbox.checkout()
+            val item = dbm.outbox.selectCheckedOut(res!!.checkOutStamp!!)
             assertEquals(
                 data.contentToString(), item!!.json.contentToString(),
                 "Item should be the inserted one"
             )
 
-            val ts5 = UnixTimeUtc(ts4.milliseconds + 1)
             // Delete item and verify outbox is empty
             dbm.outbox.deleteByRowId(item.rowId)
-            val checkoutResult = dbm.outbox.checkout(ts5)
+            val checkoutResult = dbm.outbox.checkout()
             assertNull(checkoutResult, "Should return null when checking out from empty outbox")
         }
     }
@@ -160,11 +153,10 @@ class OutboxTest {
             )
 
             // Checkout and select
-            val checkoutStamp = UnixTimeUtc(8L)
-            val checkoutResult = dbm.outbox.checkout(checkoutStamp)
+            val checkoutResult = dbm.outbox.checkout()
             assertNotNull(checkoutResult, "Should successfully checkout item")
 
-            val item = dbm.outbox.selectCheckedOut(checkoutStamp.milliseconds)
+            val item = dbm.outbox.selectCheckedOut(checkoutResult.checkOutStamp!!)
             assertNotNull(item, "Should retrieve the inserted item")
             assertEquals(0, item.lastAttempt, "Last attempt should match")
             assertEquals(0, item.checkOutCount, "Check out count should match")
@@ -197,11 +189,10 @@ class OutboxTest {
                 assertTrue(insertSuccess > 0, "Insert should succeed")
 
                 // Checkout and select the item
-                val checkoutStamp1 = UnixTimeUtc(9L)
-                val checkoutResult = dbm.outbox.checkout(checkoutStamp1)
+                val checkoutResult = dbm.outbox.checkout()
                 assertNotNull(checkoutResult, "Should successfully checkout item")
 
-                val item = dbm.outbox.selectCheckedOut(checkoutStamp1.milliseconds)
+                val item = dbm.outbox.selectCheckedOut(checkoutResult.checkOutStamp!!)
                 assertNotNull(item, "Should retrieve the checked out item")
                 assertEquals(
                     0,
@@ -225,11 +216,10 @@ class OutboxTest {
                 assertTrue(insertSuccess2 > 0, "Second insert should succeed")
 
                 // Checkout and verify the update
-                val checkoutStamp2 = UnixTimeUtc(10L)
-                val checkoutResult2 = dbm.outbox.checkout(checkoutStamp2)
+                val checkoutResult2 = dbm.outbox.checkout()
                 assertNotNull(checkoutResult2, "Should successfully checkout updated item")
 
-                val updatedItem = dbm.outbox.selectCheckedOut(checkoutStamp2.milliseconds)
+                val updatedItem = dbm.outbox.selectCheckedOut(checkoutResult2.checkOutStamp!!)
                 assertNotNull(updatedItem, "Should retrieve the updated item")
                 assertEquals(
                     1,
@@ -276,11 +266,10 @@ class OutboxTest {
 
                 // Checkout items in priority order (0,1,2,3,4)
                 priorities.forEachIndexed { index, expectedPriority ->
-                    val checkoutStamp = UnixTimeUtc((index + 1).toLong())
-                    val checkoutResult = dbm.outbox.checkout(checkoutStamp)
+                    val checkoutResult = dbm.outbox.checkout()
                     assertNotNull(checkoutResult, "Should successfully checkout item")
 
-                    val item = dbm.outbox.selectCheckedOut(checkoutStamp.milliseconds)
+                    val item = dbm.outbox.selectCheckedOut(checkoutResult.checkOutStamp!!)
                     assertNotNull(item, "Should retrieve checked out item")
                     assertEquals(expectedPriority, item.priority, "Priority should match")
                     assertEquals(
@@ -323,11 +312,10 @@ class OutboxTest {
 
                 // Checkout items in priority order (lowest first)
                 expectedOrder.forEach { expectedPriority ->
-                    val checkOutStamp = UnixTimeUtc(expectedPriority + 1)
-                    val checkoutResult = dbm.outbox.checkout(checkOutStamp)
+                    val checkoutResult = dbm.outbox.checkout()
                     assertNotNull(checkoutResult, "Should successfully checkout item")
 
-                    val item = dbm.outbox.selectCheckedOut(checkOutStamp.milliseconds)
+                    val item = dbm.outbox.selectCheckedOut(checkoutResult.checkOutStamp!!)
                     assertNotNull(item, "Should retrieve checked out item")
                     assertEquals(
                         expectedPriority,
@@ -376,11 +364,10 @@ class OutboxTest {
 
                 // Checkout items in nextRunTime order (earliest first)
                 recipients.forEach { expectedRecipient ->
-                    val checkOutStamp = UnixTimeUtc(expectedRecipient.toLongOrNull() ?: 1L)
-                    val checkoutResult = dbm.outbox.checkout(checkOutStamp)
+                    val checkoutResult = dbm.outbox.checkout()
                     assertNotNull(checkoutResult, "Should successfully checkout item")
 
-                    val item = dbm.outbox.selectCheckedOut(checkOutStamp.milliseconds)
+                    val item = dbm.outbox.selectCheckedOut(checkoutResult.checkOutStamp!!)
                     assertNotNull(item, "Should retrieve checked out item")
                     assertEquals(
                         "$expectedRecipient-data".toByteArray().contentToString(),
@@ -463,42 +450,37 @@ class OutboxTest {
                 )
 
                 // Should checkout f3 first (no dependency)
-                val checkoutStamp1 = UnixTimeUtc(1L)
-                val checkoutResult1 = dbm.outbox.checkout(checkoutStamp1)
+                val checkoutResult1 = dbm.outbox.checkout()
                 assertNotNull(checkoutResult1, "Should successfully checkout f3")
-                var item = dbm.outbox.selectCheckedOut(checkoutStamp1.milliseconds)
+                var item = dbm.outbox.selectCheckedOut(checkoutResult1.checkOutStamp!!)
                 assertTrue(item!!.fileId == f3, "Expected item to be f3")
                 dbm.outbox.deleteByRowId(item.rowId)
 
                 // Now f2 (depends on f3, depends on f3 which is done)
-                val checkoutStamp2 = UnixTimeUtc(2L)
-                val checkoutResult2 = dbm.outbox.checkout(checkoutStamp2)
+                val checkoutResult2 = dbm.outbox.checkout()
                 assertNotNull(checkoutResult2, "Should successfully checkout f2")
-                item = dbm.outbox.selectCheckedOut(checkoutStamp2.milliseconds)
+                item = dbm.outbox.selectCheckedOut(checkoutResult2.checkOutStamp!!)
                 assertTrue(item!!.fileId == f2, "Expected item to be f2")
                 dbm.outbox.deleteByRowId(item.rowId)
 
                 // Now f4 (depends on f2, depends on f2 which is done)
-                val checkoutStamp3 = UnixTimeUtc(3L)
-                val checkoutResult3 = dbm.outbox.checkout(checkoutStamp3)
+                val checkoutResult3 = dbm.outbox.checkout()
                 assertNotNull(checkoutResult3, "Should successfully checkout f4")
-                item = dbm.outbox.selectCheckedOut(checkoutStamp3.milliseconds)
+                item = dbm.outbox.selectCheckedOut(checkoutResult3.checkOutStamp!!)
                 assertTrue(item!!.fileId == f4, "Expected item to be f4")
                 dbm.outbox.deleteByRowId(item.rowId)
 
                 // Now f5 (depends on f4, depends on f4 which is done)
-                val checkoutStamp4 = UnixTimeUtc(4L)
-                val checkoutResult4 = dbm.outbox.checkout(checkoutStamp4)
+                val checkoutResult4 = dbm.outbox.checkout()
                 assertNotNull(checkoutResult4, "Should successfully checkout f5")
-                item = dbm.outbox.selectCheckedOut(checkoutStamp4.milliseconds)
+                item = dbm.outbox.selectCheckedOut(checkoutResult4.checkOutStamp!!)
                 assertTrue(item!!.fileId == f5, "Expected item to be f5")
                 dbm.outbox.deleteByRowId(item.rowId)
 
                 // Finally f1 (depends on f5, depends on f5 which is done)
-                val checkoutStamp5 = UnixTimeUtc(5L)
-                val checkoutResult5 = dbm.outbox.checkout(checkoutStamp5)
+                val checkoutResult5 = dbm.outbox.checkout()
                 assertNotNull(checkoutResult5, "Should successfully checkout f1")
-                item = dbm.outbox.selectCheckedOut(checkoutStamp5.milliseconds)
+                item = dbm.outbox.selectCheckedOut(checkoutResult5.checkOutStamp!!)
                 assertTrue(item!!.fileId == f1, "Expected item to be f1")
                 dbm.outbox.deleteByRowId(item.rowId)
             }
@@ -584,10 +566,9 @@ class OutboxTest {
                 assertEquals(t3, nextTime!!.milliseconds)
 
                 // Checkout f3
-                val checkoutStamp1 = UnixTimeUtc(1L)
-                val checkoutResult1 = dbm.outbox.checkout(checkoutStamp1)
+                val checkoutResult1 = dbm.outbox.checkout()
                 assertNotNull(checkoutResult1, "Should successfully checkout f3")
-                val item = dbm.outbox.selectCheckedOut(checkoutStamp1.milliseconds)
+                val item = dbm.outbox.selectCheckedOut(checkoutResult1.checkOutStamp!!)
                 assertTrue(item!!.fileId == f3, "Expected item to be f3")
 
                 // Next scheduled should be null (f2 depends on f3, which is checked out)
@@ -601,10 +582,9 @@ class OutboxTest {
                 assertEquals(t2, nextTime!!.milliseconds)
 
                 // Checkout f2
-                val checkoutStamp2 = UnixTimeUtc(2L)
-                val checkoutResult2 = dbm.outbox.checkout(checkoutStamp2)
+                val checkoutResult2 = dbm.outbox.checkout()
                 assertNotNull(checkoutResult2, "Should successfully checkout f2")
-                var item2 = dbm.outbox.selectCheckedOut(checkoutStamp2.milliseconds)
+                var item2 = dbm.outbox.selectCheckedOut(checkoutResult2.checkOutStamp!!)
                 assertTrue(item2!!.fileId == f2, "Expected item to be f2")
 
                 // Next scheduled should be null (f4 depends on f2, which is checked out)
@@ -618,10 +598,9 @@ class OutboxTest {
                 assertEquals(t4, nextTime!!.milliseconds)
 
                 // Checkout f4
-                val checkoutStamp3 = UnixTimeUtc(3L)
-                val checkoutResult3 = dbm.outbox.checkout(checkoutStamp3)
+                val checkoutResult3 = dbm.outbox.checkout()
                 assertNotNull(checkoutResult3, "Should successfully checkout f4")
-                item2 = dbm.outbox.selectCheckedOut(checkoutStamp3.milliseconds)
+                item2 = dbm.outbox.selectCheckedOut(checkoutResult3.checkOutStamp!!)
                 assertTrue(item2!!.fileId == f4, "Expected item to be f4")
 
                 // Next scheduled should be null (f5 depends on f4, which is checked out)
@@ -635,10 +614,9 @@ class OutboxTest {
                 assertEquals(t5, nextTime!!.milliseconds)
 
                 // Checkout f5
-                val checkoutStamp4 = UnixTimeUtc(4L)
-                val checkoutResult4 = dbm.outbox.checkout(checkoutStamp4)
+                val checkoutResult4 = dbm.outbox.checkout()
                 assertNotNull(checkoutResult4, "Should successfully checkout f5")
-                item2 = dbm.outbox.selectCheckedOut(checkoutStamp4.milliseconds)
+                item2 = dbm.outbox.selectCheckedOut(checkoutResult4.checkOutStamp!!)
                 assertTrue(item2!!.fileId == f5, "Expected item to be f5")
 
                 // Next scheduled should be null (f1 depends on f5, which is checked out)
@@ -652,10 +630,9 @@ class OutboxTest {
                 assertEquals(t1, nextTime!!.milliseconds)
 
                 // Checkout f1
-                val checkoutStamp5 = UnixTimeUtc(5L)
-                val checkoutResult5 = dbm.outbox.checkout(checkoutStamp5)
+                val checkoutResult5 = dbm.outbox.checkout()
                 assertNotNull(checkoutResult5, "Should successfully checkout f1")
-                item2 = dbm.outbox.selectCheckedOut(checkoutStamp5.milliseconds)
+                item2 = dbm.outbox.selectCheckedOut(checkoutResult5.checkOutStamp!!)
                 assertTrue(item2!!.fileId == f1, "Expected item to be f1")
 
                 // Next scheduled should be null

@@ -10,8 +10,7 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UploadFileMetadata
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import id.homebase.homebasekmppoc.prototype.ui.driveUpload.DriveUploadService.Companion.DATA_TYPE_POST
 import id.homebase.homebasekmppoc.prototype.ui.driveUpload.DriveUploadService.Companion.FILE_TYPE_POST
-import kotlin.uuid.Uuid
-import kotlinx.coroutines.async
+import id.homebase.homebasekmppoc.prototype.writeTextToTempFile
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,6 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.uuid.Uuid
 
 /**
  * ViewModel for Drive Upload screen following strict MVI pattern.
@@ -46,10 +46,9 @@ class DriveUploadViewModel(private val driveUploadService: DriveUploadService?) 
         when (action) {
             is DriveUploadUiAction.PickImageClicked -> handlePickImage()
             is DriveUploadUiAction.UploadTextPostClicked -> handleUploadTextPost()
-            is DriveUploadUiAction.UploadEncryptedPayloadTextClicked ->
-                    handleUploadEncryptedPayloadText()
+            is DriveUploadUiAction.UploadEncryptedPayloadTextClicked -> handleUploadEncryptedPayloadText()
             is DriveUploadUiAction.UploadImageClicked -> handleUploadImage()
-            is DriveUploadUiAction.ImagePicked -> handleImagePicked(action.bytes, action.name)
+            is DriveUploadUiAction.ImagePicked -> handleImagePicked(action.filePath, action.name)
             is DriveUploadUiAction.ImagePickFailed -> handleImagePickError(action.error)
             is DriveUploadUiAction.ImagePickCancelled -> handleImagePickCancelled()
         }
@@ -60,14 +59,14 @@ class DriveUploadViewModel(private val driveUploadService: DriveUploadService?) 
         sendEvent(DriveUploadUiEvent.OpenImagePicker)
     }
 
-    private fun handleImagePicked(bytes: ByteArray, name: String) {
-        Logger.d("DriveUploadViewModel") { "Image picked: $name, size: ${bytes.size}" }
+    private fun handleImagePicked(filePath: String, name: String) {
+        Logger.d("DriveUploadViewModel") { "Image picked: $name, path: ${filePath}" }
         _uiState.update {
             it.copy(
-                    isPickingImage = false,
-                    selectedImageBytes = bytes,
-                    selectedImageName = name,
-                    errorMessage = null
+                isPickingImage = false,
+                selectImageFilePath = filePath,
+                selectedImageName = name,
+                errorMessage = null
             )
         }
     }
@@ -104,21 +103,21 @@ class DriveUploadViewModel(private val driveUploadService: DriveUploadService?) 
         viewModelScope.launch {
             try {
                 val result =
-                        driveUploadService.uploadTextPost(
-                                driveId = publicPostsDriveId,
-                                postContent = postContent,
-                                encrypt = false
-                        )
+                    driveUploadService.uploadTextPost(
+                        driveId = publicPostsDriveId,
+                        postContent = postContent,
+                        encrypt = false
+                    )
 
                 val successMessage =
-                        "Text post uploaded!\nFile ID: ${result.fileId}\nVersion: ${result.versionTag}"
+                    "Text post uploaded!\nFile ID: ${result.fileId}\nVersion: ${result.versionTag}"
                 Logger.i("DriveUploadViewModel") { "Upload successful: ${result.fileId}" }
 
                 _uiState.update { it.copy(isUploadingText = false, uploadResult = successMessage) }
-            } catch (e: Exception) {
-                Logger.e("DriveUploadViewModel") { "Upload failed: ${e.message}" }
+            } catch (t: Throwable) {
+                Logger.e("DriveUploadViewModel") { "Upload failed: ${t.message}" }
                 _uiState.update {
-                    it.copy(isUploadingText = false, errorMessage = "Upload failed: ${e.message}")
+                    it.copy(isUploadingText = false, errorMessage = "Upload failed: ${t.message}")
                 }
             }
         }
@@ -132,72 +131,69 @@ class DriveUploadViewModel(private val driveUploadService: DriveUploadService?) 
             return
         }
 
-        //        viewModelScope.launch {
-        val result =
-                viewModelScope.async {
-                    try {
-                        val postContent = "this file has two payloads of text content."
-                        val contentJson = OdinSystemSerializer.serialize(postContent)
-                        val driveId = publicPostsDriveId
+//        viewModelScope.launch {
+        viewModelScope.launch {
+            try {
+                val postContent = "this file has two payloads of text content."
+                val contentJson = OdinSystemSerializer.serialize(postContent)
+                val driveId = publicPostsDriveId;
 
-                        val metadata =
-                                UploadFileMetadata(
-                                        allowDistribution = true,
-                                        isEncrypted = true,
-                                        appData =
-                                                UploadAppFileMetaData(
-                                                        uniqueId = Uuid.random().toString(),
-                                                        fileType = FILE_TYPE_POST,
-                                                        dataType = DATA_TYPE_POST,
-                                                        content = contentJson
-                                                )
-                                )
-
-                        val payloads =
-                                listOf(
-                                        PayloadFile(
-                                                key = "txt_data1",
-                                                contentType = "text/plain",
-                                                payload =
-                                                        "This is a sample text payload used for testing purposes. It contains roughly one hundred bytes.".encodeToByteArray(),
-                                        ),
-                                        PayloadFile(
-                                                key = "txt_data2",
-                                                contentType = "text/plain",
-                                                payload =
-                                                        "Another example text payload for preview rendering. This one is different and suitable for testing.".encodeToByteArray()
-                                        )
-                                )
-
-                        val result =
-                                driveUploadService.uploadFileWithPayloads(
-                                        driveId = driveId,
-                                        metadata = metadata,
-                                        payloads = payloads,
-                                        thumbnails = null,
-                                        encrypt = true
-                                )
-
-                        val successMessage =
-                                "Encrypted text uploaded!\nFile ID: ${result!!.fileId.toString()}\nVersion: ${result.newVersionTag}"
-
-                        Logger.i("DriveUploadViewModel") {
-                            "Upload successful: ${result.fileId.toString()}"
-                        }
-
-                        _uiState.update {
-                            it.copy(isUploadingText = false, uploadResult = successMessage)
-                        }
-                    } catch (e: Exception) {
-                        Logger.e("DriveUploadViewModel") { "Upload failed: ${e.message}" }
-                        _uiState.update {
-                            it.copy(
-                                    isUploadingText = false,
-                                    errorMessage = "Upload failed: ${e.message}"
+                val metadata =
+                    UploadFileMetadata(
+                        allowDistribution = true,
+                        isEncrypted = true,
+                        appData =
+                            UploadAppFileMetaData(
+                                uniqueId = Uuid.random().toString(),
+                                fileType = FILE_TYPE_POST,
+                                dataType = DATA_TYPE_POST,
+                                content = contentJson
                             )
-                        }
-                    }
+                    )
+
+                val payloads = listOf(
+                    PayloadFile(
+                        key = "txt_data1",
+                        contentType = "text/plain",
+                        filePath = writeTextToTempFile(
+                            prefix = "payload_",
+                            suffix = ".txt",
+                            content = "This is a sample text payload used for testing purposes. It contains roughly one hundred bytes."
+                        )
+                    ),
+                    PayloadFile(
+                        key = "txt_data2",
+                        contentType = "text/plain",
+                        filePath = writeTextToTempFile(
+                            prefix = "payload_",
+                            suffix = ".txt",
+                            content = "Another example text payload for preview rendering. This one is different and suitable for testing."
+                        )
+                    )
+                )
+
+                val result =
+                    driveUploadService.uploadFileWithPayloads(
+                        driveId = driveId,
+                        metadata = metadata,
+                        payloads = payloads,
+                        thumbnails = null,
+                        encrypt = true
+                    )
+
+                val successMessage =
+                    "Encrypted text uploaded!\nFile ID: ${result!!.fileId.toString()}\nVersion: ${result.newVersionTag}"
+
+                Logger.i("DriveUploadViewModel") { "Upload successful: ${result.fileId.toString()}" }
+
+                _uiState.update { it.copy(isUploadingText = false, uploadResult = successMessage) }
+            } catch (t: Throwable) {
+                Logger.e("DriveUploadViewModel") { "Upload failed: ${t.message}" }
+                _uiState.update {
+                    it.copy(isUploadingText = false, errorMessage = "Upload failed: ${t.message}")
                 }
+            }
+        }
     }
 
     private fun handleUploadImage() {
@@ -208,7 +204,7 @@ class DriveUploadViewModel(private val driveUploadService: DriveUploadService?) 
             return
         }
 
-        val imageBytes = _uiState.value.selectedImageBytes
+        val imageBytes = _uiState.value.selectImageFilePath
         if (imageBytes == null) {
             _uiState.update { it.copy(errorMessage = "No image selected") }
             return
@@ -221,30 +217,31 @@ class DriveUploadViewModel(private val driveUploadService: DriveUploadService?) 
         viewModelScope.launch {
             try {
                 val result =
-                        driveUploadService.uploadImage(
-                                driveId = publicPostsDriveId,
-                                imageBytes = imageBytes,
-                                encrypt = true
-                        )
+                    driveUploadService.uploadImage(
+                        driveId = publicPostsDriveId,
+                        filePath = _uiState.value.selectImageFilePath
+                            ?: throw IllegalStateException("No image file selected"),
+                        encrypt = true
+                    )
 
                 val successMessage =
-                        "Image uploaded!\nFile ID: ${result.fileId}\nVersion: ${result.versionTag}"
+                    "Image uploaded!\nFile ID: ${result.fileId}\nVersion: ${result.versionTag}"
                 Logger.i("DriveUploadViewModel") { "Image upload successful: ${result.fileId}" }
 
                 _uiState.update {
                     it.copy(
-                            isUploadingImage = false,
-                            uploadResult = successMessage,
-                            selectedImageBytes = null,
-                            selectedImageName = null
+                        isUploadingImage = false,
+                        uploadResult = successMessage,
+                        selectImageFilePath = null,
+                        selectedImageName = null
                     )
                 }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Logger.e("DriveUploadViewModel") { "Image upload failed: ${e.message}" }
                 _uiState.update {
                     it.copy(
-                            isUploadingImage = false,
-                            errorMessage = "Image upload failed: ${e.message}"
+                        isUploadingImage = false,
+                        errorMessage = "Image upload failed: ${e.message}"
                     )
                 }
             }

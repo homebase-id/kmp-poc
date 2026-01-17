@@ -36,6 +36,7 @@ import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.openFilePicker
 import io.github.vinceglb.filekit.name
+import io.github.vinceglb.filekit.path
 import io.github.vinceglb.filekit.readBytes
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.launch
@@ -52,13 +53,13 @@ import org.koin.core.parameter.parametersOf
  */
 @Composable
 fun AppNavHost(
-        navController: NavHostController = rememberNavController(),
-        youAuthFlowManager: YouAuthFlowManager,
-        isAuthenticated: Boolean = false
+    navController: NavHostController = rememberNavController(),
+    youAuthFlowManager: YouAuthFlowManager,
+    isAuthenticated: Boolean = false
 ) {
     // Determine start destination based on auth state
     val startDestination =
-            remember(isAuthenticated) { if (isAuthenticated) Route.Home else Route.Login }
+        remember(isAuthenticated) { if (isAuthenticated) Route.Home else Route.Login }
 
     NavHost(navController = navController, startDestination = startDestination) {
         // Login route
@@ -74,6 +75,7 @@ fun AppNavHost(
                             popUpTo(Route.Login) { inclusive = true }
                         }
                     }
+
                     is LoginUiEvent.ShowError -> {
                         // TODO: Show snackbar
                     }
@@ -86,10 +88,10 @@ fun AppNavHost(
         // Protected Home route
         composable<Route.Home> {
             AuthenticatedRouteWithFlowManager(
-                    authState = youAuthFlowManager.authState,
-                    onUnauthenticated = {
-                        navController.navigate(Route.Login) { popUpTo(0) { inclusive = true } }
-                    }
+                authState = youAuthFlowManager.authState,
+                onUnauthenticated = {
+                    navController.navigate(Route.Login) { popUpTo(0) { inclusive = true } }
+                }
             ) {
                 val viewModel = koinViewModel<HomeViewModel>()
                 val state by viewModel.uiState.collectAsState()
@@ -97,19 +99,24 @@ fun AppNavHost(
                 ObserveAsEvents(viewModel.uiEvent) { event ->
                     when (event) {
                         is HomeUiEvent.NavigateToDriveFetch ->
-                                navController.navigate(Route.DriveFetch)
+                            navController.navigate(Route.DriveFetch)
+
                         is HomeUiEvent.NavigateToDatabase -> navController.navigate(Route.Database)
                         is HomeUiEvent.NavigateToWebSocket ->
-                                navController.navigate(Route.WebSocket)
+                            navController.navigate(Route.WebSocket)
+
                         is HomeUiEvent.NavigateToVideo -> navController.navigate(Route.Video)
                         is HomeUiEvent.NavigateToCdnTest -> navController.navigate(Route.CdnTest)
                         is HomeUiEvent.NavigateToDriveUpload ->
-                                navController.navigate(Route.DriveUpload)
+                            navController.navigate(Route.DriveUpload)
+
                         is HomeUiEvent.NavigateToFFmpegTest ->
-                                navController.navigate(Route.FFmpegTest)
+                            navController.navigate(Route.FFmpegTest)
+
                         is HomeUiEvent.NavigateToLogin -> {
                             navController.navigate(Route.Login) { popUpTo(0) { inclusive = true } }
                         }
+
                         is HomeUiEvent.OpenPermissionExtensionBrowser -> {
                             // Open system browser for permission extension
                             BrowserLauncher.openUrl(event.url)
@@ -126,17 +133,17 @@ fun AppNavHost(
         // Protected DriveFetch route
         composable<Route.DriveFetch> {
             AuthenticatedRouteWithFlowManager(
-                    authState = youAuthFlowManager.authState,
-                    onUnauthenticated = {
-                        navController.navigate(Route.Login) { popUpTo(0) { inclusive = true } }
-                    }
+                authState = youAuthFlowManager.authState,
+                onUnauthenticated = {
+                    navController.navigate(Route.Login) { popUpTo(0) { inclusive = true } }
+                }
             ) {
                 DriveFetchPage(
-                        youAuthFlowManager = youAuthFlowManager,
-                        onNavigateBack = { navController.popBackStack() },
-                        onNavigateToFileDetail = { driveId, fileId ->
-                            navController.navigate(Route.FileDetail(driveId, fileId))
-                        }
+                    youAuthFlowManager = youAuthFlowManager,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToFileDetail = { driveId, fileId ->
+                        navController.navigate(Route.FileDetail(driveId, fileId))
+                    }
                 )
             }
         }
@@ -159,10 +166,10 @@ fun AppNavHost(
         // DriveUpload route - uses MVI pattern with ViewModel
         composable<Route.DriveUpload> {
             AuthenticatedRouteWithFlowManager(
-                    authState = youAuthFlowManager.authState,
-                    onUnauthenticated = {
-                        navController.navigate(Route.Login) { popUpTo(0) { inclusive = true } }
-                    }
+                authState = youAuthFlowManager.authState,
+                onUnauthenticated = {
+                    navController.navigate(Route.Login) { popUpTo(0) { inclusive = true } }
+                }
             ) {
                 val viewModel = koinViewModel<DriveUploadViewModel>()
                 val state by viewModel.uiState.collectAsState()
@@ -177,26 +184,28 @@ fun AppNavHost(
                                     val file = FileKit.openFilePicker(type = FileKitType.Image)
                                     if (file != null) {
                                         viewModel.onAction(
-                                                DriveUploadUiAction.ImagePicked(
-                                                        bytes = file.readBytes(),
-                                                        name = file.name
-                                                )
+                                            DriveUploadUiAction.ImagePicked(
+                                                filePath = file.path,
+                                                name = file.name
+                                            )
                                         )
                                     } else {
                                         viewModel.onAction(DriveUploadUiAction.ImagePickCancelled)
                                     }
                                 } catch (e: Exception) {
                                     viewModel.onAction(
-                                            DriveUploadUiAction.ImagePickFailed(
-                                                    e.message ?: "Unknown error"
-                                            )
+                                        DriveUploadUiAction.ImagePickFailed(
+                                            e.message ?: "Unknown error"
+                                        )
                                     )
                                 }
                             }
                         }
+
                         is DriveUploadUiEvent.ShowSuccess -> {
                             // TODO: Show snackbar
                         }
+
                         is DriveUploadUiEvent.ShowError -> {
                             // TODO: Show snackbar
                         }
@@ -204,26 +213,26 @@ fun AppNavHost(
                 }
 
                 DriveUploadScreen(
-                        state = state,
-                        onAction = viewModel::onAction,
-                        onNavigateBack = { navController.popBackStack() }
+                    state = state,
+                    onAction = viewModel::onAction,
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
         }
 
         composable<Route.FileDetail> { backStackEntry ->
             val driveId =
-                    backStackEntry.arguments?.read { getString("driveId") }
-                            ?: error("driveId missing")
+                backStackEntry.arguments?.read { getString("driveId") }
+                    ?: error("driveId missing")
 
             val fileId =
-                    backStackEntry.arguments?.read { getString("fileId") }
-                            ?: error("fileId missing")
+                backStackEntry.arguments?.read { getString("fileId") }
+                    ?: error("fileId missing")
 
             val viewModel =
-                    koinViewModel<FileDetailViewModel>(
-                            parameters = { parametersOf(Uuid.parse(driveId), Uuid.parse(fileId)) }
-                    )
+                koinViewModel<FileDetailViewModel>(
+                    parameters = { parametersOf(Uuid.parse(driveId), Uuid.parse(fileId)) }
+                )
 
             FileDetailPage(viewModel = viewModel, onNavigateBack = { navController.popBackStack() })
         }
@@ -233,9 +242,9 @@ fun AppNavHost(
 /** Wrapper for routes that require authentication using YouAuthFlowManager. */
 @Composable
 private fun AuthenticatedRouteWithFlowManager(
-        authState: kotlinx.coroutines.flow.StateFlow<YouAuthState>,
-        onUnauthenticated: () -> Unit,
-        content: @Composable () -> Unit
+    authState: kotlinx.coroutines.flow.StateFlow<YouAuthState>,
+    onUnauthenticated: () -> Unit,
+    content: @Composable () -> Unit
 ) {
     val currentAuthState by authState.collectAsState()
 
@@ -245,6 +254,7 @@ private fun AuthenticatedRouteWithFlowManager(
         is YouAuthState.Authenticating -> {
             // Show loading or nothing while authenticating
         }
+
         is YouAuthState.Error -> onUnauthenticated()
     }
 }
