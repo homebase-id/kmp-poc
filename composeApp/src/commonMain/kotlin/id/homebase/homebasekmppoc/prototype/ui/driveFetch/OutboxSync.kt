@@ -82,8 +82,7 @@ class OutboxSync(
         while (true) {
             Logger.i("Popping Outbox")
 
-            val checkOutStamp = UnixTimeUtc.now()
-            val outboxRecord = databaseManager.outbox.checkout(checkOutStamp)
+            val outboxRecord = databaseManager.outbox.checkout()
 
             if (outboxRecord == null) {
                 Logger.i("No more items in outbox")
