@@ -37,14 +37,30 @@ data class UnifiedConversation(
         override val title: String = "",
         val recipients: List<String> = emptyList()
 
-        // For ALL converstaion items, single and groups, we need this data here or on the
-        // conversationData to be able to render the overview item without doing additional
-        // lookups:
-        // TODO: Missing tinyThumb
-        // TODO: Latest message 40 chars String
-        // TODO: Latest message timestamp UnixTimeUtc
-        // TODO: function that returns URL to profile picture to load in the background
+// For ALL converstaion items, single and groups, we need this data here or on the
+// conversationData to be able to render the overview item without doing additional
+// lookups:
+// TODO: Missing tinyThumb
+// TODO: Latest message 40 chars String
+// TODO: Latest message timestamp UnixTimeUtc
+// TODO: function that returns URL to profile picture to load in the background
 ) : BaseConversation
+
+/**
+ * Metadata stored locally for a conversation (from localAppData). Contains local-only data like
+ * last read time.
+ */
+@Serializable
+data class ConversationMetadata(
+        /** The conversation ID this metadata belongs to */
+        val conversationId: String? = null,
+
+        /** Timestamp when the conversation was last read (UnixTimeUtc in milliseconds) */
+        val lastReadTime: Long? = null
+) {
+        /** Get lastReadTime as UnixTimeUtc */
+        fun getLastReadTimeUtc(): UnixTimeUtc? = lastReadTime?.let { UnixTimeUtc(it) }
+}
 
 /**
  * Complete conversation data model with all fields. This is the domain model returned by
@@ -70,6 +86,9 @@ data class ConversationData(
 
         /** Decrypted conversation content */
         val content: UnifiedConversation,
+
+        /** Decrypted local metadata (from localAppData) */
+        val conversationMeta: ConversationMetadata?,
 
         /** Preview thumbnail */
         val previewThumbnail: ThumbnailDescriptor?,
@@ -164,13 +183,16 @@ class ConversationProvider(private val identityId: Uuid, private val odinClient:
                 val metadata = header.fileMetadata
                 val appData = metadata.appData
 
-                // Decrypt content if encrypted
+                // Decrypt appData content if encrypted
                 val decryptedContent = decryptContent(header)
 
                 // Parse the content as UnifiedConversation
                 val parsedContent =
                         decryptedContent?.let { parseConversationContent(it) }
                                 ?: UnifiedConversation()
+
+                // Decrypt and parse localAppData content for ConversationMetadata
+                val conversationMeta = decryptLocalAppDataContent(header)
 
                 return ConversationData(
                         fileType = appData.fileType ?: CHAT_CONVERSATION_FILE_TYPE,
@@ -179,6 +201,7 @@ class ConversationProvider(private val identityId: Uuid, private val odinClient:
                         created = metadata.created,
                         updated = metadata.updated,
                         content = parsedContent,
+                        conversationMeta = conversationMeta,
                         previewThumbnail = appData.previewThumbnail,
                         fileState = header.fileState,
                         isEncrypted = metadata.isEncrypted,
@@ -188,7 +211,7 @@ class ConversationProvider(private val identityId: Uuid, private val odinClient:
                 )
         }
 
-        /** Decrypts the content from a file header using the shared secret. */
+        /** Decrypts the content from appData using the shared secret. */
         private suspend fun decryptContent(header: SharedSecretEncryptedFileHeader): String? {
                 val content = header.fileMetadata.appData.content
                 if (content.isNullOrEmpty()) return null
@@ -216,6 +239,41 @@ class ConversationProvider(private val identityId: Uuid, private val odinClient:
                 }
         }
 
+        /** Decrypts and parses the localAppData content into ConversationMetadata. */
+        private suspend fun decryptLocalAppDataContent(
+                header: SharedSecretEncryptedFileHeader
+        ): ConversationMetadata? {
+                val localAppData = header.fileMetadata.localAppData ?: return null
+                val content = localAppData.content
+                if (content.isNullOrEmpty()) return null
+
+                // If not encrypted, parse as-is
+                if (!header.fileMetadata.isEncrypted) {
+                        return parseConversationMetadata(content)
+                }
+
+                val sharedSecret = odinClient.getSharedSecret() ?: return null
+
+                return try {
+                        // Decrypt using the same keyHeader from the file
+                        val keyHeader =
+                                header.sharedSecretEncryptedKeyHeader.decryptAesToKeyHeader(
+                                        SecureByteArray(sharedSecret)
+                                )
+
+                        // Decode the encrypted content from Base64 and decrypt
+                        val encryptedBytes = Base64.decode(content)
+                        val decryptedBytes = keyHeader.decrypt(encryptedBytes)
+
+                        parseConversationMetadata(decryptedBytes.decodeToString())
+                } catch (e: Exception) {
+                        println(
+                                "ConversationProvider: Failed to decrypt localAppData: ${e.message}"
+                        )
+                        null
+                }
+        }
+
         /** Parses a JSON string as UnifiedConversation. */
         private fun parseConversationContent(content: String): UnifiedConversation? {
                 return try {
@@ -227,6 +285,18 @@ class ConversationProvider(private val identityId: Uuid, private val odinClient:
                         } catch (e2: Exception) {
                                 null
                         }
+                }
+        }
+
+        /** Parses a JSON string as ConversationMetadata. */
+        private fun parseConversationMetadata(content: String): ConversationMetadata? {
+                return try {
+                        OdinSystemSerializer.deserialize<ConversationMetadata>(content)
+                } catch (e: Exception) {
+                        println(
+                                "ConversationProvider: Failed to parse ConversationMetadata: ${e.message}"
+                        )
+                        null
                 }
         }
 }

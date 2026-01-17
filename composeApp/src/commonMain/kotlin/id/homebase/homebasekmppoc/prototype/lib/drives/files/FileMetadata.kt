@@ -27,9 +27,9 @@ data class FileMetadata(
         val payloads: List<PayloadDescriptor>? = null,
         val dataSource: DataSource? = null
 ) {
-    fun getPayloadDescriptor(key: String): PayloadDescriptor? {
-        return payloads?.firstOrNull { it.keyEquals(key) }
-    }
+        fun getPayloadDescriptor(key: String): PayloadDescriptor? {
+                return payloads?.firstOrNull { it.keyEquals(key) }
+        }
 }
 
 @Serializable
@@ -45,12 +45,12 @@ data class AppFileMetaData(
         val archivalStatus: ArchivalStatus? = null
 )
 
-
-
 @Serializable
 data class LocalAppMetadata(
         val tags: List<@Serializable(with = UuidSerializer::class) Uuid>? = null,
-        val versionTag: Uuid? = null
+        val versionTag: Uuid? = null,
+        val iv: String? = null,
+        val content: String? = null
 )
 
 /** Reaction entry for both comments and summary reactions */
@@ -86,4 +86,3 @@ data class DataSource(
         @Serializable(with = UuidSerializer::class) val driveId: Uuid,
         val payloadsAreRemote: Boolean = false
 )
-
