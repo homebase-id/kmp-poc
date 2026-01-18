@@ -128,7 +128,7 @@ data class ThumbnailDescriptor(
         val pixelWidth: Int? = null,
         val pixelHeight: Int? = null,
         val contentType: String? = null,
-        val content: String? = null,
+        val content: String? = null, //TODO: MS Question. Makes sense for the tinyThumb - but aren't regular thumbs on disk?
         val bytesWritten: Long? = null
 )
 
