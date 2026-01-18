@@ -12,6 +12,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import io.ktor.util.decodeBase64Bytes
 import kotlin.uuid.Uuid
 
 /** Drive query provider for querying files from a drive */
@@ -86,7 +87,7 @@ class DriveQueryProvider(private val odinClient: OdinClient) {
                     // Decrypt JSON content
                     val decryptedContent =
                         keyHeader
-                            ?.decrypt(dsr.fileMetadata.appData.content)
+                            ?.decrypt(dsr.fileMetadata.appData.content.decodeBase64Bytes())
                             ?.decodeToString()
 
                     // Return updated search result with decrypted content
