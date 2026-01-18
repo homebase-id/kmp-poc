@@ -70,21 +70,24 @@ typealias RichText = List<RichTextNode>
 
 // TODO: AppData embedded data to render the "reply-to" header
 data class ReplyPreview(
-    val replyId: Uuid, // MessageId of this preview
+    val replyFileId: Uuid, // FileId of the message that was replied to
     val identity: String, // frodo.baggins.demo.rocks
     val message: String, // ~40 chars
-    val tinyThumb: String) // Tiny tiny thumb, can be even smaller than tinyThumb
+    val tinyThumb: String) // Tiny tiny thumb, can be even smaller than tinyThumb even a 1px color
+    // function to return URL to load the full image.
 {
     fun getThumbUrl() : String { return "" }
 }
 
 // TODO: AppData embedded data to render the "URL preview" header
 data class UrlPreview(
+    val previewFileId: Uuid, // The FileId of the HomebaseFile that contains the full URL preview
     val title: String, // ~?? chars - the title
     val url: String, // ~?? chars - name or identity??
     val urlTitle: String, // ~?? chars
     val message: String, // ~?? chars
-    val tinyThumb: String) // Tiny tiny thumb, can be even smaller than tinyThumb
+    val tinyThumb: String) // Tiny tiny thumb, can be even smaller than tinyThumb even a 1px color
+    // function to return URL to load the full image.
 {
     fun getThumbUrl() : String { return "" }
 }
@@ -227,9 +230,7 @@ class ChatMessageProvider(private val identityId: Uuid, private val odinClient: 
             driveId: Uuid,
             conversationId: Uuid,
             limit: Int = 1000,
-            cursor: QueryBatchCursor? = null,
-            sortOrder: QueryBatchSortOrder = QueryBatchSortOrder.NewestFirst,
-            sortField: QueryBatchSortField = QueryBatchSortField.CreatedDate
+            cursor: QueryBatchCursor? = null
     ): BatchResult<ChatMessageData> {
         val result =
                 queryBatch.queryBatchAsync(
@@ -237,8 +238,8 @@ class ChatMessageProvider(private val identityId: Uuid, private val odinClient: 
                         driveId = driveId,
                         noOfItems = limit,
                         cursor = cursor,
-                        sortOrder = sortOrder,
-                        sortField = sortField,
+                        sortOrder = QueryBatchSortOrder.NewestFirst,
+                        sortField = QueryBatchSortField.CreatedDate,
                         fileSystemType = 0,
                         filetypesAnyOf = listOf(CHAT_MESSAGE_FILE_TYPE),
                         groupIdAnyOf = listOf(conversationId)

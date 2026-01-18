@@ -103,7 +103,7 @@ class DriveSync(
             var recordsRead = 0
             val durationMs = measureTimedValue {
                 try {
-                    queryBatchResponse = driveQueryProvider.queryBatch(driveId, request, QueryBatchOptions(decrypt = true))
+                    queryBatchResponse = driveQueryProvider.queryBatch(driveId, request)
 
                     if (queryBatchResponse.cursorState != null)
                         cursor = QueryBatchCursor.fromJson(queryBatchResponse.cursorState)

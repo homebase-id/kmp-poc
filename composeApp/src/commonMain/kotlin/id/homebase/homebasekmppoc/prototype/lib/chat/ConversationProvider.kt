@@ -87,7 +87,7 @@ data class ConversationData(
         /** Decrypted local metadata (from localAppData) */
         val conversationMeta: ConversationMetadata?,
 
-        /** Preview thumbnail */
+        /** Preview thumbnail 20x20 */
         val previewThumbnail: ThumbnailDescriptor?,
 
         /** FileState */
