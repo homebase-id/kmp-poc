@@ -15,6 +15,10 @@ import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthState
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthenticationManager
 import id.homebase.homebasekmppoc.prototype.ui.cdn.CdnTestPage
+import id.homebase.homebasekmppoc.prototype.ui.chat.ChatListPage
+import id.homebase.homebasekmppoc.prototype.ui.chat.ChatMessageDetailPage
+import id.homebase.homebasekmppoc.prototype.ui.chat.ChatMessageDetailViewModel
+import id.homebase.homebasekmppoc.prototype.ui.chat.ChatMessagesPage
 import id.homebase.homebasekmppoc.prototype.ui.db.DbPage
 import id.homebase.homebasekmppoc.prototype.ui.driveFetch.DriveFetchPage
 import id.homebase.homebasekmppoc.prototype.ui.driveFetch.FileDetailPage
@@ -111,7 +115,8 @@ fun AppNavHost(
                             navController.navigate(Route.DriveUpload)
 
                         is HomeUiEvent.NavigateToFFmpegTest ->
-                            navController.navigate(Route.FFmpegTest)
+                                navController.navigate(Route.FFmpegTest)
+                        is HomeUiEvent.NavigateToChatList -> navController.navigate(Route.ChatList)
 
                         is HomeUiEvent.NavigateToLogin -> {
                             navController.navigate(Route.Login) { popUpTo(0) { inclusive = true } }
@@ -235,6 +240,68 @@ fun AppNavHost(
                 )
 
             FileDetailPage(viewModel = viewModel, onNavigateBack = { navController.popBackStack() })
+        }
+
+        // Protected ChatList route (shows conversations)
+        composable<Route.ChatList> {
+            AuthenticatedRouteWithFlowManager(
+                    authState = youAuthFlowManager.authState,
+                    onUnauthenticated = {
+                        navController.navigate(Route.Login) { popUpTo(0) { inclusive = true } }
+                    }
+            ) {
+                ChatListPage(
+                        youAuthFlowManager = youAuthFlowManager,
+                        onNavigateBack = { navController.popBackStack() },
+                        onNavigateToMessages = { conversationId ->
+                            navController.navigate(Route.ChatMessages(conversationId))
+                        }
+                )
+            }
+        }
+
+        // ChatMessages route (shows messages for a conversation)
+        composable<Route.ChatMessages> { backStackEntry ->
+            val conversationId =
+                    backStackEntry.arguments?.read { getString("conversationId") }
+                            ?: error("conversationId missing")
+
+            AuthenticatedRouteWithFlowManager(
+                    authState = youAuthFlowManager.authState,
+                    onUnauthenticated = {
+                        navController.navigate(Route.Login) { popUpTo(0) { inclusive = true } }
+                    }
+            ) {
+                ChatMessagesPage(
+                        conversationId = conversationId,
+                        youAuthFlowManager = youAuthFlowManager,
+                        onNavigateBack = { navController.popBackStack() },
+                        onNavigateToMessageDetail = { driveId, fileId ->
+                            navController.navigate(Route.ChatMessageDetail(driveId, fileId))
+                        }
+                )
+            }
+        }
+
+        // ChatMessageDetail route
+        composable<Route.ChatMessageDetail> { backStackEntry ->
+            val driveId =
+                    backStackEntry.arguments?.read { getString("driveId") }
+                            ?: error("driveId missing")
+
+            val fileId =
+                    backStackEntry.arguments?.read { getString("fileId") }
+                            ?: error("fileId missing")
+
+            val viewModel =
+                    koinViewModel<ChatMessageDetailViewModel>(
+                            parameters = { parametersOf(Uuid.parse(driveId), Uuid.parse(fileId)) }
+                    )
+
+            ChatMessageDetailPage(
+                    viewModel = viewModel,
+                    onNavigateBack = { navController.popBackStack() }
+            )
         }
     }
 }

@@ -37,47 +37,48 @@ class HomeViewModel(private val youAuthFlowManager: YouAuthFlowManager,
     private val _uiEvent = Channel<HomeUiEvent>(Channel.BUFFERED)
     val uiEvent = _uiEvent.receiveAsFlow()
 
-    init {
-        // Check for missing permissions on init (runs in background, doesn't block UI)
-        checkMissingPermissions()
-    }
+//    init {
+//        // Check for missing permissions on init (runs in background, doesn't block UI)
+//        checkMissingPermissions()
+//    }
 
-    /** Check if the app has all required permissions. Runs in background without blocking UI. */
-    private fun checkMissingPermissions() {
-        viewModelScope.launch(Dispatchers.Default) {
-            try {
-                val odinClient = OdinClientFactory.createFromStorage()
-                if (odinClient == null) {
-                    Logger.w(TAG) { "No authenticated client available for permission check" }
-                    return@launch
-                }
-
-                val config = getPermissionExtensionConfig()
-
-                val hostIdentity = odinClient.getHostIdentity()
-                val manager = PermissionExtensionManager.create(securityContextProvider, hostIdentity)
-                val result = manager.getMissingPermissions(config)
-
-                if (result != null && result.hasMissingPermissions) {
-                    Logger.i(TAG) {
-                        "Missing permissions detected: ${result.missingDrives.size} drives, ${result.missingPermissions.size} permissions"
-                    }
-                    // Switch to Main thread for UI state update
-                    withContext(Dispatchers.Main) {
-                        _uiState.update { state ->
-                            state.copy(
-                                    showPermissionDialog = true,
-                                    permissionExtensionUrl = result.extendPermissionUrl,
-                                    appName = config.appName
-                            )
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                Logger.e(TAG, e) { "Error checking permissions" }
-            }
-        }
-    }
+//    /** Check if the app has all required permissions. Runs in background without blocking UI. */
+//    private fun checkMissingPermissions() {
+//        viewModelScope.launch(Dispatchers.Default) {
+//            try {
+//                val odinClient = OdinClientFactory.createFromStorage()
+//                if (odinClient == null) {
+//                    Logger.w(TAG) { "No authenticated client available for permission check" }
+//                    return@launch
+//                }
+//
+//                val config = getPermissionExtensionConfig()
+//
+//
+//                val hostIdentity = odinClient.getHostIdentity()
+//                val manager = PermissionExtensionManager.create(odinClient, hostIdentity)
+//                val result = manager.getMissingPermissions(config)
+//
+//                if (result != null && result.hasMissingPermissions) {
+//                    Logger.i(TAG) {
+//                        "Missing permissions detected: ${result.missingDrives.size} drives, ${result.missingPermissions.size} permissions"
+//                    }
+//                    // Switch to Main thread for UI state update
+//                    withContext(Dispatchers.Main) {
+//                        _uiState.update { state ->
+//                            state.copy(
+//                                    showPermissionDialog = true,
+//                                    permissionExtensionUrl = result.extendPermissionUrl,
+//                                    appName = config.appName
+//                            )
+//                        }
+//                    }
+//                }
+//            } catch (e: Exception) {
+//                Logger.e(TAG, e) { "Error checking permissions" }
+//            }
+//        }
+//    }
 
     /** Single entry point for all UI actions. */
     fun onAction(action: HomeUiAction) {
@@ -102,6 +103,9 @@ class HomeViewModel(private val youAuthFlowManager: YouAuthFlowManager,
             }
             is HomeUiAction.FFmpegTestClicked -> {
                 sendEvent(HomeUiEvent.NavigateToFFmpegTest)
+            }
+            is HomeUiAction.ChatListClicked -> {
+                sendEvent(HomeUiEvent.NavigateToChatList)
             }
             is HomeUiAction.LogoutClicked -> {
                 performLogout()

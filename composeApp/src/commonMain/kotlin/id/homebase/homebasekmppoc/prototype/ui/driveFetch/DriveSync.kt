@@ -1,6 +1,7 @@
 package id.homebase.homebasekmppoc.prototype.ui.driveFetch
 
 import co.touchlab.kermit.Logger
+import id.homebase.homebasekmppoc.prototype.lib.core.SecureByteArray
 import id.homebase.homebasekmppoc.prototype.lib.database.CursorStorage
 import id.homebase.homebasekmppoc.prototype.lib.database.MainIndexMetaHelpers
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
@@ -9,8 +10,10 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.FileState
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchRequest
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResponse
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResultOptionsRequest
+import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.QueryBatchCursor
+import id.homebase.homebasekmppoc.prototype.lib.drives.query.QueryBatchOptions
 import id.homebase.homebasekmppoc.prototype.lib.eventbus.BackendEvent
 import id.homebase.homebasekmppoc.prototype.lib.eventbus.EventBus
 import kotlin.time.measureTimedValue
@@ -21,7 +24,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.runBlocking
 
 
 class DriveSync(
@@ -45,9 +47,6 @@ class DriveSync(
         // Load cursor from database
         val cursorStorage = CursorStorage(databaseManager, driveId)
         cursor = cursorStorage.loadCursor()
-
-        // temp hack
-        runBlocking { clearStorage() }
     }
 
     // Call this to clear everything if you want to run a test and re-sync
