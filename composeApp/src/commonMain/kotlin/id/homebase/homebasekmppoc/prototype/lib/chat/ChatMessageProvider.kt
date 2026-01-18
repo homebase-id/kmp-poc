@@ -71,9 +71,9 @@ typealias RichText = List<RichTextNode>
 // TODO: AppData embedded data to render the "reply-to" header
 data class ReplyPreview(
     val replyId: Uuid, // MessageId of this preview
-    val name: String, // ~?? chars - name or identity??
+    val identity: String, // frodo.baggins.demo.rocks
     val message: String, // ~40 chars
-    val tinyThumb: String) // Tiny tiny thumb, can be even smaller than normal
+    val tinyThumb: String) // Tiny tiny thumb, can be even smaller than tinyThumb
 {
     fun getThumbUrl() : String { return "" }
 }
@@ -81,10 +81,10 @@ data class ReplyPreview(
 // TODO: AppData embedded data to render the "URL preview" header
 data class UrlPreview(
     val title: String, // ~?? chars - the title
-    val linkTitle: String, // ~?? chars - name or identity??
     val url: String, // ~?? chars - name or identity??
+    val urlTitle: String, // ~?? chars
     val message: String, // ~?? chars
-    val tinyThumb: String) // Tiny tiny thumb, can be even smaller than normal
+    val tinyThumb: String) // Tiny tiny thumb, can be even smaller than tinyThumb
 {
     fun getThumbUrl() : String { return "" }
 }
@@ -95,7 +95,7 @@ data class ChatMessageContent(
         /** Optional reply ID if this message is a reply to another message */
         val replyId: Uuid? = null,
 
-        // TODO: val reply: ReplyPreview? = null,
+        // TODO: val replyPreview: ReplyPreview? = null,
         // TODO: val urlPreview: UrlPreview? = null,
 
         /** Content of the message - can be a simple string or rich text */

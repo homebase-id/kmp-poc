@@ -61,7 +61,6 @@ data class ConversationMetadata(
 // TODO: localAppData: Latest message timestamp UnixTimeUtc (the last  received message was 8m ago)
 // TODO: localAppData: function that returns URL to profile picture to load in the background
 
-
 /**
  * Complete conversation data model with all fields. This is the domain model returned by
  * ConversationProvider with decrypted content.
@@ -69,8 +68,6 @@ data class ConversationMetadata(
 data class ConversationData(
         /** FileType of conversation (8888) */
         val fileType: Int = CHAT_CONVERSATION_FILE_TYPE,
-
-        // TODO: Think we're missing a lastRead (localAppData) - anything else?
 
         /** FileId of the conversation */
         val fileId: Uuid?,
