@@ -1,7 +1,11 @@
 package id.homebase.homebasekmppoc.lib.youauth
 
 import co.touchlab.kermit.Logger
+import id.homebase.homebasekmppoc.prototype.lib.base.CredentialsManager
+import id.homebase.homebasekmppoc.prototype.lib.base.OdinApiProviderBase
+import id.homebase.homebasekmppoc.prototype.lib.client.ApiResponse
 import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
+import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
@@ -18,14 +22,11 @@ import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * Provider for fetching security context from the API.
- *
- * @param odinClient Authenticated HTTP client for API requests
- * @param hostIdentity The host identity for URL construction
  */
 class SecurityContextProvider(
-        private val odinClient: OdinClient,
-        private val hostIdentity: String
-) {
+    httpClient: HttpClient,
+    credentialsManager: CredentialsManager
+) : OdinApiProviderBase(httpClient, credentialsManager) {
 
     companion object {
         private const val TAG = "SecurityContextProvider"
@@ -41,13 +42,18 @@ class SecurityContextProvider(
      */
     suspend fun getSecurityContext(): SecurityContext? {
         return try {
-            val client = odinClient.createHttpClient()
-            val response: HttpResponse =
-                    client.get("security/context")
-            val body = response.bodyAsText()
-            parseSecurityContext(body)
+
+            val credentials = requireCreds()
+            val response: ApiResponse = plainGet(
+                url = "security/context",
+                token = credentials.accessToken
+            )
+
+            throwForFailure(response)
+            parseSecurityContext(response.body)
+
         } catch (e: Exception) {
-            Logger.e(TAG, e) { "Error fetching security context" }
+            Logger.e(TAG, e) { "Error fetching security context: ${e.message}" }
             null
         }
     }
@@ -58,73 +64,73 @@ class SecurityContextProvider(
 
         val callerJson = root["caller"]?.jsonObject
         val caller =
-                CallerContext(
-                        odinId = callerJson?.get("odinId")?.jsonPrimitive?.contentOrNull,
-                        securityLevel =
-                                callerJson?.get("securityLevel")?.jsonPrimitive?.contentOrNull
-                                        ?: "anonymous",
-                        isGrantedConnectedIdentitiesSystemCircle =
-                                callerJson
-                                        ?.get("isGrantedConnectedIdentitiesSystemCircle")
-                                        ?.jsonPrimitive
-                                        ?.contentOrNull
-                                        ?.toBooleanStrictOrNull()
-                                        ?: false
-                )
+            CallerContext(
+                odinId = callerJson?.get("odinId")?.jsonPrimitive?.contentOrNull,
+                securityLevel =
+                    callerJson?.get("securityLevel")?.jsonPrimitive?.contentOrNull
+                        ?: "anonymous",
+                isGrantedConnectedIdentitiesSystemCircle =
+                    callerJson
+                        ?.get("isGrantedConnectedIdentitiesSystemCircle")
+                        ?.jsonPrimitive
+                        ?.contentOrNull
+                        ?.toBooleanStrictOrNull()
+                        ?: false
+            )
 
         val permissionContextJson = root["permissionContext"]?.jsonObject
         val permissionGroupsJson =
-                permissionContextJson?.get("permissionGroups")?.jsonArray ?: JsonArray(emptyList())
+            permissionContextJson?.get("permissionGroups")?.jsonArray ?: JsonArray(emptyList())
 
         val permissionGroups =
-                permissionGroupsJson.map { groupElement ->
-                    parsePermissionGroup(groupElement.jsonObject)
-                }
+            permissionGroupsJson.map { groupElement ->
+                parsePermissionGroup(groupElement.jsonObject)
+            }
 
         return SecurityContext(
-                caller = caller,
-                permissionContext = PermissionContext(permissionGroups = permissionGroups)
+            caller = caller,
+            permissionContext = PermissionContext(permissionGroups = permissionGroups)
         )
     }
 
     private fun parsePermissionGroup(groupJson: JsonObject): PermissionGroup {
         val driveGrantsJson = groupJson["driveGrants"]?.jsonArray
         val driveGrants =
-                driveGrantsJson?.map { grantElement -> parseDriveGrant(grantElement.jsonObject) }
+            driveGrantsJson?.map { grantElement -> parseDriveGrant(grantElement.jsonObject) }
 
         val permissionSetJson = groupJson["permissionSet"]?.jsonObject
         val permissionSet =
-                if (permissionSetJson != null) {
-                    val keys =
-                            permissionSetJson["keys"]?.jsonArray?.map { it.jsonPrimitive.int }
-                                    ?: emptyList()
-                    PermissionSet(keys = keys)
-                } else null
+            if (permissionSetJson != null) {
+                val keys =
+                    permissionSetJson["keys"]?.jsonArray?.map { it.jsonPrimitive.int }
+                        ?: emptyList()
+                PermissionSet(keys = keys)
+            } else null
 
         return PermissionGroup(driveGrants = driveGrants, permissionSet = permissionSet)
     }
 
     private fun parseDriveGrant(grantJson: JsonObject): DriveGrant {
         val permissionedDriveJson =
-                grantJson["permissionedDrive"]?.jsonObject
-                        ?: throw IllegalArgumentException("Missing permissionedDrive")
+            grantJson["permissionedDrive"]?.jsonObject
+                ?: throw IllegalArgumentException("Missing permissionedDrive")
 
         val driveJson =
-                permissionedDriveJson["drive"]?.jsonObject
-                        ?: throw IllegalArgumentException("Missing drive")
+            permissionedDriveJson["drive"]?.jsonObject
+                ?: throw IllegalArgumentException("Missing drive")
 
         val drive =
-                DriveReference(
-                        alias = driveJson["alias"]?.jsonPrimitive?.contentOrNull ?: "",
-                        type = driveJson["type"]?.jsonPrimitive?.contentOrNull ?: ""
-                )
+            DriveReference(
+                alias = driveJson["alias"]?.jsonPrimitive?.contentOrNull ?: "",
+                type = driveJson["type"]?.jsonPrimitive?.contentOrNull ?: ""
+            )
 
         // Parse permission - can be string or array
         val permissionElement = permissionedDriveJson["permission"]
         val permissions = parsePermission(permissionElement)
 
         return DriveGrant(
-                permissionedDrive = PermissionedDrive(drive = drive, permission = permissions)
+            permissionedDrive = PermissionedDrive(drive = drive, permission = permissions)
         )
     }
 
@@ -140,6 +146,7 @@ class SecurityContextProvider(
                 // String permission like "ReadWrite", "All", etc.
                 getDrivePermissionFromString(element.contentOrNull ?: "")
             }
+
             is JsonArray -> {
                 // Array of permission values
                 element.mapNotNull {
@@ -147,6 +154,7 @@ class SecurityContextProvider(
                     DrivePermissionType.entries.find { type -> type.value == value }
                 }
             }
+
             else -> emptyList()
         }
     }
@@ -184,28 +192,28 @@ fun getDrivePermissionFromString(permission: String): List<DrivePermissionType> 
 fun getUniqueDrivesWithHighestPermission(grants: List<DriveGrant>): List<DriveGrant> {
     return grants.fold(mutableListOf()) { result, grantedDrive ->
         val existingIndex =
-                result.indexOfFirst { driveGrant ->
-                    driveGrant.permissionedDrive.drive.alias ==
-                            grantedDrive.permissionedDrive.drive.alias &&
-                            driveGrant.permissionedDrive.drive.type ==
-                                    grantedDrive.permissionedDrive.drive.type
-                }
+            result.indexOfFirst { driveGrant ->
+                driveGrant.permissionedDrive.drive.alias ==
+                        grantedDrive.permissionedDrive.drive.alias &&
+                        driveGrant.permissionedDrive.drive.type ==
+                        grantedDrive.permissionedDrive.drive.type
+            }
 
         if (existingIndex != -1) {
             // Merge permissions
             val existing = result[existingIndex]
             val mergedPermissions =
-                    (existing.permissionedDrive.permission +
-                                    grantedDrive.permissionedDrive.permission)
-                            .distinct()
+                (existing.permissionedDrive.permission +
+                        grantedDrive.permissionedDrive.permission)
+                    .distinct()
             result[existingIndex] =
-                    DriveGrant(
-                            permissionedDrive =
-                                    PermissionedDrive(
-                                            drive = existing.permissionedDrive.drive,
-                                            permission = mergedPermissions
-                                    )
-                    )
+                DriveGrant(
+                    permissionedDrive =
+                        PermissionedDrive(
+                            drive = existing.permissionedDrive.drive,
+                            permission = mergedPermissions
+                        )
+                )
         } else {
             result.add(grantedDrive)
         }

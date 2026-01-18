@@ -109,6 +109,28 @@ fun FileDetailPage(
                         pendingDelete = PendingDeleteType.Hard
                     }
                 )
+
+                Button(
+                    enabled = !state.isLoading,
+                    onClick = {
+                        viewModel.onAction(
+                            FileDetailUiAction.UpdateFileClicked.ByUniqueId
+                        )
+                    }
+                ) {
+                    Text(if (state.isLoading) "Loading…" else "Update File by Unique Id")
+                }
+
+                Button(
+                    enabled = !state.isLoading,
+                    onClick = {
+                        viewModel.onAction(
+                            FileDetailUiAction.UpdateFileClicked.ByFileId
+                        )
+                    }
+                ) {
+                    Text(if (state.isLoading) "Loading…" else "Update File by File Id")
+                }
             }
 
             Spacer(Modifier.height(24.dp))
@@ -125,7 +147,7 @@ fun FileDetailPage(
                         CircularProgressIndicator()
                         Spacer(Modifier.height(12.dp))
                         Text(
-                            text = "Loading file header…",
+                            text = "Loading…",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -163,7 +185,7 @@ fun FileDetailPage(
                     }
                 }
 
-                state.hasTriedToLoadHeader -> {
+                !state.successMessage.isNullOrEmpty() -> {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -172,15 +194,25 @@ fun FileDetailPage(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = state.error ?: "File not found",
+                            text = state.successMessage ?: "",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.error
                         )
-                        Spacer(Modifier.height(8.dp))
+                    }
+                }
+
+                !state.error.isNullOrEmpty() -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
                         Text(
-                            text = "The file could not be loaded or does not exist.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = state.error ?: "error text empty",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error
                         )
                     }
                 }

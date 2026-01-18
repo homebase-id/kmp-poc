@@ -6,6 +6,7 @@ import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.lib.config.getPermissionExtensionConfig
 import id.homebase.homebasekmppoc.lib.youauth.OdinClientFactory
 import id.homebase.homebasekmppoc.lib.youauth.PermissionExtensionManager
+import id.homebase.homebasekmppoc.lib.youauth.SecurityContextProvider
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -23,7 +24,8 @@ import kotlinx.coroutines.withContext
  * - Single entry point via onAction()
  * - One-off events via Channel
  */
-class HomeViewModel(private val youAuthFlowManager: YouAuthFlowManager) : ViewModel() {
+class HomeViewModel(private val youAuthFlowManager: YouAuthFlowManager,
+                    private val securityContextProvider: SecurityContextProvider) : ViewModel() {
 
     companion object {
         private const val TAG = "HomeViewModel"

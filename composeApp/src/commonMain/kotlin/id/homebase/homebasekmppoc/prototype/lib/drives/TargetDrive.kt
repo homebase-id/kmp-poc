@@ -13,6 +13,15 @@ import kotlin.uuid.Uuid
  */
 
 // TODO: probably remove "type" and rename alias to driveId
+@Serializable
+data class GlobalTransitIdFileIdentifier(
+
+    @Serializable(with = UuidSerializer::class)
+    val globalTransitId: Uuid,
+
+    val targetDrive: TargetDrive
+
+)
 
 @Serializable
 data class TargetDrive(

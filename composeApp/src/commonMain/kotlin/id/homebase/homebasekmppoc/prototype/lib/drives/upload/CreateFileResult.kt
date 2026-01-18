@@ -1,7 +1,6 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives.upload
 
 import id.homebase.homebasekmppoc.prototype.lib.crypto.KeyHeader
-import id.homebase.homebasekmppoc.prototype.lib.drives.files.GlobalTransitIdFileIdentifier
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlin.uuid.Uuid

@@ -3,6 +3,7 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives.files
 
 import id.homebase.homebasekmppoc.prototype.lib.core.time.UnixTimeUtc
+import id.homebase.homebasekmppoc.prototype.lib.drives.GlobalTransitIdFileIdentifier
 import id.homebase.homebasekmppoc.prototype.lib.serialization.UuidSerializer
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -11,21 +12,21 @@ import kotlinx.serialization.Serializable
 /** Client file metadata Ported from C# Odin.Services.Apps.ClientFileMetadata */
 @Serializable
 data class FileMetadata(
-        @Serializable(with = UuidSerializer::class) val globalTransitId: Uuid? = null,
-        val created: UnixTimeUtc = UnixTimeUtc.ZeroTime,
-        val updated: UnixTimeUtc = UnixTimeUtc.ZeroTime,
-        val transitCreated: UnixTimeUtc = UnixTimeUtc.ZeroTime,
-        val transitUpdated: UnixTimeUtc = UnixTimeUtc.ZeroTime,
-        val isEncrypted: Boolean = false,
-        val senderOdinId: String? = null,
-        val originalAuthor: String? = null,
-        val appData: AppFileMetaData = AppFileMetaData(),
-        val localAppData: LocalAppMetadata? = null,
-        val referencedFile: GlobalTransitIdFileIdentifier? = null,
-        val reactionPreview: ReactionSummary? = null,
-        @Serializable(with = UuidSerializer::class) val versionTag: Uuid? = null,
-        val payloads: List<PayloadDescriptor>? = null,
-        val dataSource: DataSource? = null
+    @Serializable(with = UuidSerializer::class) val globalTransitId: Uuid? = null,
+    val created: UnixTimeUtc = UnixTimeUtc.ZeroTime,
+    val updated: UnixTimeUtc = UnixTimeUtc.ZeroTime,
+    val transitCreated: UnixTimeUtc = UnixTimeUtc.ZeroTime,
+    val transitUpdated: UnixTimeUtc = UnixTimeUtc.ZeroTime,
+    val isEncrypted: Boolean = false,
+    val senderOdinId: String? = null,
+    val originalAuthor: String? = null,
+    val appData: AppFileMetaData = AppFileMetaData(),
+    val localAppData: LocalAppMetadata? = null,
+    val referencedFile: GlobalTransitIdFileIdentifier? = null,
+    val reactionPreview: ReactionSummary? = null,
+    @Serializable(with = UuidSerializer::class) val versionTag: Uuid? = null,
+    val payloads: List<PayloadDescriptor>? = null,
+    val dataSource: DataSource? = null
 ) {
         fun getPayloadDescriptor(key: String): PayloadDescriptor? {
                 return payloads?.firstOrNull { it.keyEquals(key) }

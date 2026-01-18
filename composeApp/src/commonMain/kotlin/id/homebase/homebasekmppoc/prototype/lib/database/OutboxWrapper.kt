@@ -9,6 +9,7 @@ import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
 import kotlin.Any
 import kotlin.Long
 import kotlin.uuid.Uuid
+import kotlinx.atomicfu.atomic
 
 class OutboxWrapper(
     driver: SqlDriver,
@@ -17,11 +18,23 @@ class OutboxWrapper(
 ) {
     private val delegate = OutboxQueries(driver, outboxAdapter)
 
-    suspend fun checkout(
-        checkOutStamp: UnixTimeUtc
-    ): Outbox?
+    private val lastId = atomic(0L)
+
+    // TEMP HACK - will make a different design
+    fun getUniqueId(): Long {
+        while (true) {
+            val now = UnixTimeUtc.now().milliseconds
+            val current = lastId.value
+            val candidate = if (now > current) now else current + 1
+            if (lastId.compareAndSet(current, candidate)) {
+                return candidate
+            }
+        }
+    }
+
+    suspend fun checkout(): Outbox?
     {
-        return databaseManager.withWriteValue { delegate.checkout(checkOutStamp.milliseconds, UnixTimeUtc.now().milliseconds).executeAsOneOrNull() }
+        return databaseManager.withWriteValue { delegate.checkout(getUniqueId(), UnixTimeUtc.now().milliseconds).executeAsOneOrNull() }
     }
 
     fun nextScheduled(): UnixTimeUtc?

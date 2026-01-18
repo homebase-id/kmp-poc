@@ -77,11 +77,10 @@ class ChatMessageDetailViewModel(
 
             try {
                 val bytes =
-                        provider.getPayloadBytes(
+                        provider.getPayloadBytesDecrypted(
                                 driveId = driveId,
                                 fileId = fileId,
-                                key = action.payloadKey,
-                                options = PayloadOperationOptions()
+                                key = action.payloadKey
                         )
 
                 if (bytes != null) {

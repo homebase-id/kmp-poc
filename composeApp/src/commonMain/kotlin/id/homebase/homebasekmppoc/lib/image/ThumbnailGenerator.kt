@@ -258,4 +258,3 @@ private fun getSvgDimensions(svgData: ByteArray): ImageSize? {
         null
     }
 }
-
