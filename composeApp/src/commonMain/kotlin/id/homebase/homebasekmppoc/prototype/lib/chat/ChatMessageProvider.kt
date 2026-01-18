@@ -67,20 +67,36 @@ data class RichTextNode(
 /** Type alias for rich text content (array of RichTextNode) */
 typealias RichText = List<RichTextNode>
 
+
+// TODO: AppData embedded data to render the "reply-to" header
+data class ReplyPreview(
+    val replyId: Uuid, // MessageId of this preview
+    val name: String, // ~?? chars - name or identity??
+    val message: String, // ~40 chars
+    val tinyThumb: String) // Tiny tiny thumb, can be even smaller than normal
+{
+    fun getThumbUrl() : String { return "" }
+}
+
+// TODO: AppData embedded data to render the "URL preview" header
+data class UrlPreview(
+    val title: String, // ~?? chars - the title
+    val linkTitle: String, // ~?? chars - name or identity??
+    val url: String, // ~?? chars - name or identity??
+    val message: String, // ~?? chars
+    val tinyThumb: String) // Tiny tiny thumb, can be even smaller than normal
+{
+    fun getThumbUrl() : String { return "" }
+}
+
 /** Data class representing chat message content (parsed from JSON) */
 @Serializable
 data class ChatMessageContent(
         /** Optional reply ID if this message is a reply to another message */
         val replyId: Uuid? = null,
 
-        // TODO: redesign replyId
-        // TODO: replyText (the chopped text)
-        // TODO: replyTinyThumb (perhaps even just a 1px background color - dimensions?)
-        // TODO: and a helper function to return the URL to the image (if any)
-
-        // TODO: I think we're also missing the URL preview data here. We need it so we
-        // TODO: don't have to lookup another item.
-        // TODO: And a helper function that returns the URL to the image (background loaded)
+        // TODO: val reply: ReplyPreview? = null,
+        // TODO: val urlPreview: UrlPreview? = null,
 
         /** Content of the message - can be a simple string or rich text */
         val message: String = "",

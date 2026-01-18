@@ -36,14 +36,6 @@ interface BaseConversation {
 data class UnifiedConversation(
         override val title: String = "",
         val recipients: List<String> = emptyList()
-
-// For ALL converstaion items, single and groups, we need this data here or on the
-// conversationData to be able to render the overview item without doing additional
-// lookups:
-// TODO: Missing tinyThumb
-// TODO: Latest message 40 chars String
-// TODO: Latest message timestamp UnixTimeUtc
-// TODO: function that returns URL to profile picture to load in the background
 ) : BaseConversation
 
 /**
@@ -61,6 +53,14 @@ data class ConversationMetadata(
         /** Get lastReadTime as UnixTimeUtc */
         fun getLastReadTimeUtc(): UnixTimeUtc? = lastReadTime?.let { UnixTimeUtc(it) }
 }
+
+// For ALL conversation items, single and groups, we need this data here or on the
+// conversationData to be able to render the overview item without doing additional
+// lookups:
+// TODO: localAppData: Latest message 40 chars String (the last received message 40 first chars)
+// TODO: localAppData: Latest message timestamp UnixTimeUtc (the last  received message was 8m ago)
+// TODO: localAppData: function that returns URL to profile picture to load in the background
+
 
 /**
  * Complete conversation data model with all fields. This is the domain model returned by
