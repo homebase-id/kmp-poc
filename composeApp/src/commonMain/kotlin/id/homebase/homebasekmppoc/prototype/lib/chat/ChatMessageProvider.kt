@@ -30,7 +30,7 @@ const val CHAT_MESSAGE_FILE_TYPE = 7878
 const val ChatDeletedArchivalStatus = 2
 
 const val CHAT_MESSAGE_PAYLOAD_KEY = "chat_mbl";
- const val CHAT_LINKS_PAYLOAD_KEY = "chat_links";
+const val CHAT_LINKS_PAYLOAD_KEY = "chat_links";
 
 /** Enum representing the delivery status of a chat message */
 enum class ChatDeliveryStatus(val value: Int) {
@@ -72,7 +72,7 @@ typealias RichText = List<RichTextNode>
 data class ReplyPreview(
     val replyFileId: Uuid, // FileId of the message that was replied to
     val identity: String, // frodo.baggins.demo.rocks
-    val message: String, // ~40 chars
+    val message: String, // ~40 chars (IDK how many you use?)
     val tinyThumb: String) // Tiny tiny thumb, can be even smaller than tinyThumb even a 1px color
     // function to return URL to load the full image.
 {
@@ -322,6 +322,10 @@ class ChatMessageProvider(private val identityId: Uuid, private val odinClient: 
         return try {
             OdinSystemSerializer.deserialize<ChatMessageContent>(content)
         } catch (e: Exception) {
+            println(
+                "ChatProvider: Failed to parse ChatMetadata: ${e.message}\nContent: [${content}]"
+            )
+
             // If parsing fails, create a simple message with the raw content
             try {
                 ChatMessageContent(message = content)
