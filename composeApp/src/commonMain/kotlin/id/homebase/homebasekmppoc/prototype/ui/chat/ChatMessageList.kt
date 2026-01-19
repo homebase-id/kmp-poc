@@ -103,7 +103,7 @@ fun ConversationCard(item: ConversationData, onClick: () -> Unit) {
                                         Text("Last-message-text: BISHWA TODO 40 CHARS STORED IN APPDATA")
                                         Text("Last-message-timestamp: BISHWA TODO UNIXTIMEUTC STORED IN APPDATA")
                                         Text("Last-message-delivery-status: BISHWA TODO DELIVERY STATUS STORED IN APPDATA")
-                                        Text("TEST")
+                                        Text("Reaction-summary: BISHWA ADD REACTION SUMMARY")
                                 }
                         }
 
