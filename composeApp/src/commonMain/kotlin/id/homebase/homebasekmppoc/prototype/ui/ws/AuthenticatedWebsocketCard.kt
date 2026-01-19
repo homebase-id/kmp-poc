@@ -28,8 +28,14 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthState
+import id.homebase.homebasekmppoc.prototype.lib.base.CredentialsManager
+import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
+import id.homebase.homebasekmppoc.prototype.lib.eventbus.appEventBus
 import id.homebase.homebasekmppoc.prototype.lib.websockets.OdinWebSocketClient
 import id.homebase.homebasekmppoc.prototype.lib.websockets.WebSocketState
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
@@ -42,16 +48,30 @@ import kotlin.time.Instant
  */
 @Composable
 fun AuthenticatedWebsocketCard(
+    credentialsManager: CredentialsManager,
     authenticatedState: AuthState.Authenticated?,
     modifier: Modifier = Modifier
 ) {
+    val scope: CoroutineScope = CoroutineScope(Dispatchers.Default)
+
     // WebSocket client
     val webSocketClient = remember(authenticatedState) {
-        authenticatedState?.let { OdinWebSocketClient(it) }
+        authenticatedState?.let {
+            OdinWebSocketClient(
+                credentialsManager,
+                scope,
+                appEventBus,
+                DatabaseManager.appDb
+            )
+        }
     }
-    val webSocketMessages by webSocketClient?.messages?.collectAsState() ?: remember { mutableStateOf(emptyList()) }
-    val webSocketState by webSocketClient?.connectionState?.collectAsState() ?: remember { mutableStateOf(
-        WebSocketState.Disconnected) }
+//    val webSocketMessages by webSocketClient?.messages?.collectAsState()
+//        ?: remember { mutableStateOf(emptyList()) }
+    val webSocketState by webSocketClient?.connectionState?.collectAsState() ?: remember {
+        mutableStateOf(
+            WebSocketState.Disconnected
+        )
+    }
 
     // Cleanup WebSocket on disposal
     DisposableEffect(webSocketClient) {
@@ -129,7 +149,7 @@ fun AuthenticatedWebsocketCard(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Button(
-                            onClick = { webSocketClient?.connect() },
+                            onClick = { scope.launch { webSocketClient?.connect() } },
                             enabled = webSocketState is WebSocketState.Disconnected || webSocketState is WebSocketState.Error
                         ) {
                             Text("Connect")
@@ -151,7 +171,7 @@ fun AuthenticatedWebsocketCard(
 
                         Button(
                             onClick = { webSocketClient?.clearMessages() },
-                            enabled = webSocketMessages.isNotEmpty()
+//                            enabled = webSocketMessages.isNotEmpty()
                         ) {
                             Text("Clear")
                         }
@@ -160,51 +180,51 @@ fun AuthenticatedWebsocketCard(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     // Messages display
-                    if (webSocketMessages.isEmpty()) {
-                        Text(
-                            text = "No messages received yet",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
-                        )
-                    } else {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp)
-                                .verticalScroll(rememberScrollState())
-                                .border(
-                                    width = 1.dp,
-                                    color = MaterialTheme.colorScheme.outlineVariant,
-                                    shape = RoundedCornerShape(4.dp)
-                                )
-                                .padding(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            webSocketMessages.forEach { message ->
-                                val timestamp = Instant.fromEpochMilliseconds(message.timestamp)
-                                    .toLocalDateTime(TimeZone.currentSystemDefault())
-                                val timeStr = "${timestamp.hour.toString().padStart(2, '0')}:" +
-                                        "${timestamp.minute.toString().padStart(2, '0')}:" +
-                                        timestamp.second.toString().padStart(2, '0')
-
-                                Column {
-                                    Text(
-                                        text = "[$timeStr]",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontFamily = FontFamily.Monospace
-                                    )
-                                    Text(
-                                        text = message.content,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        fontFamily = FontFamily.Monospace
-                                    )
-                                }
-                            }
-                        }
-                    }
+//                    if (webSocketMessages.isEmpty()) {
+//                        Text(
+//                            text = "No messages received yet",
+//                            style = MaterialTheme.typography.bodyMedium,
+//                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+//                            textAlign = TextAlign.Center
+//                        )
+//                    } else {
+//                        Column(
+//                            modifier = Modifier
+//                                .fillMaxWidth()
+//                                .height(200.dp)
+//                                .verticalScroll(rememberScrollState())
+//                                .border(
+//                                    width = 1.dp,
+//                                    color = MaterialTheme.colorScheme.outlineVariant,
+//                                    shape = RoundedCornerShape(4.dp)
+//                                )
+//                                .padding(8.dp),
+//                            verticalArrangement = Arrangement.spacedBy(4.dp)
+//                        ) {
+//                            webSocketMessages.forEach { message ->
+//                                val timestamp = Instant.fromEpochMilliseconds(message.timestamp)
+//                                    .toLocalDateTime(TimeZone.currentSystemDefault())
+//                                val timeStr = "${timestamp.hour.toString().padStart(2, '0')}:" +
+//                                        "${timestamp.minute.toString().padStart(2, '0')}:" +
+//                                        timestamp.second.toString().padStart(2, '0')
+//
+//                                Column {
+//                                    Text(
+//                                        text = "[$timeStr]",
+//                                        style = MaterialTheme.typography.bodySmall,
+//                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+//                                        fontFamily = FontFamily.Monospace
+//                                    )
+//                                    Text(
+//                                        text = message.content,
+//                                        style = MaterialTheme.typography.bodyMedium,
+//                                        color = MaterialTheme.colorScheme.onSurface,
+//                                        fontFamily = FontFamily.Monospace
+//                                    )
+//                                }
+//                            }
+//                        }
+//                    }
                 }
             }
         }
