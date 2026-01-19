@@ -81,4 +81,7 @@ sealed interface  BackendEvent {
     // We go online / offline when the websocket listener is connected / disconnected
     data object GoingOnline : BackendEvent
     data object GoingOffline : BackendEvent
+
+    // We need an event for when someone is typing something for you...
+    // data object UserTyping : backendEvent
 }
