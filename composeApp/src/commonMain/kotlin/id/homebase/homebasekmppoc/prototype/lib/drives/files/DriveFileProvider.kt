@@ -7,6 +7,8 @@ import id.homebase.homebasekmppoc.prototype.lib.crypto.AesCbc
 import id.homebase.homebasekmppoc.prototype.lib.crypto.EncryptedKeyHeader
 import id.homebase.homebasekmppoc.prototype.lib.crypto.KeyHeader
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileSystemType
+import id.homebase.homebasekmppoc.prototype.lib.drives.HomebaseFile
+import id.homebase.homebasekmppoc.prototype.lib.drives.ServerFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.TransferUploadStatus
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import io.ktor.client.HttpClient
@@ -19,16 +21,9 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.uuid.Uuid
 import co.touchlab.kermit.Logger as KLogger
 
-/** Options for file operations. */
-data class FileOperationOptions(
-    val decrypt: Boolean = true,
-    val lastModified: Long? = null
-)
-
 /** Options for payload operations with range support. */
 data class PayloadOperationOptions(
     val fileSystemType: FileSystemType = FileSystemType.Standard,
-    val decrypt: Boolean = true,
     val chunkStart: Long? = null,
     val chunkLength: Long? = null,
     val lastModified: Long? = null
@@ -99,8 +94,10 @@ public class DriveFileProvider(
 
         throwForFailure(response)
 
-        return deserialize<HomebaseFile>(response.body)
+        var file = deserialize<ServerFile>(response.body)
+        return file.asHomebaseFile(creds.secret)
     }
+
 
     suspend fun getPayloadBytesRaw(
         driveId: Uuid,
@@ -176,8 +173,7 @@ public class DriveFileProvider(
                 key = key,
                 options = PayloadOperationOptions(
                     chunkStart = chunkStart,
-                    chunkLength = chunkLength,
-                    decrypt = false
+                    chunkLength = chunkLength
                 )
             ) ?: return null
 
@@ -245,13 +241,6 @@ public class DriveFileProvider(
                 creds.domain,
                 "/drives/$driveId/files/$fileId/payload/$payloadKey/thumb"
             )
-//
-//        val response = encryptedGet(
-//            url = url,
-//            queryParams,
-//            token = creds.accessToken,
-//            secret = creds.secret
-//        )
 
         val response = requestBytes {
             httpClient.get(url) {

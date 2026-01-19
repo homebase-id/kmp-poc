@@ -3,12 +3,11 @@ package id.homebase.homebasekmppoc.prototype.lib.database
 import id.homebase.homebasekmppoc.prototype.lib.core.time.UnixTimeUtc
 import id.homebase.homebasekmppoc.lib.database.DriveLocalTagIndex
 import id.homebase.homebasekmppoc.lib.database.DriveTagIndex
-import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
+import id.homebase.homebasekmppoc.prototype.lib.drives.HomebaseFile
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.QueryBatchCursor
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.TimeRowCursor
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -36,19 +35,20 @@ class MainIndexMetaTest {
                 "driveId": "${driveId}",
                 "fileState": "active",
                 "fileSystemType": "standard",
-                "sharedSecretEncryptedKeyHeader": {
-                    "encryptionVersion": 1,
-                    "type": "aes",
-                    "iv": "fA2HYW8SoHnP3oMxgPcckA==",
-                    "encryptedAesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
-                },
+                "serverFileIsEncrypted":"true",
+                "keyHeader" : {
+                    "iv" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+                    "aesKey" : {
+                      "bytes" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+                    }
+                  },
                 "fileMetadata": {
                     "globalTransitId": "52a491ac-9870-4d0c-94a1-1bf667393015",
                     "created": ${currentTime}000,
                     "updated": ${currentTime}000,
                     "transitCreated": 0,
                     "transitUpdated": 0,
-                    "isEncrypted": true,
+                    "serverFileIsEncrypted": true,
                     "senderOdinId": "test-sender",
                     "originalAuthor": "test-sender",
                     "appData": {
@@ -88,7 +88,7 @@ class MainIndexMetaTest {
 
             // Deserialize JSON header to SharedSecretEncryptedFileHeader
             val header =
-                OdinSystemSerializer.deserialize<SharedSecretEncryptedFileHeader>(jsonHeader)
+                OdinSystemSerializer.deserialize<HomebaseFile>(jsonHeader)
 
             // Create FileMetadataProcessor instance to convert header to DriveMainIndex record
             val processor = MainIndexMetaHelpers.HomebaseFileProcessor(dbm)
@@ -132,19 +132,20 @@ class MainIndexMetaTest {
                 "driveId": "${driveId}",
                 "fileState": "active",
                 "fileSystemType": "standard",
-                "sharedSecretEncryptedKeyHeader": {
-                    "encryptionVersion": 1,
-                    "type": "aes",
-                    "iv": "fA2HYW8SoHnP3oMxgPcckA==",
-                    "encryptedAesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
-                },
+                "serverFileIsEncrypted":"true",
+                "keyHeader" : {
+                    "iv" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+                    "aesKey" : {
+                      "bytes" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+                    }
+                  },
                 "fileMetadata": {
                     "globalTransitId": "${globalId}",
                     "created": ${currentTime}000,
                     "updated": ${currentTime}000,
                     "transitCreated": 0,
                     "transitUpdated": 0,
-                    "isEncrypted": true,
+                    "serverFileIsEncrypted": true,
                     "senderOdinId": "test-sender",
                     "originalAuthor": "test-sender",
                     "appData": {
@@ -242,7 +243,7 @@ class MainIndexMetaTest {
 
             // Deserialize JSON header to SharedSecretEncryptedFileHeader
             val header =
-                OdinSystemSerializer.deserialize<SharedSecretEncryptedFileHeader>(jsonHeader)
+                OdinSystemSerializer.deserialize<HomebaseFile>(jsonHeader)
 
             // Create FileMetadataProcessor instance to test BaseUpsertEntryZapZap
             val processor = MainIndexMetaHelpers.HomebaseFileProcessor(dbm)
@@ -335,19 +336,20 @@ class MainIndexMetaTest {
                 "driveId": "${driveId}",
                 "fileState": "active",
                 "fileSystemType": "standard",
-                "sharedSecretEncryptedKeyHeader": {
-                    "encryptionVersion": 1,
-                    "type": "aes",
-                    "iv": "fA2HYW8SoHnP3oMxgPcckA==",
-                    "encryptedAesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
-                },
+                "serverFileIsEncrypted":"true",
+                "keyHeader" : {
+                    "iv" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+                    "aesKey" : {
+                      "bytes" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+                    }
+                  },
                 "fileMetadata": {
                     "globalTransitId": "52a491ac-9870-4d0c-94a1-1bf667393015",
                     "created": ${currentTime}000,
                     "updated": ${currentTime}000,
                     "transitCreated": 0,
                     "transitUpdated": 0,
-                    "isEncrypted": true,
+                    "serverFileIsEncrypted": true,
                     "senderOdinId": "test-sender",
                     "originalAuthor": "test-sender",
                     "appData": {
@@ -393,7 +395,7 @@ class MainIndexMetaTest {
 
             // Deserialize JSON header to SharedSecretEncryptedFileHeader
             val header =
-                OdinSystemSerializer.deserialize<SharedSecretEncryptedFileHeader>(jsonHeader)
+                OdinSystemSerializer.deserialize<HomebaseFile>(jsonHeader)
 
             // Call BaseUpsertEntryZapZap function with null cursor
             processor.baseUpsertEntryZapZap(
@@ -460,19 +462,20 @@ class MainIndexMetaTest {
                 "driveId": "${driveId}",
                 "fileState": "active",
                 "fileSystemType": "standard",
-                "sharedSecretEncryptedKeyHeader": {
-                    "encryptionVersion": 1,
-                    "type": "aes",
-                    "iv": "fA2HYW8SoHnP3oMxgPcckA==",
-                    "encryptedAesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
-                },
+                "serverFileIsEncrypted":"true",
+                "keyHeader" : {
+                    "iv" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+                    "aesKey" : {
+                      "bytes" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+                    }
+                  },
                 "fileMetadata": {
                     "globalTransitId": "${globalId}",
                     "created": ${currentTime}000,
                     "updated": ${currentTime}000,
                     "transitCreated": 0,
                     "transitUpdated": 0,
-                    "isEncrypted": true,
+                    "serverFileIsEncrypted": true,
                     "senderOdinId": "test-sender",
                     "originalAuthor": "test-sender",
                     "appData": {
@@ -514,7 +517,7 @@ class MainIndexMetaTest {
 
             // Deserialize JSON header to SharedSecretEncryptedFileHeader
             val fileHeader =
-                OdinSystemSerializer.deserialize<SharedSecretEncryptedFileHeader>(jsonHeader)
+                OdinSystemSerializer.deserialize<HomebaseFile>(jsonHeader)
 
             processor.baseUpsertEntryZapZap(
                 identityId = identityId,
@@ -572,19 +575,20 @@ class MainIndexMetaTest {
                 "driveId": "${driveId}",
                 "fileState": "active",
                 "fileSystemType": "standard",
-                "sharedSecretEncryptedKeyHeader": {
-                    "encryptionVersion": 1,
-                    "type": "aes",
-                    "iv": "fA2HYW8SoHnP3oMxgPcckA==",
-                    "encryptedAesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
-                },
+                "serverFileIsEncrypted":"true",
+                "keyHeader" : {
+                    "iv" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+                    "aesKey" : {
+                      "bytes" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+                    }
+                  },
                 "fileMetadata": {
                     "globalTransitId": "52a491ac-9870-4d0c-94a1-1bf667393015",
                     "created": ${currentTime}000,
                     "updated": ${currentTime}000,
                     "transitCreated": 0,
                     "transitUpdated": 0,
-                    "isEncrypted": true,
+                    "serverFileIsEncrypted": true,
                     "senderOdinId": "test-sender",
                     "originalAuthor": "test-sender",
                     "appData": {
@@ -626,7 +630,7 @@ class MainIndexMetaTest {
 
             // Deserialize JSON header to SharedSecretEncryptedFileHeader
             val originalHeader =
-                OdinSystemSerializer.deserialize<SharedSecretEncryptedFileHeader>(jsonHeader)
+                OdinSystemSerializer.deserialize<HomebaseFile>(jsonHeader)
 
             // Convert to DriveMainIndex record
             val driveMainIndexRecord = processor.convertFileHeaderToDriveMainIndexRecord(
@@ -644,21 +648,14 @@ class MainIndexMetaTest {
             assertEquals(originalHeader.driveId, reconstructedHeader.driveId)
             assertEquals(originalHeader.fileState, reconstructedHeader.fileState)
             assertEquals(originalHeader.fileSystemType, reconstructedHeader.fileSystemType)
-            assertEquals(
-                originalHeader.sharedSecretEncryptedKeyHeader.encryptionVersion,
-                reconstructedHeader.sharedSecretEncryptedKeyHeader.encryptionVersion
-            )
-            assertEquals(
-                originalHeader.sharedSecretEncryptedKeyHeader.type,
-                reconstructedHeader.sharedSecretEncryptedKeyHeader.type
+            assertEquals(originalHeader.serverFileIsEncrypted, reconstructedHeader.serverFileIsEncrypted)
+            assertContentEquals(
+                originalHeader.keyHeader.iv,
+                reconstructedHeader.keyHeader.iv
             )
             assertContentEquals(
-                originalHeader.sharedSecretEncryptedKeyHeader.iv,
-                reconstructedHeader.sharedSecretEncryptedKeyHeader.iv
-            )
-            assertContentEquals(
-                originalHeader.sharedSecretEncryptedKeyHeader.encryptedAesKey,
-                reconstructedHeader.sharedSecretEncryptedKeyHeader.encryptedAesKey
+                originalHeader.keyHeader.aesKey.unsafeBytes,
+                reconstructedHeader.keyHeader.aesKey.unsafeBytes
             )
 
             // Verify file metadata
@@ -762,19 +759,20 @@ class MainIndexMetaTest {
                 "driveId": "${driveId}",
                 "fileState": "active",
                 "fileSystemType": "standard",
-                "sharedSecretEncryptedKeyHeader": {
-                    "encryptionVersion": 1,
-                    "type": "aes",
-                    "iv": "fA2HYW8SoHnP3oMxgPcckA==",
-                    "encryptedAesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
-                },
+                "serverFileIsEncrypted":"true",
+                "keyHeader" : {
+                    "iv" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+                    "aesKey" : {
+                      "bytes" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+                    }
+                  },
                 "fileMetadata": {
                     "globalTransitId": "${globalId1}",
                     "created": ${currentTime}000,
                     "updated": ${currentTime}000,
                     "transitCreated": 0,
                     "transitUpdated": 0,
-                    "isEncrypted": true,
+                    "serverFileIsEncrypted": true,
                     "senderOdinId": "initial-sender",
                     "originalAuthor": "initial-sender",
                     "appData": {
@@ -811,7 +809,7 @@ class MainIndexMetaTest {
                 "fileByteCount": 1000
             }"""
 
-            val initialHeader = OdinSystemSerializer.deserialize<SharedSecretEncryptedFileHeader>(initialJsonHeader)
+            val initialHeader = OdinSystemSerializer.deserialize<HomebaseFile>(initialJsonHeader)
             processor.baseUpsertEntryZapZap(identityId, driveId, initialHeader, null)
 
             // Verify initial record
@@ -828,19 +826,20 @@ class MainIndexMetaTest {
                 "driveId": "${driveId}",
                 "fileState": "active",
                 "fileSystemType": "standard",
-                "sharedSecretEncryptedKeyHeader": {
-                    "encryptionVersion": 1,
-                    "type": "aes",
-                    "iv": "fA2HYW8SoHnP3oMxgPcckA==",
-                    "encryptedAesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
-                },
+                "serverFileIsEncrypted":"true",
+                "keyHeader" : {
+                    "iv" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+                    "aesKey" : {
+                      "bytes" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+                    }
+                  },
                 "fileMetadata": {
                     "globalTransitId": "${globalId1}",
                     "created": ${(currentTime + 1)}000,
                     "updated": ${(currentTime + 1)}000,
                     "transitCreated": 0,
                     "transitUpdated": 0,
-                    "isEncrypted": true,
+                    "serverFileIsEncrypted": true,
                     "senderOdinId": "updated-sender",
                     "originalAuthor": "updated-sender",
                     "appData": {
@@ -877,7 +876,7 @@ class MainIndexMetaTest {
                 "fileByteCount": 2000
             }"""
 
-            val updatedHeader = OdinSystemSerializer.deserialize<SharedSecretEncryptedFileHeader>(updatedJsonHeader)
+            val updatedHeader = OdinSystemSerializer.deserialize<HomebaseFile>(updatedJsonHeader)
             processor.baseUpsertEntryZapZap(identityId, driveId, updatedHeader, null)
 
             // Verify fileId conflict updated the record
@@ -927,7 +926,7 @@ class MainIndexMetaTest {
 //                    "updated": ${currentTime}000,
 //                    "transitCreated": 0,
 //                    "transitUpdated": 0,
-//                    "isEncrypted": true,
+//                    "serverFileIsEncrypted": true,
 //                    "senderOdinId": "initial-sender",
 //                    "originalAuthor": "initial-sender",
 //                    "appData": {
@@ -995,7 +994,7 @@ class MainIndexMetaTest {
 //                    "updated": ${(currentTime + 1)}000,
 //                    "transitCreated": 0,
 //                    "transitUpdated": 0,
-//                    "isEncrypted": true,
+//                    "serverFileIsEncrypted": true,
 //                    "senderOdinId": "conflict-sender",
 //                    "originalAuthor": "conflict-sender",
 //                    "appData": {

@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -33,12 +32,7 @@ import co.touchlab.kermit.Logger
 import homebasekmppoc.composeapp.generated.resources.Res
 import homebasekmppoc.composeapp.generated.resources.compose_multiplatform
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthState
-import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
-import id.homebase.homebasekmppoc.prototype.lib.http.AppOrOwner
 import id.homebase.homebasekmppoc.prototype.lib.http.OdinHttpClient
-import id.homebase.homebasekmppoc.prototype.lib.http.PayloadWrapper
-import id.homebase.homebasekmppoc.prototype.lib.http.PublicPostsChannelDrive
-import id.homebase.homebasekmppoc.lib.image.toImageBitmap
 import org.jetbrains.compose.resources.painterResource
 
 /**

@@ -40,8 +40,11 @@ import id.homebase.homebasekmppoc.prototype.lib.eventbus.BackendEvent
 import id.homebase.homebasekmppoc.prototype.lib.eventbus.appEventBus
 import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
 import id.homebase.homebasekmppoc.prototype.ui.driveFetch.DriveSync
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -53,6 +56,8 @@ fun ChatListPage(
         onNavigateToMessages: (conversationId: String) -> Unit,
         viewModel: ChatListViewModel = koinViewModel()
 ) {
+    val scope = CoroutineScope(Dispatchers.Main)
+
     val authState by youAuthFlowManager.authState.collectAsState()
     var localQueryResults by remember { mutableStateOf<List<ConversationData>?>(null) }
     var isLoading by remember { mutableStateOf(false) }
@@ -95,6 +100,17 @@ fun ChatListPage(
     // Create ConversationProvider with OdinClient for decryption
     val conversationProvider =
             remember(odinClient) { odinClient?.let { ConversationProvider(identityId, it) } }
+
+    fun triggerClear() {
+        if (driveSynchronizer == null) {
+            errorMessage = "Not authenticated - no credentials stored"
+            return
+        }
+
+        scope.launch {
+            driveSynchronizer.clearStorage()
+        }
+    }
 
     fun triggerFetch(withProgress: Boolean) {
         if (driveSynchronizer == null) {
@@ -227,6 +243,14 @@ fun ChatListPage(
             ) {
                 when (authState) {
                     is YouAuthState.Authenticated -> {
+                        Button(
+                            onClick = { triggerClear() },
+                            enabled = !isLoading
+                        ) {
+                            Text("Clear sync storage")
+                        }
+
+
                         Button(onClick = { triggerFetch(true) }, enabled = !isLoading) {
                             Text(if (isLoading) "Fetching..." else "Fetch Conversations")
                         }

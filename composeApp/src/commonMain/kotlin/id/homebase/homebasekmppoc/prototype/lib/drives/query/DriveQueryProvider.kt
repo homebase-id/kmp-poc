@@ -2,11 +2,14 @@ package id.homebase.homebasekmppoc.prototype.lib.drives.query
 
 import id.homebase.homebasekmppoc.prototype.lib.base.CredentialsManager
 import id.homebase.homebasekmppoc.prototype.lib.base.OdinApiProviderBase
+import id.homebase.homebasekmppoc.prototype.lib.core.time.UnixTimeUtc
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchRequest
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchResponse
+import id.homebase.homebasekmppoc.prototype.lib.drives.ServerFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.ValidationUtil
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import io.ktor.client.HttpClient
+import kotlinx.serialization.Serializable
 import kotlin.uuid.Uuid
 
 /** Drive query provider for querying files from a drive */
@@ -37,8 +40,35 @@ class DriveQueryProvider(
             secret = creds.secret
         )
 
-        throwForFailure(apiResponse);
+        throwForFailure(apiResponse)
 
-        return deserialize<QueryBatchResponse>(apiResponse.body)
+        val internal = deserialize<QueryBatchResponseInternal>(apiResponse.body)
+
+        if (internal.invalidDrive) {
+            return QueryBatchResponse.fromInvalidDrive(internal.name ?: "")
+        }
+
+        val files = internal.searchResults.map { encryptedFile ->
+            encryptedFile.asHomebaseFile(creds.secret)
+        }
+
+        return QueryBatchResponse(
+            name = internal.name,
+            invalidDrive = internal.invalidDrive,
+            queryTime = internal.queryTime,
+            includeMetadataHeader = internal.includeMetadataHeader,
+            cursorState = internal.cursorState,
+            searchResults = files
+        )
     }
 }
+
+@Serializable
+data class QueryBatchResponseInternal(
+    val name: String? = null,
+    val invalidDrive: Boolean = false,
+    val queryTime: UnixTimeUtc = UnixTimeUtc.ZeroTime,
+    val includeMetadataHeader: Boolean = false,
+    val cursorState: String? = null,
+    val searchResults: List<ServerFile> = emptyList()
+)

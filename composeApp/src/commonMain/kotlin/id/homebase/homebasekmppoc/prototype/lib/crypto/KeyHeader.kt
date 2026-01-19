@@ -2,10 +2,12 @@ package id.homebase.homebasekmppoc.prototype.lib.crypto
 
 import id.homebase.homebasekmppoc.prototype.lib.core.SecureByteArray
 import kotlinx.io.Buffer
+import kotlinx.serialization.Serializable
 
 /**
  * Represents a cryptographic key header containing an IV and AES key
  */
+@Serializable
 class KeyHeader(
     var iv: ByteArray,
     var aesKey: SecureByteArray

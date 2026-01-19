@@ -29,7 +29,7 @@ data class QueryBatchResponse(
 
     val cursorState: String? = null,
 
-    val searchResults: List<SharedSecretEncryptedFileHeader> = emptyList()
+    val searchResults: List<HomebaseFile> = emptyList()
 ) {
 
     companion object {

@@ -1,14 +1,13 @@
 package id.homebase.homebasekmppoc.prototype.lib.chat
 
 import id.homebase.homebasekmppoc.prototype.lib.core.BatchResult
-import id.homebase.homebasekmppoc.prototype.lib.core.SecureByteArray
 import id.homebase.homebasekmppoc.prototype.lib.core.time.UnixTimeUtc
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
 import id.homebase.homebasekmppoc.prototype.lib.database.QueryBatch
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileState
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortField
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortOrder
-import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
+import id.homebase.homebasekmppoc.prototype.lib.drives.HomebaseFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadDescriptor
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.RecipientTransferHistoryEntry
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.RecipientTransferSummary
@@ -17,11 +16,9 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.files.TransferStatus
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.QueryBatchCursor
 import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
-import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.uuid.Uuid
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 
 /** Chat message file type constant */
 const val CHAT_MESSAGE_FILE_TYPE = 7878
@@ -254,12 +251,12 @@ class ChatMessageProvider(private val identityId: Uuid, private val odinClient: 
 
 
     /** Maps a SharedSecretEncryptedFileHeader to ChatMessageData with decrypted content. */
-    private suspend fun mapToMessageData(header: SharedSecretEncryptedFileHeader): ChatMessageData {
+    private suspend fun mapToMessageData(header: HomebaseFile): ChatMessageData {
         val metadata = header.fileMetadata
         val appData = metadata.appData
 
         // Decrypt content if encrypted
-        val decryptedContent = decryptContent(header)
+        val decryptedContent = header.fileMetadata.appData.content
 
         // Parse the content as ChatMessageContent
         val parsedContent =
@@ -287,34 +284,6 @@ class ChatMessageProvider(private val identityId: Uuid, private val odinClient: 
                 driveId = header.driveId.toString(),
                 isEncrypted = metadata.isEncrypted
         )
-    }
-
-    /** Decrypts the content from a file header using the shared secret. */
-    private suspend fun decryptContent(header: SharedSecretEncryptedFileHeader): String? {
-        val content = header.fileMetadata.appData.content
-        if (content.isNullOrEmpty()) return null
-
-        // If not encrypted, return as-is
-        if (!header.fileMetadata.isEncrypted) return content
-
-        val sharedSecret = odinClient.getSharedSecret() ?: return null
-
-        return try {
-            // Decrypt the EncryptedKeyHeader to get the KeyHeader
-            val keyHeader =
-                    header.sharedSecretEncryptedKeyHeader.decryptAesToKeyHeader(
-                            SecureByteArray(sharedSecret)
-                    )
-
-            // Decode the encrypted content from Base64 and decrypt
-            val encryptedBytes = Base64.decode(content)
-            val decryptedBytes = keyHeader.decrypt(encryptedBytes)
-
-            decryptedBytes.decodeToString()
-        } catch (e: Exception) {
-            println("ChatMessageProvider: Failed to decrypt content: ${e.message}")
-            null
-        }
     }
 
     /** Parses a JSON string as ChatMessageContent. */

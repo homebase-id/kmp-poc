@@ -95,9 +95,10 @@ fun ConversationCard(item: ConversationData, onClick: () -> Unit) {
                                         // Metadata
                                         Text("ID: ${item.uniqueId}")
                                         Text("Created: ${item.created}")
-                                        Text("Encrypted: ${item.isEncrypted}")
+//                                        Text("Encrypted: ${item.isEncrypted}")
 
                                         Text("Tiny thumb: ${item.previewThumbnail?.content}")
+                                        Text("Conversation Id: ${item.conversationMeta?.conversationId}")
                                         Text("Last-read time: ${item.conversationMeta?.lastReadTime}")
                                         Text("Unread count: BISHWA TODO ??? let's discuss how - loaded from localAppData probably?")
                                         Text("Last-message-text: BISHWA TODO 40 CHARS STORED IN APPDATA")

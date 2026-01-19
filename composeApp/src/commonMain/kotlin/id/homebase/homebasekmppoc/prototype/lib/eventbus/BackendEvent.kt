@@ -1,7 +1,7 @@
 package id.homebase.homebasekmppoc.prototype.lib.eventbus
 
 import id.homebase.homebasekmppoc.prototype.lib.core.time.UnixTimeUtc
-import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
+import id.homebase.homebasekmppoc.prototype.lib.drives.HomebaseFile
 import kotlin.uuid.Uuid
 
 sealed interface  BackendEvent {
@@ -35,7 +35,7 @@ sealed interface  BackendEvent {
             val totalCount: Int,
             val batchCount: Int,
             val latestModified: UnixTimeUtc?,
-            val batchData: List<SharedSecretEncryptedFileHeader>,
+            val batchData: List<HomebaseFile>,
             val source: SyncSource = SyncSource.DriveSync
         ) : DriveEvent
     }

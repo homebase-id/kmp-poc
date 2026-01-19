@@ -16,11 +16,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
+import id.homebase.homebasekmppoc.prototype.lib.drives.HomebaseFile
 
 @Composable
 fun DriveFetchList(
-    items: List<SharedSecretEncryptedFileHeader>,
+    items: List<HomebaseFile>,
     modifier: Modifier = Modifier,
     onFileClicked: (String, String) -> Unit
 ) {
@@ -39,7 +39,7 @@ fun DriveFetchList(
 
 @Composable
 fun DriveFetchItemCard(
-    item: SharedSecretEncryptedFileHeader,
+    item: HomebaseFile,
     onClick: () -> Unit
 ) {
     val payloads = item.fileMetadata.payloads.orEmpty()
