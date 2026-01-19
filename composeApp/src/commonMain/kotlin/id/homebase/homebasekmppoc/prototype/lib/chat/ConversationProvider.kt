@@ -258,7 +258,8 @@ class ConversationProvider(private val identityId: Uuid, private val odinClient:
 
                         // Decode the encrypted content from Base64 and decrypt
                         val encryptedBytes = Base64.decode(content)
-                        val decryptedBytes = keyHeader.decrypt(encryptedBytes)
+                        val localAppIv = localAppData.iv?.let { Base64.decode(it) }
+                        val decryptedBytes = keyHeader.decryptWithIv(encryptedBytes,localAppIv)
 
                         parseConversationMetadata(decryptedBytes.decodeToString())
                 } catch (e: Exception) {

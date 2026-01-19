@@ -80,13 +80,14 @@ class KeyHeader(
      * Decrypts data using AES-CBC with a custom IV
      * Used for payload decryption where each payload has its own IV
      */
-    suspend fun decryptWithIv(encryptedData: ByteArray, customIv: ByteArray): ByteArray {
+    suspend fun decryptWithIv(encryptedData: ByteArray, customIv: ByteArray?): ByteArray {
         return AesCbc.decrypt(
             cipherText = encryptedData,
             key = aesKey,
-            iv = customIv
+            iv = customIv ?: iv
         )
     }
+
 
     companion object {
         /**
