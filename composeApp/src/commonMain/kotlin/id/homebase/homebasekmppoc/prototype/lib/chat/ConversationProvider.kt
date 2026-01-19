@@ -151,9 +151,7 @@ class ConversationProvider(private val identityId: Uuid, private val odinClient:
                 dbm: DatabaseManager,
                 driveId: Uuid,
                 limit: Int = 1000,
-                cursor: QueryBatchCursor? = null,
-                sortOrder: QueryBatchSortOrder = QueryBatchSortOrder.NewestFirst,
-                sortField: QueryBatchSortField = QueryBatchSortField.CreatedDate
+                cursor: QueryBatchCursor? = null
         ): BatchResult<ConversationData> {
                 val result =
                         queryBatch.queryBatchAsync(
@@ -161,8 +159,8 @@ class ConversationProvider(private val identityId: Uuid, private val odinClient:
                                 driveId = driveId,
                                 noOfItems = limit,
                                 cursor = cursor,
-                                sortOrder = sortOrder,
-                                sortField = sortField,
+                                sortOrder = QueryBatchSortOrder.NewestFirst,
+                                sortField = QueryBatchSortField.AnyChangeDate, // Sort by modified
                                 fileSystemType = 0,
                                 filetypesAnyOf = listOf(CHAT_CONVERSATION_FILE_TYPE)
                         )
