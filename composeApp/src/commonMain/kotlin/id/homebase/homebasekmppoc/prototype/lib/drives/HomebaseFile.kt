@@ -15,7 +15,7 @@ data class HomebaseFile(
     @Serializable(with = UuidSerializer::class)
     val fileId: Uuid,
     val driveId: Uuid,
-    val serverFileIsEncrypted: Boolean,
+    val serverFileIsEncrypted: Boolean = false,
     val fileState: FileState,
     val fileSystemType: FileSystemType,
     val keyHeader: KeyHeader,
