@@ -36,10 +36,12 @@ class MainIndexMetaTest {
                 "fileState": "active",
                 "fileSystemType": "standard",
                 "serverFileIsEncrypted":"true",
-                "keyHeader": {
-                    "iv": "fA2HYW8SoHnP3oMxgPcckA==",
-                    "aesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
-                },
+                "keyHeader" : {
+                    "iv" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+                    "aesKey" : {
+                      "bytes" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+                    }
+                  },
                 "fileMetadata": {
                     "globalTransitId": "52a491ac-9870-4d0c-94a1-1bf667393015",
                     "created": ${currentTime}000,
@@ -131,10 +133,12 @@ class MainIndexMetaTest {
                 "fileState": "active",
                 "fileSystemType": "standard",
                 "serverFileIsEncrypted":"true",
-                "keyHeader": {
-                    "iv": "fA2HYW8SoHnP3oMxgPcckA==",
-                    "aesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
-                },
+                "keyHeader" : {
+                    "iv" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+                    "aesKey" : {
+                      "bytes" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+                    }
+                  },
                 "fileMetadata": {
                     "globalTransitId": "${globalId}",
                     "created": ${currentTime}000,
@@ -333,10 +337,12 @@ class MainIndexMetaTest {
                 "fileState": "active",
                 "fileSystemType": "standard",
                 "serverFileIsEncrypted":"true",
-                "keyHeader": {
-                    "iv": "fA2HYW8SoHnP3oMxgPcckA==",
-                    "aesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
-                },
+                "keyHeader" : {
+                    "iv" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+                    "aesKey" : {
+                      "bytes" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+                    }
+                  },
                 "fileMetadata": {
                     "globalTransitId": "52a491ac-9870-4d0c-94a1-1bf667393015",
                     "created": ${currentTime}000,
@@ -457,10 +463,12 @@ class MainIndexMetaTest {
                 "fileState": "active",
                 "fileSystemType": "standard",
                 "serverFileIsEncrypted":"true",
-                "keyHeader": {
-                    "iv": "fA2HYW8SoHnP3oMxgPcckA==",
-                    "aesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
-                },
+                "keyHeader" : {
+                    "iv" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+                    "aesKey" : {
+                      "bytes" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+                    }
+                  },
                 "fileMetadata": {
                     "globalTransitId": "${globalId}",
                     "created": ${currentTime}000,
@@ -568,10 +576,12 @@ class MainIndexMetaTest {
                 "fileState": "active",
                 "fileSystemType": "standard",
                 "serverFileIsEncrypted":"true",
-                "keyHeader": {
-                    "iv": "fA2HYW8SoHnP3oMxgPcckA==",
-                    "aesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
-                },
+                "keyHeader" : {
+                    "iv" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+                    "aesKey" : {
+                      "bytes" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+                    }
+                  },
                 "fileMetadata": {
                     "globalTransitId": "52a491ac-9870-4d0c-94a1-1bf667393015",
                     "created": ${currentTime}000,
@@ -750,10 +760,12 @@ class MainIndexMetaTest {
                 "fileState": "active",
                 "fileSystemType": "standard",
                 "serverFileIsEncrypted":"true",
-                "keyHeader": {
-                    "iv": "fA2HYW8SoHnP3oMxgPcckA==",
-                    "aesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
-                },
+                "keyHeader" : {
+                    "iv" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+                    "aesKey" : {
+                      "bytes" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+                    }
+                  },
                 "fileMetadata": {
                     "globalTransitId": "${globalId1}",
                     "created": ${currentTime}000,
@@ -815,10 +827,12 @@ class MainIndexMetaTest {
                 "fileState": "active",
                 "fileSystemType": "standard",
                 "serverFileIsEncrypted":"true",
-                "keyHeader": {
-                    "iv": "fA2HYW8SoHnP3oMxgPcckA==",
-                    "aesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
-                },
+                "keyHeader" : {
+                    "iv" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+                    "aesKey" : {
+                      "bytes" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+                    }
+                  },
                 "fileMetadata": {
                     "globalTransitId": "${globalId1}",
                     "created": ${(currentTime + 1)}000,

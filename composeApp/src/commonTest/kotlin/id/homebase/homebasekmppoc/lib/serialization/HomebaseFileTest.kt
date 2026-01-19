@@ -20,10 +20,12 @@ class HomebaseFileTest {
     "driveId": "e8475dc4-6cb4-b665-1c2d-0dbd0f3aad5f",
     "fileState": "active",
     "fileSystemType": "standard",
-    "keyHeader": {
-        "iv": "fA2HYW8SoHnP3oMxgPcckA==",
-        "aesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
-    },
+    "keyHeader" : {
+        "iv" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+        "aesKey" : {
+          "bytes" : [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+        }
+      },
     "fileMetadata": {
         "globalTransitId": "ae9f4cea-65f0-43e0-adb9-bfd2ce3cc1d5",
         "created": 1763710153491,
