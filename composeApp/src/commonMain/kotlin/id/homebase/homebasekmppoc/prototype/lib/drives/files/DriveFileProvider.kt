@@ -13,7 +13,15 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.upload.TransferUploadStat
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import io.ktor.client.HttpClient
 import io.ktor.client.request.*
+import io.ktor.client.statement.bodyAsChannel
 import io.ktor.http.*
+import io.ktor.utils.io.ByteChannel
+import io.ktor.utils.io.ByteReadChannel
+import io.ktor.utils.io.cancel
+import io.ktor.utils.io.readAvailable
+import io.ktor.utils.io.writeFully
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.io.encoding.Base64
@@ -46,6 +54,12 @@ data class BytesResponse(val bytes: ByteArray, val contentType: String) {
         return result
     }
 }
+
+data class DecryptedPayloadStream(
+    val contentType: String,
+    val channel: ByteReadChannel
+)
+
 
 @OptIn(ExperimentalEncodingApi::class)
 public class DriveFileProvider(
@@ -205,6 +219,74 @@ public class DriveFileProvider(
         return BytesResponse(
             bytes = decryptedBytes,
             contentType = raw.contentType
+        )
+    }
+
+
+    suspend fun getStreamingPayloadBytesDecrypted(
+        driveId: Uuid,
+        fileId: Uuid,
+        key: String,
+        options: PayloadOperationOptions = PayloadOperationOptions(),
+        scope: CoroutineScope
+    ): DecryptedPayloadStream? {
+
+        ValidationUtil.requireValidUuid(driveId, "driveId")
+        ValidationUtil.requireValidUuid(fileId, "fileId")
+        require(key.isNotBlank()) { "key must be defined" }
+
+        val creds = requireCreds()
+
+        val path =
+            if (options.chunkStart != null)
+                "/drives/$driveId/files/$fileId/payload/$key/${options.chunkStart}/${options.chunkLength ?: ""}"
+            else
+                "/drives/$driveId/files/$fileId/payload/$key"
+
+        val response =
+            httpClient.get(apiUrl(creds.domain, path)) {
+                bearerAuth(creds.accessToken)
+            }
+
+        if (response.status == HttpStatusCode.NotFound) return null
+        throwForFailure(response)
+
+        val headers = response.headers
+        val encryptedChannel = response.bodyAsChannel()
+
+        val contentType =
+            headers[HttpHeaders.ContentType] ?: "application/octet-stream"
+
+        val payloadEncrypted =
+            headers["payloadencrypted"]?.equals("true", ignoreCase = true) == true
+
+        if (!payloadEncrypted) {
+            // Plaintext → stream directly
+            return DecryptedPayloadStream(
+                contentType = contentType,
+                channel = encryptedChannel
+            )
+        }
+
+        val encryptedHeader64 =
+            headers["sharedsecretencryptedheader64"]
+                ?: error("Missing encrypted key header")
+
+        val keyHeader =
+            decryptKeyHeader(
+                EncryptedKeyHeader.fromBase64(encryptedHeader64)
+            ) ?: error("Missing shared secret")
+
+        val decryptedChannel =
+            decryptingChannel(
+                encrypted = encryptedChannel,
+                keyHeader = keyHeader,
+                scope = scope
+            )
+
+        return DecryptedPayloadStream(
+            contentType = contentType,
+            channel = decryptedChannel
         )
     }
 
@@ -619,7 +701,61 @@ public class DriveFileProvider(
         return keyHeader.decrypt(encryptedBytes)
     }
 
+    private fun decryptingChannel(
+        encrypted: ByteReadChannel,
+        keyHeader: KeyHeader,
+        scope: CoroutineScope
+    ): ByteReadChannel {
+
+        val output = ByteChannel(autoFlush = true)
+
+        scope.launch {
+            try {
+                val buffer = ByteArray(16 * 1024)
+                val pending = ArrayList<Byte>(16 * 1024)
+
+                while (!encrypted.isClosedForRead) {
+                    val read = encrypted.readAvailable(buffer)
+                    if (read <= 0) break
+
+                    for (i in 0 until read) {
+                        pending.add(buffer[i])
+                    }
+
+                    val fullBlocks = (pending.size / 16) * 16
+                    if (fullBlocks > 0) {
+                        val block =
+                            pending.subList(0, fullBlocks).toByteArray()
+                        pending.subList(0, fullBlocks).clear()
+
+                        val decrypted =
+                            keyHeader.decryptStreaming(block)
+
+                        output.writeFully(decrypted)
+                    }
+                }
+
+                if (pending.isNotEmpty()) {
+                    val final =
+                        keyHeader.decryptFinal(pending.toByteArray())
+                    output.writeFully(final)
+                }
+
+            } finally {
+                encrypted.cancel()
+                output.close()
+            }
+        }
+
+        return output
+    }
+
 }
+suspend fun KeyHeader.decryptStreaming(bytes: ByteArray): ByteArray =
+    decrypt(bytes)
+
+suspend fun KeyHeader.decryptFinal(bytes: ByteArray): ByteArray =
+    decrypt(bytes)
 
 // Request data classes for delete operations
 
