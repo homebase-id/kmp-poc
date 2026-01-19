@@ -6,7 +6,7 @@ import id.homebase.homebasekmppoc.lib.database.OdinDatabase
 
 actual class DatabaseDriverFactory {
     actual fun createDriver(): SqlDriver {
-        val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
+        val driver = JdbcSqliteDriver("jdbc:sqlite:./odin.db") //TODO: Find right location
         OdinDatabase.Companion.Schema.create(driver)
         return driver
     }
