@@ -36,7 +36,7 @@ import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
 import id.homebase.homebasekmppoc.prototype.lib.database.QueryBatch
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortField
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortOrder
-import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
+import id.homebase.homebasekmppoc.prototype.lib.drives.HomebaseFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.prototype.lib.eventbus.BackendEvent
 import id.homebase.homebasekmppoc.prototype.lib.eventbus.appEventBus
@@ -55,7 +55,7 @@ fun DriveFetchPage(
 ) {
     val authState by youAuthFlowManager.authState.collectAsState()
     var localQueryResults by remember {
-        mutableStateOf<List<SharedSecretEncryptedFileHeader>?>(null)
+        mutableStateOf<List<HomebaseFile>?>(null)
     }
     var isLoading by remember { mutableStateOf(false) }
     var isRefreshing by remember { mutableStateOf(false) }

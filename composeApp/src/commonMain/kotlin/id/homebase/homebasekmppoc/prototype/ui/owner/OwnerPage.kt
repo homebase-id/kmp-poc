@@ -30,9 +30,6 @@ import androidx.compose.ui.unit.dp
 import co.touchlab.kermit.Logger
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthState
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthenticationManager
-import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
-import id.homebase.homebasekmppoc.prototype.lib.http.PayloadWrapper
-import id.homebase.homebasekmppoc.prototype.lib.video.LocalVideoServer
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
 

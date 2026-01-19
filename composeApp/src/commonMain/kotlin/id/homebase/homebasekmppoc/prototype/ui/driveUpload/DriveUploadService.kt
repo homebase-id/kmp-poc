@@ -4,7 +4,7 @@ import id.homebase.homebasekmppoc.lib.image.createThumbnails
 import id.homebase.homebasekmppoc.prototype.lib.base.CredentialsManager
 import id.homebase.homebasekmppoc.prototype.lib.crypto.ByteArrayUtil
 import id.homebase.homebasekmppoc.prototype.lib.crypto.KeyHeader
-import id.homebase.homebasekmppoc.prototype.lib.drives.files.HomebaseFile
+import id.homebase.homebasekmppoc.prototype.lib.drives.HomebaseFile
 import co.touchlab.kermit.Logger as KLogger
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.ThumbnailFile
@@ -290,15 +290,10 @@ class DriveUploadService(
         val versionTag = header.fileMetadata.versionTag
 
         val credentials = credentialsManager.getActiveCredentials();
-        val secret = credentials!!.sharedSecret
 
         val keyHeader: KeyHeader =
             if (isEncrypted) {
-                header.sharedSecretEncryptedKeyHeader
-                    .decryptAesToKeyHeader(secret)
-                    .also {
-                        it.iv = ByteArrayUtil.getRndByteArray(16)
-                    }
+                header.keyHeader
             } else {
                 KeyHeader.empty()
             }

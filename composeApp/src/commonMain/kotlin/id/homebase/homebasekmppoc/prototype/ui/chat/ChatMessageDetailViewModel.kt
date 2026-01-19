@@ -2,10 +2,9 @@ package id.homebase.homebasekmppoc.prototype.ui.chat
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import id.homebase.homebasekmppoc.prototype.lib.drives.HomebaseFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.BytesResponse
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.DriveFileProvider
-import id.homebase.homebasekmppoc.prototype.lib.drives.files.HomebaseFile
-import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadOperationOptions
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -100,12 +99,12 @@ class ChatMessageDetailViewModel(
 }
 
 data class ChatMessageDetailUiState(
-        val isLoading: Boolean = false,
-        val header: HomebaseFile? = null,
-        val hasTriedToLoadHeader: Boolean = false,
-        val error: String? = null,
-        val payloads: Map<String, BytesResponse> = emptyMap(),
-        val expandedPayloadKey: String? = null
+    val isLoading: Boolean = false,
+    val header: HomebaseFile? = null,
+    val hasTriedToLoadHeader: Boolean = false,
+    val error: String? = null,
+    val payloads: Map<String, BytesResponse> = emptyMap(),
+    val expandedPayloadKey: String? = null
 )
 
 sealed interface ChatMessageDetailUiEvent {

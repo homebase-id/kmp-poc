@@ -2,13 +2,6 @@
 
 package id.homebase.homebasekmppoc.prototype.lib.http
 
-import co.touchlab.kermit.Logger
-import id.homebase.homebasekmppoc.prototype.lib.drives.query.PagedResult
-import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthState
-import id.homebase.homebasekmppoc.prototype.lib.drives.DriveDefinition
-import id.homebase.homebasekmppoc.prototype.lib.drives.FileState
-import id.homebase.homebasekmppoc.prototype.lib.drives.GetDrivesByTypeRequest
-import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 

@@ -13,8 +13,8 @@ import id.homebase.homebasekmppoc.prototype.lib.crypto.ByteArrayUtil
 import id.homebase.homebasekmppoc.prototype.lib.crypto.EncryptedKeyHeader
 import id.homebase.homebasekmppoc.prototype.lib.crypto.KeyHeader
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileSystemType
+import id.homebase.homebasekmppoc.prototype.lib.drives.HomebaseFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
-import id.homebase.homebasekmppoc.prototype.lib.drives.files.HomebaseFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.ThumbnailFile
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
@@ -247,10 +247,7 @@ class DriveUploadProvider(
         val creds = requireCreds()
 
         // Decrypt key header if needed
-        val decryptedKeyHeader: KeyHeader? =
-            if (file.fileMetadata.isEncrypted) {
-                file.sharedSecretEncryptedKeyHeader.decryptAesToKeyHeader(creds.secret)
-            } else null
+        val decryptedKeyHeader: KeyHeader? =  file.keyHeader
 
         // Build key header with new IV
         val keyHeader: KeyHeader? =

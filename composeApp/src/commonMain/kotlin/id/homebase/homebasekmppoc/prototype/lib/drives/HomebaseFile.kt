@@ -1,6 +1,7 @@
 package id.homebase.homebasekmppoc.prototype.lib.drives
 
 import id.homebase.homebasekmppoc.prototype.lib.crypto.EncryptedKeyHeader
+import id.homebase.homebasekmppoc.prototype.lib.crypto.KeyHeader
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.FileMetadata
 import id.homebase.homebasekmppoc.prototype.lib.serialization.UuidSerializer
 import kotlinx.serialization.Serializable
@@ -8,16 +9,15 @@ import kotlin.uuid.Uuid
 
 /**
  * Shared secret encrypted file header
- * Ported from C# Odin.Services.Apps.SharedSecretEncryptedFileHeader
  */
 @Serializable
-data class SharedSecretEncryptedFileHeader(
+data class HomebaseFile(
     @Serializable(with = UuidSerializer::class)
     val fileId: Uuid,
     val driveId: Uuid,
     val fileState: FileState,
     val fileSystemType: FileSystemType,
-    val sharedSecretEncryptedKeyHeader: EncryptedKeyHeader,
+    val keyHeader: KeyHeader,
     val fileMetadata: FileMetadata,
     val serverMetadata: ServerMetadata,
     val priority: Int = 0,

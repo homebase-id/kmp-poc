@@ -4,12 +4,12 @@ import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthState
 import id.homebase.homebasekmppoc.prototype.lib.core.SecureByteArray
 import id.homebase.homebasekmppoc.prototype.lib.crypto.KeyHeader
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadDescriptor
-import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
+import id.homebase.homebasekmppoc.prototype.lib.drives.HomebaseFile
 import kotlin.io.encoding.Base64
 
 class HeaderWrapper(
     val authenticated: AuthState.Authenticated,
-    val header: SharedSecretEncryptedFileHeader) {
+    val header: HomebaseFile) {
 
     val payloads = header.fileMetadata.payloads ?: emptyList()
 
@@ -24,10 +24,7 @@ class HeaderWrapper(
             return null
         }
 
-        val sharedSecretBytes = Base64.decode(authenticated.sharedSecret)
-        val result =  header.sharedSecretEncryptedKeyHeader.decryptAesToKeyHeader(
-            SecureByteArray(sharedSecretBytes)
-        )
+        val result =  header.keyHeader
         return result
     }
 

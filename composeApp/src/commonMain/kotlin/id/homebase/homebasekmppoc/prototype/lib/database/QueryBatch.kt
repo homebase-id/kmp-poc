@@ -6,11 +6,10 @@ import id.homebase.homebasekmppoc.prototype.lib.core.time.UnixTimeUtc
 import id.homebase.homebasekmppoc.prototype.lib.core.time.UnixTimeUtcRange
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortField
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortOrder
-import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
+import id.homebase.homebasekmppoc.prototype.lib.drives.HomebaseFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.QueryBatchCursor
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.TimeRowCursor
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
-import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
 import kotlin.uuid.Uuid
 
 
@@ -221,15 +220,15 @@ class QueryBatch(
             identifier = null,
             sql = sqlStatement,
             mapper = { sqlCursor ->
-                val records = mutableListOf<SharedSecretEncryptedFileHeader>()
+                val records = mutableListOf<HomebaseFile>()
                 var count = 0
-                lateinit var header: SharedSecretEncryptedFileHeader
+                lateinit var header: HomebaseFile
                 var rowId: Long? = -1
 
                 while (sqlCursor.next().value && count < actualNoOfItems) {
                     rowId = sqlCursor.getLong(0)
                     val jsonHeader = sqlCursor.getString(1) ?: ""
-                    header = OdinSystemSerializer.deserialize<SharedSecretEncryptedFileHeader>(jsonHeader)
+                    header = OdinSystemSerializer.deserialize<HomebaseFile>(jsonHeader)
                     records.add(header)
                     count++
                 }
@@ -462,13 +461,13 @@ class QueryBatch(
 // Supporting data classes
 
 data class QueryBatchResult(
-    val records: List<SharedSecretEncryptedFileHeader>,
+    val records: List<HomebaseFile>,
     val hasMoreRows: Boolean,
     val cursor: QueryBatchCursor
 )
 
 data class QueryModifiedResult(
-    val records: List<SharedSecretEncryptedFileHeader>,
+    val records: List<HomebaseFile>,
     val hasMoreRows: Boolean,
     val cursor: String
 )

@@ -28,8 +28,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import id.homebase.homebasekmppoc.prototype.lib.chat.ChatDeliveryStatus
+import id.homebase.homebasekmppoc.prototype.lib.drives.HomebaseFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.BytesResponse
-import id.homebase.homebasekmppoc.prototype.lib.drives.files.HomebaseFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadDescriptor
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -114,10 +114,10 @@ fun ChatMessageDetailPage(viewModel: ChatMessageDetailViewModel, onNavigateBack:
 
 @Composable
 fun ChatFileHeaderPanel(
-        header: HomebaseFile,
-        payloadBytes: Map<String, BytesResponse>,
-        expandedPayloadKey: String?,
-        onViewPayload: (key: String) -> Unit = {}
+    header: HomebaseFile,
+    payloadBytes: Map<String, BytesResponse>,
+    expandedPayloadKey: String?,
+    onViewPayload: (key: String) -> Unit = {}
 ) {
     Column {
         Text(text = "File Header", style = MaterialTheme.typography.titleMedium)

@@ -17,7 +17,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.DriveFileProvider
-import id.homebase.homebasekmppoc.prototype.lib.drives.files.HomebaseFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadDescriptor
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.ThumbnailDescriptor
 import kotlinx.coroutines.channels.Channel
@@ -33,6 +32,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalDensity
 import id.homebase.homebasekmppoc.lib.image.toImageBitmap
+import id.homebase.homebasekmppoc.prototype.lib.drives.HomebaseFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.BytesResponse
 import id.homebase.homebasekmppoc.prototype.ui.driveUpload.DriveUploadService
 

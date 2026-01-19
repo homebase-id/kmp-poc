@@ -3,12 +3,11 @@ package id.homebase.homebasekmppoc.prototype.lib.database
 import id.homebase.homebasekmppoc.prototype.lib.core.time.UnixTimeUtc
 import id.homebase.homebasekmppoc.lib.database.DriveLocalTagIndex
 import id.homebase.homebasekmppoc.lib.database.DriveTagIndex
-import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
+import id.homebase.homebasekmppoc.prototype.lib.drives.HomebaseFile
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.QueryBatchCursor
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.TimeRowCursor
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -88,7 +87,7 @@ class MainIndexMetaTest {
 
             // Deserialize JSON header to SharedSecretEncryptedFileHeader
             val header =
-                OdinSystemSerializer.deserialize<SharedSecretEncryptedFileHeader>(jsonHeader)
+                OdinSystemSerializer.deserialize<HomebaseFile>(jsonHeader)
 
             // Create FileMetadataProcessor instance to convert header to DriveMainIndex record
             val processor = MainIndexMetaHelpers.HomebaseFileProcessor(dbm)
@@ -242,7 +241,7 @@ class MainIndexMetaTest {
 
             // Deserialize JSON header to SharedSecretEncryptedFileHeader
             val header =
-                OdinSystemSerializer.deserialize<SharedSecretEncryptedFileHeader>(jsonHeader)
+                OdinSystemSerializer.deserialize<HomebaseFile>(jsonHeader)
 
             // Create FileMetadataProcessor instance to test BaseUpsertEntryZapZap
             val processor = MainIndexMetaHelpers.HomebaseFileProcessor(dbm)
@@ -393,7 +392,7 @@ class MainIndexMetaTest {
 
             // Deserialize JSON header to SharedSecretEncryptedFileHeader
             val header =
-                OdinSystemSerializer.deserialize<SharedSecretEncryptedFileHeader>(jsonHeader)
+                OdinSystemSerializer.deserialize<HomebaseFile>(jsonHeader)
 
             // Call BaseUpsertEntryZapZap function with null cursor
             processor.baseUpsertEntryZapZap(
@@ -514,7 +513,7 @@ class MainIndexMetaTest {
 
             // Deserialize JSON header to SharedSecretEncryptedFileHeader
             val fileHeader =
-                OdinSystemSerializer.deserialize<SharedSecretEncryptedFileHeader>(jsonHeader)
+                OdinSystemSerializer.deserialize<HomebaseFile>(jsonHeader)
 
             processor.baseUpsertEntryZapZap(
                 identityId = identityId,
@@ -626,7 +625,7 @@ class MainIndexMetaTest {
 
             // Deserialize JSON header to SharedSecretEncryptedFileHeader
             val originalHeader =
-                OdinSystemSerializer.deserialize<SharedSecretEncryptedFileHeader>(jsonHeader)
+                OdinSystemSerializer.deserialize<HomebaseFile>(jsonHeader)
 
             // Convert to DriveMainIndex record
             val driveMainIndexRecord = processor.convertFileHeaderToDriveMainIndexRecord(
@@ -644,21 +643,13 @@ class MainIndexMetaTest {
             assertEquals(originalHeader.driveId, reconstructedHeader.driveId)
             assertEquals(originalHeader.fileState, reconstructedHeader.fileState)
             assertEquals(originalHeader.fileSystemType, reconstructedHeader.fileSystemType)
-            assertEquals(
-                originalHeader.sharedSecretEncryptedKeyHeader.encryptionVersion,
-                reconstructedHeader.sharedSecretEncryptedKeyHeader.encryptionVersion
-            )
-            assertEquals(
-                originalHeader.sharedSecretEncryptedKeyHeader.type,
-                reconstructedHeader.sharedSecretEncryptedKeyHeader.type
+            assertContentEquals(
+                originalHeader.keyHeader.iv,
+                reconstructedHeader.keyHeader.iv
             )
             assertContentEquals(
-                originalHeader.sharedSecretEncryptedKeyHeader.iv,
-                reconstructedHeader.sharedSecretEncryptedKeyHeader.iv
-            )
-            assertContentEquals(
-                originalHeader.sharedSecretEncryptedKeyHeader.encryptedAesKey,
-                reconstructedHeader.sharedSecretEncryptedKeyHeader.encryptedAesKey
+                originalHeader.keyHeader.aesKey.unsafeBytes,
+                reconstructedHeader.keyHeader.aesKey.unsafeBytes
             )
 
             // Verify file metadata
@@ -811,7 +802,7 @@ class MainIndexMetaTest {
                 "fileByteCount": 1000
             }"""
 
-            val initialHeader = OdinSystemSerializer.deserialize<SharedSecretEncryptedFileHeader>(initialJsonHeader)
+            val initialHeader = OdinSystemSerializer.deserialize<HomebaseFile>(initialJsonHeader)
             processor.baseUpsertEntryZapZap(identityId, driveId, initialHeader, null)
 
             // Verify initial record
@@ -877,7 +868,7 @@ class MainIndexMetaTest {
                 "fileByteCount": 2000
             }"""
 
-            val updatedHeader = OdinSystemSerializer.deserialize<SharedSecretEncryptedFileHeader>(updatedJsonHeader)
+            val updatedHeader = OdinSystemSerializer.deserialize<HomebaseFile>(updatedJsonHeader)
             processor.baseUpsertEntryZapZap(identityId, driveId, updatedHeader, null)
 
             // Verify fileId conflict updated the record

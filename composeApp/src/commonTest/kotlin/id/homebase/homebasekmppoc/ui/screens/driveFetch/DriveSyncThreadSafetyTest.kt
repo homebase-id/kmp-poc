@@ -1,15 +1,16 @@
 package id.homebase.homebasekmppoc.prototype.ui.driveFetch
 
+import androidx.compose.material.rememberDrawerState
 import co.touchlab.kermit.Logger
-import id.homebase.homebasekmppoc.lib.database.OdinDatabase
+import id.homebase.homebasekmppoc.prototype.lib.core.SecureByteArray
+import id.homebase.homebasekmppoc.prototype.lib.crypto.KeyHeader
 import id.homebase.homebasekmppoc.prototype.lib.database.MainIndexMetaHelpers
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
 import id.homebase.homebasekmppoc.prototype.lib.database.createInMemoryDatabase
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileState
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileSystemType
 import id.homebase.homebasekmppoc.prototype.lib.drives.ServerMetadata
-import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
-import id.homebase.homebasekmppoc.prototype.lib.drives.TargetDrive
+import id.homebase.homebasekmppoc.prototype.lib.drives.HomebaseFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.ArchivalStatus
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.AppFileMetaData
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.FileMetadata
@@ -19,8 +20,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.test.runTest
 import kotlin.time.Clock
-import kotlin.test.AfterTest
-import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -28,7 +27,7 @@ import kotlin.uuid.Uuid
 
 /**
  * Comprehensive thread safety test for DriveSync database operations.
- * 
+ *
  * This test spawns multiple competing threads to ensure that concurrent database
  * writes are properly handled and maintain data integrity.
  */
@@ -47,7 +46,7 @@ open class DriveSyncThreadSafetyTest {
             Logger.i("Starting concurrent database test with $threadCount threads, $rowsPerThread rows each")
 
             // Generate all test data first
-            val allHeaders = mutableListOf<SharedSecretEncryptedFileHeader>()
+            val allHeaders = mutableListOf<HomebaseFile>()
             repeat(threadCount) { threadIndex ->
                 repeat(rowsPerThread) { rowIndex ->
                     allHeaders.add(createTestFileHeader(threadIndex, rowIndex))
@@ -124,19 +123,19 @@ open class DriveSyncThreadSafetyTest {
     }
 
 
-    private fun createTestFileHeader(threadIndex: Int, rowIndex: Int): SharedSecretEncryptedFileHeader {
+    private fun createTestFileHeader(threadIndex: Int, rowIndex: Int): HomebaseFile {
         val now = Clock.System.now()
         val uniqueId = Uuid.random()
         val driveId = Uuid.random()
 
-        return SharedSecretEncryptedFileHeader(
+        return HomebaseFile(
             fileId = uniqueId,
             driveId = driveId,
             fileState = FileState.Active,
             fileSystemType = FileSystemType.Standard,
-            sharedSecretEncryptedKeyHeader = id.homebase.homebasekmppoc.prototype.lib.crypto.EncryptedKeyHeader(
+            keyHeader = KeyHeader(
                 iv = byteArrayOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
-                encryptedAesKey = byteArrayOf(1, 2, 3, 4, 5, 6, 7, 8)
+                aesKey = SecureByteArray(byteArrayOf(1, 2, 3, 4, 5, 6, 7, 8))
             ),
             fileMetadata = FileMetadata(
                 created = id.homebase.homebasekmppoc.prototype.lib.core.time.UnixTimeUtc(now),

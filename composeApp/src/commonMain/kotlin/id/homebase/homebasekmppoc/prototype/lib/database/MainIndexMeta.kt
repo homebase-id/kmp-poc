@@ -2,7 +2,7 @@ package id.homebase.homebasekmppoc.prototype.lib.database
 
 import id.homebase.homebasekmppoc.lib.database.DriveMainIndex
 import id.homebase.homebasekmppoc.lib.database.OdinDatabase
-import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
+import id.homebase.homebasekmppoc.prototype.lib.drives.HomebaseFile
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.QueryBatchCursor
 import kotlin.uuid.Uuid
@@ -94,7 +94,7 @@ object MainIndexMetaHelpers {
         fun convertFileHeaderToDriveMainIndexRecord(
             identityId: Uuid,
             driveId: Uuid,
-            header: SharedSecretEncryptedFileHeader
+            header: HomebaseFile
         ): DriveMainIndex {
             // Serialize header back to JSON for storage
             val jsonHeader = OdinSystemSerializer.serialize(header)
@@ -132,8 +132,8 @@ object MainIndexMetaHelpers {
          */
         fun convertDriveMainIndexRecordToFileHeader(
             driveMainIndex: DriveMainIndex
-        ): SharedSecretEncryptedFileHeader {
-            return OdinSystemSerializer.deserialize<SharedSecretEncryptedFileHeader>(driveMainIndex.jsonHeader)
+        ): HomebaseFile {
+            return OdinSystemSerializer.deserialize<HomebaseFile>(driveMainIndex.jsonHeader)
         }
 
         /**
@@ -149,7 +149,7 @@ object MainIndexMetaHelpers {
         suspend fun baseUpsertEntryZapZap(
             identityId: Uuid,
             driveId: Uuid,
-            fileHeaders: List<SharedSecretEncryptedFileHeader>,
+            fileHeaders: List<HomebaseFile>,
             cursor: QueryBatchCursor?
         ) {
                 performBaseUpsert(identityId, driveId, fileHeaders, cursor)
@@ -163,7 +163,7 @@ object MainIndexMetaHelpers {
         suspend fun performBaseUpsert(
             identityId: Uuid,
             driveId: Uuid,
-            fileHeaders: List<SharedSecretEncryptedFileHeader>,
+            fileHeaders: List<HomebaseFile>,
             cursor: QueryBatchCursor?
         ) {
             databaseManager.withWriteTransaction { db ->
@@ -239,7 +239,7 @@ object MainIndexMetaHelpers {
         suspend fun baseUpsertEntryZapZap(
             identityId: Uuid,
             driveId: Uuid,
-            fileHeader: SharedSecretEncryptedFileHeader,
+            fileHeader: HomebaseFile,
             cursor: QueryBatchCursor?
         ) {
             baseUpsertEntryZapZap(identityId, driveId, listOf(fileHeader), cursor)

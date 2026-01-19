@@ -2,7 +2,7 @@ package id.homebase.homebasekmppoc.lib.serialization
 
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileState
 import id.homebase.homebasekmppoc.prototype.lib.drives.FileSystemType
-import id.homebase.homebasekmppoc.prototype.lib.drives.SharedSecretEncryptedFileHeader
+import id.homebase.homebasekmppoc.prototype.lib.drives.HomebaseFile
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -10,7 +10,7 @@ import kotlin.test.assertNotNull
 import kotlin.uuid.ExperimentalUuidApi
 
 @ExperimentalUuidApi
-class SharedSecretEncryptedFileHeaderTest {
+class HomebaseFileTest {
 
     @Test
     fun testDeserialize_fullFileHeader() {
@@ -20,11 +20,9 @@ class SharedSecretEncryptedFileHeaderTest {
     "driveId": "e8475dc4-6cb4-b665-1c2d-0dbd0f3aad5f",
     "fileState": "active",
     "fileSystemType": "standard",
-    "sharedSecretEncryptedKeyHeader": {
-        "encryptionVersion": 1,
-        "type": "aes",
+    "keyHeader": {
         "iv": "fA2HYW8SoHnP3oMxgPcckA==",
-        "encryptedAesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
+        "aesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
     },
     "fileMetadata": {
         "globalTransitId": "ae9f4cea-65f0-43e0-adb9-bfd2ce3cc1d5",
@@ -82,7 +80,7 @@ class SharedSecretEncryptedFileHeaderTest {
 }
         """.trimIndent()
 
-        val fileHeader = OdinSystemSerializer.deserialize<SharedSecretEncryptedFileHeader>(json)
+        val fileHeader = OdinSystemSerializer.deserialize<HomebaseFile>(json)
 
         assertNotNull(fileHeader)
         assertEquals("1355aa19-2030-8200-00ef-563eed96bebf", fileHeader.fileId.toString())
@@ -95,8 +93,8 @@ class SharedSecretEncryptedFileHeaderTest {
         assertEquals(FileSystemType.Standard, fileHeader.fileSystemType)
 
         // Verify Base64 ByteArray deserialization
-        assertNotNull(fileHeader.sharedSecretEncryptedKeyHeader.iv)
-        assertNotNull(fileHeader.sharedSecretEncryptedKeyHeader.encryptedAesKey)
+        assertNotNull(fileHeader.keyHeader.iv)
+        assertNotNull(fileHeader.keyHeader.aesKey)
 
         // Verify nested metadata
         assertEquals("frodo.dotyou.cloud", fileHeader.fileMetadata.senderOdinId)
