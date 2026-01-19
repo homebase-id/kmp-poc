@@ -96,6 +96,14 @@ fun ConversationCard(item: ConversationData, onClick: () -> Unit) {
                                         Text("ID: ${item.uniqueId}")
                                         Text("Created: ${item.created}")
                                         Text("Encrypted: ${item.isEncrypted}")
+
+                                        Text("Tiny thumb: ${item.previewThumbnail?.content}")
+                                        Text("Last-read time: ${item.conversationMeta?.lastReadTime}")
+                                        Text("Unread count: BISHWA TODO ??? let's discuss how - loaded from localAppData probably?")
+                                        Text("Last-message-text: BISHWA TODO 40 CHARS STORED IN APPDATA")
+                                        Text("Last-message-timestamp: BISHWA TODO UNIXTIMEUTC STORED IN APPDATA")
+                                        Text("Last-message-delivery-status: BISHWA TODO DELIVERY STATUS STORED IN APPDATA")
+                                        Text("TEST")
                                 }
                         }
 
@@ -155,6 +163,10 @@ fun ChatMessageCard(item: ChatMessageData, onClick: () -> Unit) {
                                 Column(modifier = Modifier.weight(1f)) {
                                         // Show parsed message data - already decrypted
                                         Text("Message: ${item.content.message}")
+                                        Text("IsEdited?: ${item.content.isEdited}")
+                                        Text("More text?: ${!item.contentIsComplete}")
+                                        Text("More text function: BISHWA-TODO-FUCNTION THAT RETURNS FULL TEXT CLICKING more...")
+
                                         Text(
                                                 "Delivery Status: ${item.content.getDeliveryStatusEnum()?.name ?: "Unknown (${item.content.deliveryStatus})"}"
                                         )
@@ -173,6 +185,10 @@ fun ChatMessageCard(item: ChatMessageData, onClick: () -> Unit) {
                                         Text("Encrypted: ${item.isEncrypted}")
                                         Text("Payloads: ${item.payloads?.size ?: 0}")
                                         item.sender?.let { Text("Sender: $it") }
+                                        Text("tiny Thumb: ${item.previewThumbnail?.content}")
+
+                                        Text("Reply-preview: BISHWA-TODO output the reply preview from AppData (no load)")
+                                        Text("URL-preview: BISHWA-TODO output the URL preview from local contentDescriptor (no load)")
                                 }
                         }
 

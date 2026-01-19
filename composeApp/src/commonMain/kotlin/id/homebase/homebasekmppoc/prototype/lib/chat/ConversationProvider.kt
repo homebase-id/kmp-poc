@@ -291,7 +291,7 @@ class ConversationProvider(private val identityId: Uuid, private val odinClient:
                         OdinSystemSerializer.deserialize<ConversationMetadata>(content)
                 } catch (e: Exception) {
                         println(
-                                "ConversationProvider: Failed to parse ConversationMetadata: ${e.message}"
+                                "ConversationProvider: Wrong IV? Failed to parse ConversationMetadata: ${e.message}\nContent: [${content}]"
                         )
                         null
                 }
