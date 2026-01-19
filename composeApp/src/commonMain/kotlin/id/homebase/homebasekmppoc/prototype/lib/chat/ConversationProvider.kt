@@ -184,7 +184,7 @@ class ConversationProvider(private val identityId: Uuid, private val odinClient:
             decryptedContent?.let { parseConversationContent(it) }
                 ?: UnifiedConversation()
 
-        // Decrypt and parse localAppData content for ConversationMetadata
+        // Parse localAppData content for ConversationMetadata
         var conversationMeta: ConversationMetadata? = null
         if (!header.fileMetadata.localAppData?.content.isNullOrEmpty()) {
             conversationMeta = parseConversationMetadata(header.fileMetadata.localAppData.content)

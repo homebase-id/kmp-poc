@@ -1,11 +1,9 @@
 package id.homebase.homebasekmppoc.prototype.lib.http
 
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthState
-import id.homebase.homebasekmppoc.prototype.lib.core.SecureByteArray
 import id.homebase.homebasekmppoc.prototype.lib.crypto.KeyHeader
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadDescriptor
 import id.homebase.homebasekmppoc.prototype.lib.drives.HomebaseFile
-import kotlin.io.encoding.Base64
 
 class HeaderWrapper(
     val authenticated: AuthState.Authenticated,

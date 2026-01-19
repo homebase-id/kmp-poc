@@ -241,13 +241,6 @@ public class DriveFileProvider(
                 creds.domain,
                 "/drives/$driveId/files/$fileId/payload/$payloadKey/thumb"
             )
-//
-//        val response = encryptedGet(
-//            url = url,
-//            queryParams,
-//            token = creds.accessToken,
-//            secret = creds.secret
-//        )
 
         val response = requestBytes {
             httpClient.get(url) {

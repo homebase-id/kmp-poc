@@ -56,6 +56,9 @@ fun DriveFetchPage(
     onNavigateToFileDetail: (String, String) -> Unit,
     viewModel: DriveFetchViewModel = koinViewModel()
 ) {
+
+    val scope = CoroutineScope(Dispatchers.Main)
+
     val authState by youAuthFlowManager.authState.collectAsState()
     var localQueryResults by remember {
         mutableStateOf<List<HomebaseFile>?>(null)
@@ -92,8 +95,6 @@ fun DriveFetchPage(
             )
         }
     }
-
-     val scope = CoroutineScope(Dispatchers.Main)
 
     fun triggerClear() {
         if (driveSynchronizer == null) {

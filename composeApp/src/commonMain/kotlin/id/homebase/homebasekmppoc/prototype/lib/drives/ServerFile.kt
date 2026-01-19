@@ -27,9 +27,13 @@ data class ServerFile(
 ) {
     suspend fun asHomebaseFile(sharedSecret: SecureByteArray): HomebaseFile {
         val resolvedKeyHeader: KeyHeader
-        val resolvedMetadata: FileMetadata
+        var resolvedMetadata: FileMetadata
+        var serverFileIsEncrypted: Boolean = false
 
         if (fileMetadata.isEncrypted) {
+
+            serverFileIsEncrypted = true
+
             if (sharedSecretEncryptedKeyHeader == EncryptedKeyHeader.empty()) {
                 throw FileDecryptionException.MissingEncryptedHeader()
             }
@@ -40,27 +44,13 @@ data class ServerFile(
                 throw FileDecryptionException.KeyHeaderDecryptionFailed(e)
             }
 
-            val content = fileMetadata.appData.content
+            resolvedMetadata = fileMetadata
 
-            resolvedMetadata =
-                if (content == null || content.isEmpty()) {
-                    // Encrypted but empty content is valid
-                    fileMetadata.withDecryptedContent(ByteArray(0))
-                } else {
-                    val encryptedBytes = try {
-                        Base64.decode(content)
-                    } catch (e: Throwable) {
-                        throw FileDecryptionException.ContentBase64DecodeFailed(e)
-                    }
+            // ---- server appData ----
+            resolvedMetadata = resolvedMetadata.decryptAppData(resolvedKeyHeader)
 
-                    val decryptedBytes = try {
-                        resolvedKeyHeader.decrypt(encryptedBytes)
-                    } catch (e: Throwable) {
-                        throw FileDecryptionException.ContentDecryptionFailed(e)
-                    }
-
-                    fileMetadata.withDecryptedContent(decryptedBytes)
-                }
+            // ---- localAppData (optional) ----
+            resolvedMetadata = resolvedMetadata.decryptLocalAppData(resolvedKeyHeader)
         } else {
             resolvedKeyHeader = KeyHeader.empty()
             resolvedMetadata = fileMetadata
@@ -69,6 +59,7 @@ data class ServerFile(
         return HomebaseFile(
             fileId = fileId,
             driveId = driveId,
+            serverFileIsEncrypted = serverFileIsEncrypted,
             fileState = fileState,
             fileSystemType = fileSystemType,
             keyHeader = resolvedKeyHeader,
@@ -78,8 +69,6 @@ data class ServerFile(
             fileByteCount = fileByteCount
         )
     }
-
-
 }
 
 fun FileMetadata.withDecryptedContent(bytes: ByteArray): FileMetadata =
@@ -89,6 +78,64 @@ fun FileMetadata.withDecryptedContent(bytes: ByteArray): FileMetadata =
         ),
         isEncrypted = false
     )
+
+private suspend fun FileMetadata.decryptAppData(
+    keyHeader: KeyHeader
+): FileMetadata {
+    val content = appData.content
+    if (content.isNullOrEmpty()) {
+        return withDecryptedContent(ByteArray(0))
+    }
+
+    val encryptedBytes = try {
+        Base64.decode(content)
+    } catch (e: Throwable) {
+        throw FileDecryptionException.ContentBase64DecodeFailed(e)
+    }
+
+    val decryptedBytes = try {
+        keyHeader.decrypt(encryptedBytes)
+    } catch (e: Throwable) {
+        throw FileDecryptionException.ContentDecryptionFailed(e)
+    }
+
+    return withDecryptedContent(decryptedBytes)
+}
+
+private suspend fun FileMetadata.decryptLocalAppData(
+    keyHeader: KeyHeader
+): FileMetadata {
+    val local = localAppData ?: return this
+    val content = local.content ?: return this
+
+    val encryptedBytes = try {
+        Base64.decode(content)
+    } catch (e: Throwable) {
+        throw FileDecryptionException.ContentBase64DecodeFailed(e)
+    }
+
+    val ivBytes = local.iv?.let {
+        try {
+            Base64.decode(it)
+        } catch (e: Throwable) {
+            throw FileDecryptionException.ContentBase64DecodeFailed(e)
+        }
+    }
+
+    val decryptedBytes = try {
+        keyHeader.decryptWithIv(encryptedBytes, ivBytes)
+    } catch (e: Throwable) {
+        throw FileDecryptionException.ContentDecryptionFailed(e)
+    }
+
+    return copy(
+        localAppData = local.copy(
+            content = decryptedBytes.decodeToString(),
+            iv = null
+        )
+    )
+}
+
 
 sealed class FileDecryptionException(message: String, cause: Throwable? = null) :
     Exception(message, cause) {

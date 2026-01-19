@@ -30,7 +30,7 @@ class HomebaseFileTest {
         "updated": 1763710153491,
         "transitCreated": 0,
         "transitUpdated": 0,
-        "isEncrypted": true,
+        "serverFileIsEncrypted": true,
         "senderOdinId": "frodo.dotyou.cloud",
         "originalAuthor": "frodo.dotyou.cloud",
         "appData": {

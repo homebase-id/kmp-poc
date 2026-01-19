@@ -8,13 +8,14 @@ import kotlinx.serialization.Serializable
 import kotlin.uuid.Uuid
 
 /**
- * Shared secret encrypted file header
+ * A file from a homebase server, fully unencrypted ready for client usage
  */
 @Serializable
 data class HomebaseFile(
     @Serializable(with = UuidSerializer::class)
     val fileId: Uuid,
     val driveId: Uuid,
+    val serverFileIsEncrypted: Boolean,
     val fileState: FileState,
     val fileSystemType: FileSystemType,
     val keyHeader: KeyHeader,

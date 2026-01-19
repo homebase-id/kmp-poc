@@ -1,7 +1,6 @@
 package id.homebase.homebasekmppoc.prototype.lib.chat
 
 import id.homebase.homebasekmppoc.prototype.lib.core.BatchResult
-import id.homebase.homebasekmppoc.prototype.lib.core.SecureByteArray
 import id.homebase.homebasekmppoc.prototype.lib.core.time.UnixTimeUtc
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
 import id.homebase.homebasekmppoc.prototype.lib.database.QueryBatch
@@ -17,7 +16,6 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.files.TransferStatus
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.QueryBatchCursor
 import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
-import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.uuid.Uuid
 import kotlinx.serialization.Serializable

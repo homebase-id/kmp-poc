@@ -128,7 +128,7 @@ fun ChatFileHeaderPanel(
         LabeledValue("State", header.fileState.toString())
         LabeledValue("Created", header.fileMetadata.created.toString())
         LabeledValue("Updated", header.fileMetadata.updated.toString())
-        LabeledValue("Encrypted", header.fileMetadata.isEncrypted.toString())
+        LabeledValue("Server file was Encrypted", header.serverFileIsEncrypted.toString())
         LabeledValue("Sender", header.fileMetadata.senderOdinId ?: "—")
 
         // Preview thumbnail from appData

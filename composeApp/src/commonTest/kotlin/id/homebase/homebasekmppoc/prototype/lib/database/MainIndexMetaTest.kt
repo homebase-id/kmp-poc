@@ -35,11 +35,10 @@ class MainIndexMetaTest {
                 "driveId": "${driveId}",
                 "fileState": "active",
                 "fileSystemType": "standard",
-                "sharedSecretEncryptedKeyHeader": {
-                    "encryptionVersion": 1,
-                    "type": "aes",
+                "serverFileIsEncrypted":"true",
+                "keyHeader": {
                     "iv": "fA2HYW8SoHnP3oMxgPcckA==",
-                    "encryptedAesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
+                    "aesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
                 },
                 "fileMetadata": {
                     "globalTransitId": "52a491ac-9870-4d0c-94a1-1bf667393015",
@@ -47,7 +46,7 @@ class MainIndexMetaTest {
                     "updated": ${currentTime}000,
                     "transitCreated": 0,
                     "transitUpdated": 0,
-                    "isEncrypted": true,
+                    "serverFileIsEncrypted": true,
                     "senderOdinId": "test-sender",
                     "originalAuthor": "test-sender",
                     "appData": {
@@ -131,11 +130,10 @@ class MainIndexMetaTest {
                 "driveId": "${driveId}",
                 "fileState": "active",
                 "fileSystemType": "standard",
-                "sharedSecretEncryptedKeyHeader": {
-                    "encryptionVersion": 1,
-                    "type": "aes",
+                "serverFileIsEncrypted":"true",
+                "keyHeader": {
                     "iv": "fA2HYW8SoHnP3oMxgPcckA==",
-                    "encryptedAesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
+                    "aesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
                 },
                 "fileMetadata": {
                     "globalTransitId": "${globalId}",
@@ -143,7 +141,7 @@ class MainIndexMetaTest {
                     "updated": ${currentTime}000,
                     "transitCreated": 0,
                     "transitUpdated": 0,
-                    "isEncrypted": true,
+                    "serverFileIsEncrypted": true,
                     "senderOdinId": "test-sender",
                     "originalAuthor": "test-sender",
                     "appData": {
@@ -334,11 +332,10 @@ class MainIndexMetaTest {
                 "driveId": "${driveId}",
                 "fileState": "active",
                 "fileSystemType": "standard",
-                "sharedSecretEncryptedKeyHeader": {
-                    "encryptionVersion": 1,
-                    "type": "aes",
+                "serverFileIsEncrypted":"true",
+                "keyHeader": {
                     "iv": "fA2HYW8SoHnP3oMxgPcckA==",
-                    "encryptedAesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
+                    "aesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
                 },
                 "fileMetadata": {
                     "globalTransitId": "52a491ac-9870-4d0c-94a1-1bf667393015",
@@ -346,7 +343,7 @@ class MainIndexMetaTest {
                     "updated": ${currentTime}000,
                     "transitCreated": 0,
                     "transitUpdated": 0,
-                    "isEncrypted": true,
+                    "serverFileIsEncrypted": true,
                     "senderOdinId": "test-sender",
                     "originalAuthor": "test-sender",
                     "appData": {
@@ -459,11 +456,10 @@ class MainIndexMetaTest {
                 "driveId": "${driveId}",
                 "fileState": "active",
                 "fileSystemType": "standard",
-                "sharedSecretEncryptedKeyHeader": {
-                    "encryptionVersion": 1,
-                    "type": "aes",
+                "serverFileIsEncrypted":"true",
+                "keyHeader": {
                     "iv": "fA2HYW8SoHnP3oMxgPcckA==",
-                    "encryptedAesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
+                    "aesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
                 },
                 "fileMetadata": {
                     "globalTransitId": "${globalId}",
@@ -471,7 +467,7 @@ class MainIndexMetaTest {
                     "updated": ${currentTime}000,
                     "transitCreated": 0,
                     "transitUpdated": 0,
-                    "isEncrypted": true,
+                    "serverFileIsEncrypted": true,
                     "senderOdinId": "test-sender",
                     "originalAuthor": "test-sender",
                     "appData": {
@@ -571,11 +567,10 @@ class MainIndexMetaTest {
                 "driveId": "${driveId}",
                 "fileState": "active",
                 "fileSystemType": "standard",
-                "sharedSecretEncryptedKeyHeader": {
-                    "encryptionVersion": 1,
-                    "type": "aes",
+                "serverFileIsEncrypted":"true",
+                "keyHeader": {
                     "iv": "fA2HYW8SoHnP3oMxgPcckA==",
-                    "encryptedAesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
+                    "aesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
                 },
                 "fileMetadata": {
                     "globalTransitId": "52a491ac-9870-4d0c-94a1-1bf667393015",
@@ -583,7 +578,7 @@ class MainIndexMetaTest {
                     "updated": ${currentTime}000,
                     "transitCreated": 0,
                     "transitUpdated": 0,
-                    "isEncrypted": true,
+                    "serverFileIsEncrypted": true,
                     "senderOdinId": "test-sender",
                     "originalAuthor": "test-sender",
                     "appData": {
@@ -643,6 +638,7 @@ class MainIndexMetaTest {
             assertEquals(originalHeader.driveId, reconstructedHeader.driveId)
             assertEquals(originalHeader.fileState, reconstructedHeader.fileState)
             assertEquals(originalHeader.fileSystemType, reconstructedHeader.fileSystemType)
+            assertEquals(originalHeader.serverFileIsEncrypted, reconstructedHeader.serverFileIsEncrypted)
             assertContentEquals(
                 originalHeader.keyHeader.iv,
                 reconstructedHeader.keyHeader.iv
@@ -753,11 +749,10 @@ class MainIndexMetaTest {
                 "driveId": "${driveId}",
                 "fileState": "active",
                 "fileSystemType": "standard",
-                "sharedSecretEncryptedKeyHeader": {
-                    "encryptionVersion": 1,
-                    "type": "aes",
+                "serverFileIsEncrypted":"true",
+                "keyHeader": {
                     "iv": "fA2HYW8SoHnP3oMxgPcckA==",
-                    "encryptedAesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
+                    "aesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
                 },
                 "fileMetadata": {
                     "globalTransitId": "${globalId1}",
@@ -765,7 +760,7 @@ class MainIndexMetaTest {
                     "updated": ${currentTime}000,
                     "transitCreated": 0,
                     "transitUpdated": 0,
-                    "isEncrypted": true,
+                    "serverFileIsEncrypted": true,
                     "senderOdinId": "initial-sender",
                     "originalAuthor": "initial-sender",
                     "appData": {
@@ -819,11 +814,10 @@ class MainIndexMetaTest {
                 "driveId": "${driveId}",
                 "fileState": "active",
                 "fileSystemType": "standard",
-                "sharedSecretEncryptedKeyHeader": {
-                    "encryptionVersion": 1,
-                    "type": "aes",
+                "serverFileIsEncrypted":"true",
+                "keyHeader": {
                     "iv": "fA2HYW8SoHnP3oMxgPcckA==",
-                    "encryptedAesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
+                    "aesKey": "lCGJ4kL+OC2I+Q1YIvkTVU/GUpmVHAMA+axkwZQJxu5tGHAQd2CLzEzGX0X2pcyE"
                 },
                 "fileMetadata": {
                     "globalTransitId": "${globalId1}",
@@ -831,7 +825,7 @@ class MainIndexMetaTest {
                     "updated": ${(currentTime + 1)}000,
                     "transitCreated": 0,
                     "transitUpdated": 0,
-                    "isEncrypted": true,
+                    "serverFileIsEncrypted": true,
                     "senderOdinId": "updated-sender",
                     "originalAuthor": "updated-sender",
                     "appData": {
@@ -918,7 +912,7 @@ class MainIndexMetaTest {
 //                    "updated": ${currentTime}000,
 //                    "transitCreated": 0,
 //                    "transitUpdated": 0,
-//                    "isEncrypted": true,
+//                    "serverFileIsEncrypted": true,
 //                    "senderOdinId": "initial-sender",
 //                    "originalAuthor": "initial-sender",
 //                    "appData": {
@@ -986,7 +980,7 @@ class MainIndexMetaTest {
 //                    "updated": ${(currentTime + 1)}000,
 //                    "transitCreated": 0,
 //                    "transitUpdated": 0,
-//                    "isEncrypted": true,
+//                    "serverFileIsEncrypted": true,
 //                    "senderOdinId": "conflict-sender",
 //                    "originalAuthor": "conflict-sender",
 //                    "appData": {
