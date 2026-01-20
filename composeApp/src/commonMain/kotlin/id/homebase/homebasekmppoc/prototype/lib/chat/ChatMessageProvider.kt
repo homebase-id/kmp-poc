@@ -9,11 +9,13 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortField
 import id.homebase.homebasekmppoc.prototype.lib.drives.QueryBatchSortOrder
 import id.homebase.homebasekmppoc.prototype.lib.drives.HomebaseFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadDescriptor
+import id.homebase.homebasekmppoc.prototype.lib.drives.files.ReactionSummary
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.RecipientTransferHistoryEntry
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.RecipientTransferSummary
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.ThumbnailDescriptor
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.TransferStatus
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.QueryBatchCursor
+import id.homebase.homebasekmppoc.prototype.lib.drives.upload.EmbeddedThumb
 import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
 import kotlin.io.encoding.ExperimentalEncodingApi
@@ -65,38 +67,44 @@ data class RichTextNode(
 typealias RichText = List<RichTextNode>
 
 
-// TODO: AppData embedded data to render the "reply-to" header
+
+@Serializable
 data class ReplyPreview(
-    val replyFileId: Uuid, // FileId of the message that was replied to
-    val identity: String, // frodo.baggins.demo.rocks
+    val replyUniqueId: Uuid, // FileId of the message that was replied to
+    val authorOdinId: String, // frodo.baggins.demo.rocks
     val message: String, // ~40 chars (IDK how many you use?)
-    val tinyThumb: String) // Tiny tiny thumb, can be even smaller than tinyThumb even a 1px color
-    // function to return URL to load the full image.
+    val previewThumbnail: EmbeddedThumb) // Tiny tiny thumb, can be even smaller than tinyThumb even a 1px color
+
+@Serializable
+data class LinkPreview(
+    val title: String, // ~?? chars - the title
+    val url: String, // ~?? chars - name or identity??
+    val description: String, // ~?? chars
+    val imageUrl: String?,
+    val imageHeight: Int?,
+    val imageWidth: Int?,
+
+)
 {
     fun getThumbUrl() : String { return "" }
 }
 
-// TODO: AppData embedded data to render the "URL preview" header
-data class UrlPreview(
-    val previewFileId: Uuid, // The FileId of the HomebaseFile that contains the full URL preview
-    val title: String, // ~?? chars - the title
-    val url: String, // ~?? chars - name or identity??
-    val urlTitle: String, // ~?? chars
-    val message: String, // ~?? chars
-    val tinyThumb: String) // Tiny tiny thumb, can be even smaller than tinyThumb even a 1px color
-    // function to return URL to load the full image.
-{
-    fun getThumbUrl() : String { return "" }
-}
+@Serializable
+data class ConversationLastMessageContent(
+    val message: String?,
+    val deliveryStatus: ChatDeliveryStatus,
+    val sender: String,
+    val uniqueId: Uuid,
+    val time: UnixTimeUtc,
+    val reactionSummary: ReactionSummary?,
+)
 
 /** Data class representing chat message content (parsed from JSON) */
 @Serializable
 data class ChatMessageContent(
         /** Optional reply ID if this message is a reply to another message */
         val replyId: Uuid? = null,
-
-        // TODO: val replyPreview: ReplyPreview? = null,
-        // TODO: val urlPreview: UrlPreview? = null,
+        val replyPreview: ReplyPreview? = null,
 
         /** Content of the message - can be a simple string or rich text */
         val message: String = "",
@@ -164,8 +172,23 @@ data class ChatMessageData(
         val driveId: String,
 
         /** Whether content is encrypted */
-        val isEncrypted: Boolean
-)
+        val isEncrypted: Boolean,
+
+        val reactionSummary: ReactionSummary?,
+
+
+) {
+    fun getLinkPreview() : LinkPreview? {
+        val payload = payloads?.firstOrNull { it.keyEquals(CHAT_LINKS_PAYLOAD_KEY) }
+        val appData = payload?.descriptorContent ?: return null
+
+        return try {
+            OdinSystemSerializer.deserialize<LinkPreview>(appData ?: "")
+        } catch (e: Exception) {
+            null
+        }
+    }
+}
 
 /** Converts a recipient's transfer history entry to a ChatDeliveryStatus. */
 fun transferHistoryToChatDeliveryStatus(
@@ -282,7 +305,9 @@ class ChatMessageProvider(private val identityId: Uuid, private val odinClient: 
                 contentIsComplete = metadata.payloads?.find { it.keyEquals(CHAT_MESSAGE_PAYLOAD_KEY) } == null,
                 payloads = metadata.payloads,
                 driveId = header.driveId.toString(),
-                isEncrypted = metadata.isEncrypted
+                isEncrypted = metadata.isEncrypted,
+                reactionSummary = metadata.reactionPreview
+
         )
     }
 

@@ -46,11 +46,10 @@ data class ConversationMetadata(
     val conversationId: String? = null,
 
     /** Timestamp when the conversation was last read (UnixTimeUtc in milliseconds) */
-    val lastReadTime: Long? = null
-) {
-    /** Get lastReadTime as UnixTimeUtc */
-    fun getLastReadTimeUtc(): UnixTimeUtc? = lastReadTime?.let { UnixTimeUtc(it) }
-}
+    val lastReadTime: Long? = null,
+
+    val lastMessage: ConversationLastMessageContent? = null,
+)
 
 // For ALL conversation items, single and groups, we need this data here or on the
 // conversationData to be able to render the overview item without doing additional
@@ -102,7 +101,22 @@ data class ConversationData(
 
     /** List of payload descriptors with metadata */
     val payloads: List<PayloadDescriptor>?
-)
+) {
+    /** Returns true if this conversation is with yourself */
+    fun isConversationWithYourself(): Boolean {
+        val conversationId = conversationMeta?.conversationId ?: return false
+        return conversationId == ConversationWithYourselfId
+    }
+
+    fun getLastMessageContent(): ConversationLastMessageContent? {
+        return conversationMeta?.lastMessage
+    }
+
+        /** Get lastReadTime as UnixTimeUtc */
+
+        fun getLastReadTimeUtc(): UnixTimeUtc? = conversationMeta?.lastReadTime?.let { UnixTimeUtc(it) }
+
+}
 
 /**
  * Provider class for fetching and decrypting conversations from the local database.
