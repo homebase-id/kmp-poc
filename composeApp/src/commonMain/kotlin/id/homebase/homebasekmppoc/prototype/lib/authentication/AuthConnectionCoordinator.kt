@@ -24,7 +24,7 @@ class AuthConnectionCoordinator(
 
     suspend fun onNetworkChanged(isOnline: Boolean) {
         if (!isOnline) disconnect()
-        else wsClient?.connect()
+        else wsClient?.start()
     }
 
     private suspend fun connect(state: YouAuthState.Authenticated) {
@@ -37,7 +37,7 @@ class AuthConnectionCoordinator(
             scope,
             appEventBus,
             DatabaseManager.appDb
-        ).also { it.connect() }
+        ).also { it.start() }
     }
 
     private fun disconnect() {

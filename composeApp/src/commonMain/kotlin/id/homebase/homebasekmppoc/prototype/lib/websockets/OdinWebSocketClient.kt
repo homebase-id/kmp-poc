@@ -24,7 +24,7 @@ import io.ktor.websocket.Frame
 import io.ktor.websocket.readText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,15 +33,6 @@ import kotlinx.serialization.Serializable
 import kotlin.io.encoding.Base64
 import kotlin.uuid.Uuid
 
-
-/**
- * Represents a WebSocket message received from the server
- */
-@Serializable
-data class WebSocketMessage(
-    val content: String,
-    val timestamp: Long = 0L
-)
 
 /**
  * Represents a WebSocket (encrypted) payload received from the server
@@ -91,6 +82,7 @@ sealed class WebSocketState {
     data object Disconnected : WebSocketState()
     data object Connecting : WebSocketState()
     data object Connected : WebSocketState()
+
     data class Error(val message: String) : WebSocketState()
 }
 
@@ -103,6 +95,10 @@ class OdinWebSocketClient(
     private val eventBus: EventBus,
     private val databaseManager: DatabaseManager
 ) {
+
+    private var reconnectDelayMs = 1_000L
+    private val MAX_RECONNECT_DELAY_MS = 30_000L
+
     private val client = HttpClient {
         install(WebSockets)
     }
@@ -117,15 +113,63 @@ class OdinWebSocketClient(
     private var connectionJob: Job? = null
     private var session: DefaultClientWebSocketSession? = null
 
-    /**
-     * Connect to the WebSocket endpoint
-     */
-    suspend fun connect() {
-        if (connectionJob?.isActive == true) {
-            Logger.w { "WebSocket already connected or connecting" }
-            return
-        }
 
+    private val pingSupervisor = WebSocketPingSupervisor(
+        scope = scope,
+        sessionProvider = { session },
+        encrypt = { encryptData(it) },
+        onOnline = { handleGoingOnline() },
+        onOffline = { handleGoingOffline() }
+    )
+
+    private suspend fun handleGoingOffline() {
+        eventBus.emit(BackendEvent.ConnectionOffline)
+    }
+
+    private suspend fun handleGoingOnline() {
+        eventBus.emit(BackendEvent.ConnectionOnline)
+    }
+
+
+    fun start() {
+        if (connectionJob?.isActive == true) return
+
+        connectionJob = scope.launch {
+            while (true) {
+                eventBus.emit(BackendEvent.Connecting)
+
+                try {
+                    connectOnce()
+
+                    // If connectOnce returns normally, we consider that a success
+                    // Reset backoff so next failure retries fast again
+                    reconnectDelayMs = 1_000L
+
+                } catch (e: Exception) {
+                    Logger.e(e) { "WebSocket connect failed" }
+                }
+
+                eventBus.emit(BackendEvent.ConnectionOffline)
+
+                Logger.w {
+                    "WebSocket disconnected, retrying in ${reconnectDelayMs}ms"
+                }
+
+                delay(withJitter(reconnectDelayMs))
+
+                reconnectDelayMs =
+                    (reconnectDelayMs * 2).coerceAtMost(MAX_RECONNECT_DELAY_MS)
+            }
+
+        }
+    }
+
+    private fun withJitter(delayMs: Long): Long {
+        val jitter = (delayMs * 0.2).toLong() // ±20%
+        return delayMs + (-jitter..jitter).random()
+    }
+
+    private suspend fun connectOnce() {
         val creds = credentialsManager.getActiveCredentials()
             ?: run {
                 Logger.w { "No active credentials, cannot connect WebSocket" }
@@ -135,76 +179,66 @@ class OdinWebSocketClient(
         val identity = creds.domain
         sharedSecret = creds.sharedSecret.unsafeBytes
 
-        try {
-            _connectionState.value = WebSocketState.Connecting
-            // Build WebSocket URL
-            val wsUrl = "wss://${identity}/api/apps/v1/notify/ws"
-            Logger.i { "Connecting to WebSocket at $wsUrl" }
+        _connectionState.value = WebSocketState.Connecting
 
-            client.webSocket(
-                urlString = wsUrl,
-                request = {
-                    headers.append(
-                        "Cookie",
-                        "$appCookieName=${creds.clientAccessToken}"
-                    )
-                }
-            ) {
-                session = this // Store session reference for sending messages
-                _connectionState.value = WebSocketState.Connected
-                Logger.i { "WebSocket connected successfully" }
+        val wsUrl = "wss://${identity}/api/apps/v1/notify/ws"
+        Logger.i { "Connecting to WebSocket at $wsUrl" }
 
-                establishConnectionRequest()
+        client.webSocket(
+            urlString = wsUrl,
+            request = {
+                headers.append("Cookie", "$appCookieName=${creds.clientAccessToken}")
+            }
+        ) {
+            session = this
+            _connectionState.value = WebSocketState.Connected
 
-                // Listen for incoming messages
+            establishConnectionRequest()
+
+            try {
                 for (frame in incoming) {
                     when (frame) {
-                        is Frame.Text -> {
-
-                            val text = frame.readText()
-                            Logger.d { "Received WebSocket message: $text" }
-
-                            val decryptedJson = decryptData(text)
-                            val notification =
-                                OdinSystemSerializer.deserialize<ClientNotificationPayload>(
-                                    decryptedJson
-                                )
-
-                            handleNotification(notification)
-                        }
-
-//                            is Frame.Binary -> {
-//                                val bytes = frame.data
-//                                Logger.d { "Received binary WebSocket message (${bytes.size} bytes)" }
-//                                val newMessage = WebSocketMessage(
-//                                    content = "[Binary data: ${bytes.size} bytes]",
-//                                    timestamp = Clock.System.now().toEpochMilliseconds()
-//                                )
-//                                _messages.value += newMessage
-//                            }
-
+                        is Frame.Text -> handleTextFrame(frame)
                         is Frame.Close -> {
                             Logger.i { "WebSocket closed by server" }
-                            _connectionState.value = WebSocketState.Disconnected
+                            break
                         }
 
                         else -> {
+                            // no op
                             Logger.d { "Received other frame type: ${frame.frameType}" }
+
                         }
                     }
                 }
+            } finally {
+                session = null // Clear session reference
+                if (_connectionState.value != WebSocketState.Error("Unknown error")) {
+                    _connectionState.value = WebSocketState.Disconnected
+                }
+                Logger.i { "WebSocket connection ended" }
             }
-        } catch (e: Exception) {
-            Logger.e(e) { "WebSocket connection error: ${e.message}" }
-            _connectionState.value = WebSocketState.Error(e.message ?: "Unknown error")
-        } finally {
-            session = null // Clear session reference
-            if (_connectionState.value != WebSocketState.Error("Unknown error")) {
-                _connectionState.value = WebSocketState.Disconnected
-            }
-            Logger.i { "WebSocket connection ended" }
         }
 
+        session = null
+        pingSupervisor.stop()
+        _connectionState.value = WebSocketState.Disconnected
+    }
+
+    private suspend fun handleTextFrame(frame: Frame.Text) {
+        try {
+            val text = frame.readText()
+            Logger.d { "Received WebSocket message: $text" }
+
+            val decryptedJson = decryptData(text)
+            val notification =
+                OdinSystemSerializer.deserialize<ClientNotificationPayload>(decryptedJson)
+
+            handleNotification(notification)
+
+        } catch (e: Exception) {
+            Logger.e(e) { "Error handling WebSocket message" }
+        }
     }
 
     private suspend fun handleNotification(notification: ClientNotificationPayload) {
@@ -214,8 +248,7 @@ class OdinWebSocketClient(
             }
 
             ClientNotificationType.pong -> {
-                //TODO: I'm alive
-                // need to setup a ping every X seconds to ensure we are still alive
+                pingSupervisor.notifyPongReceived()
             }
 
             ClientNotificationType.authenticationError -> {
@@ -317,12 +350,14 @@ class OdinWebSocketClient(
     }
 
     private suspend fun handleAuthError() {
-        eventBus.emit(BackendEvent.GoingOffline)
+        eventBus.emit(BackendEvent.ConnectionOffline)
     }
 
     private suspend fun onHandshakeSuccess() {
         Logger.i { "Device handshake successful" }
-        eventBus.emit(BackendEvent.GoingOnline)
+        pingSupervisor.notifySessionReconnected()
+        pingSupervisor.start()
+        eventBus.emit(BackendEvent.ConnectionOnline)
     }
 
     /**
@@ -330,17 +365,12 @@ class OdinWebSocketClient(
      * Disconnect from the WebSocket
      */
     fun disconnect() {
+        pingSupervisor.stop()
+        session = null
         connectionJob?.cancel()
         connectionJob = null
         _connectionState.value = WebSocketState.Disconnected
         Logger.i { "WebSocket disconnected" }
-    }
-
-    /**
-     * Clear all received messages
-     */
-    fun clearMessages() {
-//        _messages.value = emptyList()
     }
 
     /**
@@ -414,30 +444,28 @@ class OdinWebSocketClient(
     /**
      * Send a ping message to the server
      */
-    fun ping() {
-        scope.launch {
-            try {
-                val currentSession = session
-                if (currentSession == null) {
-                    Logger.w { "Cannot send ping: WebSocket not connected" }
-                    return@launch
-                }
-
-                // Build the command with encrypted data
-                val message = WebsocketCommand(
-                    command = "ping",
-                    data = "ping"
-                )
-
-                val encryptedMessage = encryptData(message)
-
-                // Serialize and send the message as JSON
-                val jsonMessage = OdinSystemSerializer.serialize(encryptedMessage)
-                currentSession.send(Frame.Text(jsonMessage))
-                Logger.d { "Sent WebSocket ping: $jsonMessage" }
-            } catch (e: Exception) {
-                Logger.e(e) { "Failed to send ping: ${e.message}" }
+    suspend fun ping() {
+        try {
+            val currentSession = session
+            if (currentSession == null) {
+                Logger.w { "Cannot send ping: WebSocket not connected" }
+                return
             }
+
+            // Build the command with encrypted data
+            val message = WebsocketCommand(
+                command = "ping",
+                data = "ping"
+            )
+
+            val encryptedMessage = encryptData(message)
+
+            // Serialize and send the message as JSON
+            val jsonMessage = OdinSystemSerializer.serialize(encryptedMessage)
+            currentSession.send(Frame.Text(jsonMessage))
+            Logger.d { "Sent WebSocket ping: $jsonMessage" }
+        } catch (e: Exception) {
+            Logger.e(e) { "Failed to send ping: ${e.message}" }
         }
     }
 

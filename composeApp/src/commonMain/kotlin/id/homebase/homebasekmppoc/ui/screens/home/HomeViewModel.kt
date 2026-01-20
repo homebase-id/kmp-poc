@@ -2,21 +2,19 @@ package id.homebase.homebasekmppoc.ui.screens.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import co.touchlab.kermit.Logger
-import id.homebase.homebasekmppoc.lib.config.getPermissionExtensionConfig
-import id.homebase.homebasekmppoc.lib.youauth.OdinClientFactory
-import id.homebase.homebasekmppoc.lib.youauth.PermissionExtensionManager
 import id.homebase.homebasekmppoc.lib.youauth.SecurityContextProvider
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
-import kotlinx.coroutines.Dispatchers
+import id.homebase.homebasekmppoc.prototype.lib.base.CredentialsManager
+import id.homebase.homebasekmppoc.prototype.lib.eventbus.BackendEvent
+import id.homebase.homebasekmppoc.prototype.lib.eventbus.appEventBus
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /**
  * ViewModel for Home screen following strict MVI pattern.
@@ -25,7 +23,9 @@ import kotlinx.coroutines.withContext
  * - One-off events via Channel
  */
 class HomeViewModel(private val youAuthFlowManager: YouAuthFlowManager,
-                    private val securityContextProvider: SecurityContextProvider) : ViewModel() {
+                    private val securityContextProvider: SecurityContextProvider,
+                    private val credentialsManager: CredentialsManager
+) : ViewModel() {
 
     companion object {
         private const val TAG = "HomeViewModel"
@@ -36,6 +36,46 @@ class HomeViewModel(private val youAuthFlowManager: YouAuthFlowManager,
 
     private val _uiEvent = Channel<HomeUiEvent>(Channel.BUFFERED)
     val uiEvent = _uiEvent.receiveAsFlow()
+
+    init {
+        loadIdentity()
+        observeBackendEvents()
+    }
+
+    private fun loadIdentity() {
+        viewModelScope.launch {
+            val creds = credentialsManager.getActiveCredentials()
+            _uiState.update {
+                it.copy(identity = creds?.domain)
+            }
+        }
+    }
+
+    private fun observeBackendEvents() {
+        viewModelScope.launch {
+            appEventBus.events.collectLatest { event ->
+                when (event) {
+                    is BackendEvent.Connecting -> {
+                        _uiState.update {
+                            it.copy(connectionStatus = ConnectionStatus.Connecting)
+                        }
+                    }
+                    is BackendEvent.ConnectionOnline -> {
+                        _uiState.update {
+                            it.copy(connectionStatus = ConnectionStatus.Online)
+                        }
+                    }
+                    is BackendEvent.ConnectionOffline -> {
+                        _uiState.update {
+                            it.copy(connectionStatus = ConnectionStatus.Offline)
+                        }
+                    }
+                    else -> Unit
+                }
+            }
+        }
+    }
+
 
 //    init {
 //        // Check for missing permissions on init (runs in background, doesn't block UI)
