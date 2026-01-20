@@ -80,9 +80,9 @@ fun HomeScreen(
                 onAction(HomeUiAction.DatabaseClicked)
             }
 
-            NavigationButton("WebSocket") {
-                onAction(HomeUiAction.WebSocketClicked)
-            }
+//            NavigationButton("WebSocket") {
+//                onAction(HomeUiAction.WebSocketClicked)
+//            }
 
             NavigationButton("Video") {
                 onAction(HomeUiAction.VideoClicked)

@@ -22,6 +22,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -57,7 +59,10 @@ fun ChatMessagesPage(
         onNavigateToMessageDetail: (String, String) -> Unit
 ) {
     val authState by youAuthFlowManager.authState.collectAsState()
-    var localQueryResults by remember { mutableStateOf<List<ChatMessageData>?>(null) }
+    val localQueryResults = remember {
+        mutableStateListOf<ChatMessageData>()
+    }
+
     var isLoading by remember { mutableStateOf(false) }
     var isRefreshing by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -110,7 +115,7 @@ fun ChatMessagesPage(
 
     // Reset state when auth changes
     LaunchedEffect(authState) {
-        localQueryResults = null
+        localQueryResults.clear()
         errorMessage = null
         syncProgress = null
         isLoading = false
@@ -137,7 +142,8 @@ fun ChatMessagesPage(
                                             driveId = driveId,
                                             conversationId = conversationUuid
                                     )
-                            localQueryResults = result.records
+                            localQueryResults.clear()
+                            localQueryResults.addAll(result.records)
                         }
                         isLoading = false
                         isRefreshing = false
@@ -236,14 +242,15 @@ fun ChatMessagesPage(
                             )
                         } else {
                             // Content is already decrypted by ChatMessageProvider
-                            localQueryResults?.let { items ->
+                            key(localQueryResults.size) {
                                 ChatMessageList(
-                                        items = items,
-                                        onMessageClicked = { itemDriveId, fileId ->
-                                            onNavigateToMessageDetail(itemDriveId, fileId)
-                                        }
+                                    items = localQueryResults,
+                                    onMessageClicked = { itemDriveId, fileId ->
+                                        onNavigateToMessageDetail(itemDriveId, fileId)
+                                    }
                                 )
                             }
+
                         }
                     }
                     else -> {

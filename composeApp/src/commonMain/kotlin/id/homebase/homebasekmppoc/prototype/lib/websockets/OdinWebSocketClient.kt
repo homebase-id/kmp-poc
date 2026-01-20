@@ -50,6 +50,17 @@ data class ClientNotificationPayload(
 )
 
 @Serializable
+data class ProcessInboxPayload(
+    val targetDrive: TargetDrive,
+    val batchSize: Int
+)
+
+@Serializable
+data class InboxItemReceivedNotification(
+    val targetDrive: TargetDrive
+)
+
+@Serializable
 data class ClientDriveNotification(
     val targetDrive: TargetDrive? = null,
     val header: ServerFile? = null,
@@ -129,7 +140,6 @@ class OdinWebSocketClient(
     private suspend fun handleGoingOnline() {
         eventBus.emit(BackendEvent.ConnectionOnline)
     }
-
 
     fun start() {
         if (connectionJob?.isActive == true) return
@@ -228,7 +238,7 @@ class OdinWebSocketClient(
     private suspend fun handleTextFrame(frame: Frame.Text) {
         try {
             val text = frame.readText()
-            Logger.d { "Received WebSocket message: $text" }
+//            Logger.d { "Received WebSocket message: $text" }
 
             val decryptedJson = decryptData(text)
             val notification =
@@ -242,6 +252,7 @@ class OdinWebSocketClient(
     }
 
     private suspend fun handleNotification(notification: ClientNotificationPayload) {
+//        Logger.i("Handling notification type ${notification.notificationType}")
         when (notification.notificationType) {
             ClientNotificationType.deviceHandshakeSuccess -> {
                 onHandshakeSuccess()
@@ -279,6 +290,7 @@ class OdinWebSocketClient(
             }
 
             ClientNotificationType.inboxItemReceived -> {
+                handleProcessInbox(notification)
             }
 
             ClientNotificationType.newFollower -> {
@@ -309,12 +321,31 @@ class OdinWebSocketClient(
             }
 
             ClientNotificationType.error -> {
+                Logger.e("Notification of type error was sent.")
             }
 
             else -> {
             }
         }
     }
+
+    private suspend fun handleProcessInbox(
+        notification: ClientNotificationPayload
+    ) {
+        val n =
+            OdinSystemSerializer.deserialize<InboxItemReceivedNotification>(
+                notification.data
+            )
+
+        notify(
+            command = "processInbox",
+            payload = ProcessInboxPayload(
+                targetDrive = n.targetDrive,
+                batchSize = 100
+            )
+        )
+    }
+
 
     private suspend fun handleFileEvent(notification: ClientNotificationPayload) {
 
@@ -347,9 +378,17 @@ class OdinWebSocketClient(
                 files
             )
         )
+
+        eventBus.emit(
+            BackendEvent.DriveEvent.Completed(
+                theFile.driveId,
+                1
+            )
+        )
     }
 
     private suspend fun handleAuthError() {
+        Logger.e("Authentication Error was sent from web socket")
         eventBus.emit(BackendEvent.ConnectionOffline)
     }
 
@@ -407,65 +446,43 @@ class OdinWebSocketClient(
         return decryptedBytes.decodeToString()
     }
 
-
     /**
      * Send EstablishConnectionRequest to server
      */
-    fun establishConnectionRequest() {
-        scope.launch {
-            try {
-                val currentSession = session
-                if (currentSession == null) {
-                    Logger.w { "Cannot send establishConnectionRequest: WebSocket not connected" }
-                    return@launch
-                }
-
-                val data = EstablishConnectionRequest(
-                    drives = listOf(chatTargetDrive)
-                )
-
-                val message = WebsocketCommand(
-                    command = "establishConnectionRequest",
-                    data = OdinSystemSerializer.serialize(data)
-                )
-
-                val encryptedMessage = encryptData(message)
-
-                // Serialize and send the message as JSON
-                val jsonMessage = OdinSystemSerializer.serialize(encryptedMessage)
-                currentSession.send(Frame.Text(jsonMessage))
-                Logger.d { "Sent WebSocket establishConnectionRequest: $jsonMessage" }
-            } catch (e: Exception) {
-                Logger.e(e) { "Failed to send establishConnectionRequest: ${e.message}" }
-            }
-        }
+    suspend fun establishConnectionRequest() {
+        notify(
+            command = "establishConnectionRequest",
+            payload = EstablishConnectionRequest(
+                drives = listOf(chatTargetDrive)
+            )
+        )
     }
 
-    /**
-     * Send a ping message to the server
-     */
-    suspend fun ping() {
-        try {
-            val currentSession = session
-            if (currentSession == null) {
-                Logger.w { "Cannot send ping: WebSocket not connected" }
-                return
-            }
+    private suspend inline fun <reified T> notify(
+        command: String,
+        payload: T
+    ) {
+        val currentSession = session
+        if (currentSession == null) {
+            Logger.w { "Cannot send $command: WebSocket not connected" }
+            return
+        }
 
-            // Build the command with encrypted data
+        try {
             val message = WebsocketCommand(
-                command = "ping",
-                data = "ping"
+                command = command,
+                data = OdinSystemSerializer.serialize(payload)
             )
 
             val encryptedMessage = encryptData(message)
-
-            // Serialize and send the message as JSON
             val jsonMessage = OdinSystemSerializer.serialize(encryptedMessage)
+
             currentSession.send(Frame.Text(jsonMessage))
-            Logger.d { "Sent WebSocket ping: $jsonMessage" }
+
+            Logger.d { "Sent WebSocket command: $command" }
+
         } catch (e: Exception) {
-            Logger.e(e) { "Failed to send ping: ${e.message}" }
+            Logger.e(e) { "Failed to send WebSocket command: $command" }
         }
     }
 
