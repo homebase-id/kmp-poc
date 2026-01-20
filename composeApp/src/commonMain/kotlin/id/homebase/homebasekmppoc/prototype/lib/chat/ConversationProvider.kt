@@ -49,14 +49,8 @@ data class ConversationMetadata(
     val lastReadTime: Long? = null,
 
     val lastMessage: ConversationLastMessageContent? = null,
+    //TODO: Discuss how to generate unread count
 )
-
-// For ALL conversation items, single and groups, we need this data here or on the
-// conversationData to be able to render the overview item without doing additional
-// lookups:
-// TODO: localAppData: Latest message 40 chars String (the last received message 40 first chars)
-// TODO: localAppData: Latest message timestamp UnixTimeUtc (the last  received message was 8m ago)
-// TODO: localAppData: function that returns URL to profile picture to load in the background
 
 /**
  * Complete conversation data model with all fields. This is the domain model returned by
@@ -115,6 +109,12 @@ data class ConversationData(
         /** Get lastReadTime as UnixTimeUtc */
 
         fun getLastReadTimeUtc(): UnixTimeUtc? = conversationMeta?.lastReadTime?.let { UnixTimeUtc(it) }
+
+    fun getProfilePictureUrl(): String? {
+        // For simplicity, use the first recipient's profile picture
+        val firstRecipient = content.recipients.firstOrNull() ?: return null
+        return "https://${firstRecipient}/pub/image"
+    }
 
 }
 
