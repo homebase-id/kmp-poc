@@ -24,6 +24,7 @@ import io.ktor.websocket.Frame
 import io.ktor.websocket.readText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -58,7 +59,7 @@ data class ClientNotificationPayload(
 )
 
 @Serializable
-data class ClientDriveNotification (
+data class ClientDriveNotification(
     val targetDrive: TargetDrive? = null,
     val header: ServerFile? = null,
     val previousServerFileHeader: ServerFile? = null
@@ -134,44 +135,43 @@ class OdinWebSocketClient(
         val identity = creds.domain
         sharedSecret = creds.sharedSecret.unsafeBytes
 
-        connectionJob = scope.launch {
-            try {
-                _connectionState.value = WebSocketState.Connecting
-                // Build WebSocket URL
-                val wsUrl = "wss://${identity}/api/apps/v1/notify/ws"
-                Logger.i { "Connecting to WebSocket at $wsUrl" }
+        try {
+            _connectionState.value = WebSocketState.Connecting
+            // Build WebSocket URL
+            val wsUrl = "wss://${identity}/api/apps/v1/notify/ws"
+            Logger.i { "Connecting to WebSocket at $wsUrl" }
 
-                client.webSocket(
-                    urlString = wsUrl,
-                    request = {
-                        headers.append(
-                            "Cookie",
-                            "$appCookieName=${creds.clientAccessToken}"
-                        )
-                    }
-                ) {
-                    session = this // Store session reference for sending messages
-                    _connectionState.value = WebSocketState.Connected
-                    Logger.i { "WebSocket connected successfully" }
+            client.webSocket(
+                urlString = wsUrl,
+                request = {
+                    headers.append(
+                        "Cookie",
+                        "$appCookieName=${creds.clientAccessToken}"
+                    )
+                }
+            ) {
+                session = this // Store session reference for sending messages
+                _connectionState.value = WebSocketState.Connected
+                Logger.i { "WebSocket connected successfully" }
 
-                    establishConnectionRequest()
+                establishConnectionRequest()
 
-                    // Listen for incoming messages
-                    for (frame in incoming) {
-                        when (frame) {
-                            is Frame.Text -> {
+                // Listen for incoming messages
+                for (frame in incoming) {
+                    when (frame) {
+                        is Frame.Text -> {
 
-                                val text = frame.readText()
-                                Logger.d { "Received WebSocket message: $text" }
+                            val text = frame.readText()
+                            Logger.d { "Received WebSocket message: $text" }
 
-                                val decryptedJson = decryptData(text)
-                                val notification =
-                                    OdinSystemSerializer.deserialize<ClientNotificationPayload>(
-                                        decryptedJson
-                                    )
+                            val decryptedJson = decryptData(text)
+                            val notification =
+                                OdinSystemSerializer.deserialize<ClientNotificationPayload>(
+                                    decryptedJson
+                                )
 
-                                handleNotification(notification)
-                            }
+                            handleNotification(notification)
+                        }
 
 //                            is Frame.Binary -> {
 //                                val bytes = frame.data
@@ -183,28 +183,28 @@ class OdinWebSocketClient(
 //                                _messages.value += newMessage
 //                            }
 
-                            is Frame.Close -> {
-                                Logger.i { "WebSocket closed by server" }
-                                _connectionState.value = WebSocketState.Disconnected
-                            }
+                        is Frame.Close -> {
+                            Logger.i { "WebSocket closed by server" }
+                            _connectionState.value = WebSocketState.Disconnected
+                        }
 
-                            else -> {
-                                Logger.d { "Received other frame type: ${frame.frameType}" }
-                            }
+                        else -> {
+                            Logger.d { "Received other frame type: ${frame.frameType}" }
                         }
                     }
                 }
-            } catch (e: Exception) {
-                Logger.e(e) { "WebSocket connection error: ${e.message}" }
-                _connectionState.value = WebSocketState.Error(e.message ?: "Unknown error")
-            } finally {
-                session = null // Clear session reference
-                if (_connectionState.value != WebSocketState.Error("Unknown error")) {
-                    _connectionState.value = WebSocketState.Disconnected
-                }
-                Logger.i { "WebSocket connection ended" }
             }
+        } catch (e: Exception) {
+            Logger.e(e) { "WebSocket connection error: ${e.message}" }
+            _connectionState.value = WebSocketState.Error(e.message ?: "Unknown error")
+        } finally {
+            session = null // Clear session reference
+            if (_connectionState.value != WebSocketState.Error("Unknown error")) {
+                _connectionState.value = WebSocketState.Disconnected
+            }
+            Logger.i { "WebSocket connection ended" }
         }
+
     }
 
     private suspend fun handleNotification(notification: ClientNotificationPayload) {
@@ -215,6 +215,7 @@ class OdinWebSocketClient(
 
             ClientNotificationType.pong -> {
                 //TODO: I'm alive
+                // need to setup a ping every X seconds to ensure we are still alive
             }
 
             ClientNotificationType.authenticationError -> {
@@ -284,7 +285,8 @@ class OdinWebSocketClient(
 
     private suspend fun handleFileEvent(notification: ClientNotificationPayload) {
 
-        var theFileNotification = OdinSystemSerializer.deserialize<ClientDriveNotification>(notification.data)
+        var theFileNotification =
+            OdinSystemSerializer.deserialize<ClientDriveNotification>(notification.data)
         val theFile = theFileNotification.header!!
         val lastModified = theFile.fileMetadata.updated
 
@@ -292,19 +294,16 @@ class OdinWebSocketClient(
             Uuid.parse("7b1be23b-48bb-4304-bc7b-db5910c09a92") // TODO: <- get the real identityId
         val files = listOf(theFile.asHomebaseFile(SecureByteArray(sharedSecret)))
 
-        scope.launch {
-            try {
-                fileHeaderProcessor.baseUpsertEntryZapZap(
-                    identityId = identityId,
-                    driveId = chatTargetDrive.alias,
-                    fileHeaders = files,
-                    cursor = null
-                )
-            } catch (e: Exception) {
-                Logger.e("DB upsert failed for batch: ${e.message}")
-            }
+        try {
+            fileHeaderProcessor.baseUpsertEntryZapZap(
+                identityId = identityId,
+                driveId = chatTargetDrive.alias,
+                fileHeaders = files,
+                cursor = null
+            )
+        } catch (e: Exception) {
+            Logger.e("DB upsert failed for batch: ${e.message}")
         }
-
 
         eventBus.emit(
             BackendEvent.DriveEvent.BatchReceived(

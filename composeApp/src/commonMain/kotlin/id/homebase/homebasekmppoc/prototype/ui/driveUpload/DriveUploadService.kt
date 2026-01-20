@@ -239,8 +239,8 @@ class DriveUploadService(
     suspend fun uploadFileWithPayloads(
         driveId: Uuid,
         metadata: UploadFileMetadata,
-        payloads: List<PayloadFile>? = null,
-        thumbnails: List<ThumbnailFile>? = null,
+        payloads: List<PayloadFile> = emptyList(),
+        thumbnails: List<ThumbnailFile> = emptyList(),
         encrypt: Boolean = true,
         onVersionConflict: (suspend () -> CreateFileResult?)? = null
     ): CreateFileResult? {

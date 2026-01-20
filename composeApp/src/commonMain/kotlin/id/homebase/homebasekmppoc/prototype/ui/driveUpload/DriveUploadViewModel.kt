@@ -177,7 +177,7 @@ class DriveUploadViewModel(private val driveUploadService: DriveUploadService?) 
                         driveId = driveId,
                         metadata = metadata,
                         payloads = payloads,
-                        thumbnails = null,
+                        thumbnails = emptyList(),
                         encrypt = true
                     )
 
