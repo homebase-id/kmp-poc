@@ -11,7 +11,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -22,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import kotlin.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,8 +69,16 @@ fun HomeScreen(
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.primary
             )
+            Spacer(modifier = Modifier.height(24.dp))
+
+            if (state.syncingDrives.isNotEmpty()) {
+                DriveSyncList(state.syncingDrives)
+
+                Spacer(modifier = Modifier.height(24.dp))
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
+
 
             NavigationButton("Drive Fetch") {
                 onAction(HomeUiAction.DriveFetchClicked)
@@ -198,4 +206,68 @@ fun MissingPermissionDialog(
             }
         }
     )
+}
+
+@Composable
+private fun DriveSyncList(drives: List<DriveSyncItem>) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = "Drive Sync",
+            style = MaterialTheme.typography.titleMedium
+        )
+
+        drives.forEach { drive ->
+            DriveSyncRow(drive)
+        }
+    }
+}
+
+
+@Composable
+private fun DriveSyncRow(item: DriveSyncItem) {
+    val statusText = when (item.status) {
+        DriveSyncStatus.Syncing -> "Syncing…"
+        DriveSyncStatus.Completed -> "Completed (${item.totalCount ?: 0} items)"
+        DriveSyncStatus.Failed -> "Failed"
+    }
+
+    val statusIcon = when (item.status) {
+        DriveSyncStatus.Syncing -> "⏳"
+        DriveSyncStatus.Completed -> "✅"
+        DriveSyncStatus.Failed -> "❌"
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text = "$statusIcon Drive ${item.driveId}",
+            style = MaterialTheme.typography.bodyMedium
+        )
+
+        Text(
+            text = statusText,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        item.errorMessage?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+
+        item.lastSyncAt?.let { instant ->
+            Text(
+                text = "Last sync: ${instant.epochSeconds}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
 }

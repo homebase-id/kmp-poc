@@ -1,5 +1,8 @@
 package id.homebase.homebasekmppoc.ui.screens.home
 
+import kotlin.time.Instant
+import kotlin.uuid.Uuid
+
 /** Single immutable state for Home screen. */
 
 enum class ConnectionStatus {
@@ -8,15 +11,28 @@ enum class ConnectionStatus {
     Offline
 }
 
+enum class DriveSyncStatus {
+    Syncing,
+    Completed,
+    Failed
+}
+
+data class DriveSyncItem(
+    val driveId: Uuid,
+    val status: DriveSyncStatus,
+    val totalCount: Int? = null,
+    val errorMessage: String? = null,
+    val lastSyncAt: Instant? = null
+)
+
 data class HomeUiState(
     val identity: String? = null,
     val connectionStatus: ConnectionStatus = ConnectionStatus.Offline,
     val showPermissionDialog: Boolean = false,
     val permissionExtensionUrl: String? = null,
-    val appName: String = ""
+    val appName: String = "",
+    val syncingDrives: List<DriveSyncItem> = emptyList()
 )
-
-
 
 
 /** All possible user actions on Home screen. */
