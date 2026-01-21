@@ -82,11 +82,6 @@ class ChatMessageSenderService(
             metadata = metadata.encryptContent(keyHeader),
             transitOptions = TransitOptions(
                 recipients = message.recipients,
-                isTransient = null,
-                schedule = null,
-                priority = null,
-                sendContents = null,
-                remoteTargetDrive = null,
                 useAppNotification = null,
                 appNotificationOptions = null
             ),
