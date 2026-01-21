@@ -28,8 +28,8 @@ const val CHAT_MESSAGE_FILE_TYPE = 7878
 /** Archival status indicating a deleted chat */
 const val ChatDeletedArchivalStatus = 2
 
-const val CHAT_MESSAGE_PAYLOAD_KEY = "chat_mbl";
-const val CHAT_LINKS_PAYLOAD_KEY = "chat_links";
+const val CHAT_MESSAGE_PAYLOAD_KEY = "chat_mbl"
+const val CHAT_LINKS_PAYLOAD_KEY = "chat_links"
 
 /** Enum representing the delivery status of a chat message */
 enum class ChatDeliveryStatus(val value: Int) {
@@ -183,7 +183,7 @@ data class ChatMessageData(
         val appData = payload?.descriptorContent ?: return null
 
         return try {
-            OdinSystemSerializer.deserialize<LinkPreview>(appData ?: "")
+            OdinSystemSerializer.deserialize<LinkPreview>(appData)
         } catch (e: Exception) {
             null
         }
