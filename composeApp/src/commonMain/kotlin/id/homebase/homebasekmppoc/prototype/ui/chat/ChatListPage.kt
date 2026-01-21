@@ -32,8 +32,10 @@ import androidx.compose.ui.unit.dp
 import id.homebase.homebasekmppoc.lib.config.chatTargetDrive
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthState
+import id.homebase.homebasekmppoc.prototype.lib.chat.ChatMessageSenderService
 import id.homebase.homebasekmppoc.prototype.lib.chat.ConversationData
 import id.homebase.homebasekmppoc.prototype.lib.chat.ConversationProvider
+import id.homebase.homebasekmppoc.prototype.lib.chat.SendChatMessageRequest
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.prototype.lib.eventbus.BackendEvent
@@ -51,10 +53,10 @@ import org.koin.compose.viewmodel.koinViewModel
 @OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ChatListPage(
-        youAuthFlowManager: YouAuthFlowManager,
-        onNavigateBack: () -> Unit,
-        onNavigateToMessages: (conversationId: String) -> Unit,
-        viewModel: ChatListViewModel = koinViewModel()
+    youAuthFlowManager: YouAuthFlowManager,
+    onNavigateBack: () -> Unit,
+    onNavigateToMessages: (conversation: ConversationData) -> Unit,
+    viewModel: ChatListViewModel = koinViewModel()
 ) {
     val scope = CoroutineScope(Dispatchers.Main)
 
@@ -66,7 +68,7 @@ fun ChatListPage(
     var syncProgress by remember { mutableStateOf<BackendEvent?>(null) }
     var isOnline by remember { mutableStateOf(true) }
     val identityId =
-            Uuid.parse("7b1be23b-48bb-4304-bc7b-db5910c09a92") // TODO: <- get the real identityId
+        Uuid.parse("7b1be23b-48bb-4304-bc7b-db5910c09a92") // TODO: <- get the real identityId
 
     // Use chatTargetDrive to get the drive ID
     val driveId = remember {
@@ -83,7 +85,7 @@ fun ChatListPage(
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
             when (event) {
-                is ChatListUiEvent.NavigateToMessages -> onNavigateToMessages(event.conversationId)
+                is ChatListUiEvent.NavigateToMessages -> onNavigateToMessages(event.conversation)
                 ChatListUiEvent.NavigateBack -> onNavigateBack()
             }
         }
@@ -91,26 +93,15 @@ fun ChatListPage(
 
     // Create driveSynchronizer once
     val driveSynchronizer =
-            remember(driveQueryProvider) {
-                driveQueryProvider?.let {
-                    DriveSync(identityId, driveId, it, DatabaseManager.appDb, appEventBus)
-                }
+        remember(driveQueryProvider) {
+            driveQueryProvider?.let {
+                DriveSync(identityId, driveId, it, DatabaseManager.appDb, appEventBus)
             }
+        }
 
     // Create ConversationProvider with OdinClient for decryption
     val conversationProvider =
-            remember(odinClient) { odinClient?.let { ConversationProvider(identityId, it) } }
-
-    fun triggerClear() {
-        if (driveSynchronizer == null) {
-            errorMessage = "Not authenticated - no credentials stored"
-            return
-        }
-
-        scope.launch {
-            driveSynchronizer.clearStorage()
-        }
-    }
+        remember(odinClient) { odinClient?.let { ConversationProvider(identityId, it) } }
 
     fun triggerFetch(withProgress: Boolean) {
         if (driveSynchronizer == null) {
@@ -127,16 +118,28 @@ fun ChatListPage(
         }
     }
 
+
+    fun triggerClear() {
+        if (driveSynchronizer == null) {
+            errorMessage = "Not authenticated - no credentials stored"
+            return
+        }
+
+        scope.launch {
+            driveSynchronizer.clearStorage()
+        }
+    }
+
     val pullRefreshState =
-            rememberPullRefreshState(
-                    isRefreshing,
-                    {
-                        if (authState is YouAuthState.Authenticated) {
-                            isRefreshing = true
-                            triggerFetch(false)
-                        }
-                    }
-            )
+        rememberPullRefreshState(
+            isRefreshing,
+            {
+                if (authState is YouAuthState.Authenticated) {
+                    isRefreshing = true
+                    triggerFetch(false)
+                }
+            }
+        )
 
     // Reset state when auth changes
     LaunchedEffect(authState) {
@@ -156,22 +159,24 @@ fun ChatListPage(
                         syncProgress = event
                     }
                 }
+
                 is BackendEvent.DriveEvent.Completed -> {
                     if (event.driveId == driveId) {
                         syncProgress = event
                         // Fetch local results using ConversationProvider
                         conversationProvider?.let { provider ->
                             val result =
-                                    provider.fetchConversations(
-                                            dbm = DatabaseManager.appDb,
-                                            driveId = driveId
-                                    )
+                                provider.fetchConversations(
+                                    dbm = DatabaseManager.appDb,
+                                    driveId = driveId
+                                )
                             localQueryResults = result.records
                         }
                         isLoading = false
                         isRefreshing = false
                     }
                 }
+
                 is BackendEvent.DriveEvent.Failed -> {
                     if (event.driveId == driveId) {
                         errorMessage = event.errorMessage
@@ -179,18 +184,22 @@ fun ChatListPage(
                         isRefreshing = false
                     }
                 }
+
                 is BackendEvent.DriveEvent.Started -> {
                     if (event.driveId == driveId) {
                         isLoading = true
                         syncProgress = null
                     }
                 }
+
                 is BackendEvent.ConnectionOnline -> {
                     isOnline = true
                 }
+
                 is BackendEvent.ConnectionOffline -> {
                     isOnline = false
                 }
+
                 else -> {
                     // Some other event
                 }
@@ -199,47 +208,47 @@ fun ChatListPage(
     }
 
     Scaffold(
-            topBar = {
-                TopAppBar(
-                        title = { Text("Conversations") },
-                        navigationIcon = {
-                            IconButton(onClick = onNavigateBack) {
-                                Text("←", style = MaterialTheme.typography.headlineMedium)
-                            }
-                        },
-                        actions = {
-                            // Spinner when loading
-                            if (isLoading) {
-                                CircularProgressIndicator(
-                                        modifier = Modifier.padding(end = 8.dp),
-                                        strokeWidth = 2.dp
-                                )
-                            }
-                            // Numerical progress
-                            if (syncProgress is BackendEvent.DriveEvent.BatchReceived) {
-                                val progress = syncProgress as BackendEvent.DriveEvent.BatchReceived
-                                Text(
-                                        text = "${progress.totalCount}",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        modifier = Modifier.padding(end = 8.dp)
-                                )
-                            }
-                            // Online/offline indicator
-                            Text(
-                                    text = if (isOnline) "🟢" else "🔴",
-                                    style = MaterialTheme.typography.headlineSmall
-                            )
-                        }
-                )
-            }
+        topBar = {
+            TopAppBar(
+                title = { Text("Conversations") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Text("←", style = MaterialTheme.typography.headlineMedium)
+                    }
+                },
+                actions = {
+                    // Spinner when loading
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.padding(end = 8.dp),
+                            strokeWidth = 2.dp
+                        )
+                    }
+                    // Numerical progress
+                    if (syncProgress is BackendEvent.DriveEvent.BatchReceived) {
+                        val progress = syncProgress as BackendEvent.DriveEvent.BatchReceived
+                        Text(
+                            text = "${progress.totalCount}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                    }
+                    // Online/offline indicator
+                    Text(
+                        text = if (isOnline) "🟢" else "🔴",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                }
+            )
+        }
     ) { paddingValues ->
         Box(
-                modifier =
-                        Modifier.fillMaxSize().padding(paddingValues).pullRefresh(pullRefreshState)
+            modifier =
+                Modifier.fillMaxSize().padding(paddingValues).pullRefresh(pullRefreshState)
         ) {
             Column(
-                    modifier = Modifier.fillMaxSize().padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                modifier = Modifier.fillMaxSize().padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 when (authState) {
                     is YouAuthState.Authenticated -> {
@@ -250,7 +259,6 @@ fun ChatListPage(
                             Text("Clear sync storage")
                         }
 
-
                         Button(onClick = { triggerFetch(true) }, enabled = !isLoading) {
                             Text(if (isLoading) "Fetching..." else "Fetch Conversations")
                         }
@@ -259,36 +267,37 @@ fun ChatListPage(
 
                         if (errorMessage != null) {
                             Text(
-                                    text = "Error: $errorMessage",
-                                    color = MaterialTheme.colorScheme.error
+                                text = "Error: $errorMessage",
+                                color = MaterialTheme.colorScheme.error
                             )
                         } else {
                             // Content is already decrypted by ConversationProvider
                             localQueryResults?.let { items ->
                                 ConversationList(
-                                        items = items,
-                                        onConversationClicked = { uniqueId ->
-                                            viewModel.onAction(
-                                                    ChatListUiAction.ConversationClicked(uniqueId)
-                                            )
-                                        }
+                                    items = items,
+                                    onConversationClicked = { conversation ->
+                                        viewModel.onAction(
+                                            ChatListUiAction.ConversationClicked(conversation)
+                                        )
+                                    }
                                 )
                             }
                         }
                     }
+
                     else -> {
                         Text(
-                                text = "Please authenticate in the App tab first.",
-                                style = MaterialTheme.typography.bodyLarge,
-                                textAlign = TextAlign.Center
+                            text = "Please authenticate in the App tab first.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
             }
             PullRefreshIndicator(
-                    refreshing = isRefreshing,
-                    state = pullRefreshState,
-                    modifier = Modifier.align(Alignment.TopCenter)
+                refreshing = isRefreshing,
+                state = pullRefreshState,
+                modifier = Modifier.align(Alignment.TopCenter)
             )
         }
     }

@@ -1,5 +1,6 @@
 package id.homebase.homebasekmppoc.ui.navigation
 
+import id.homebase.homebasekmppoc.prototype.lib.chat.ConversationData
 import kotlinx.serialization.Serializable
 
 /**
@@ -34,7 +35,7 @@ sealed class Route {
 
     @Serializable data class ChatMessageDetail(val driveId: String, val fileId: String) : Route()
 
-    @Serializable data class ChatMessages(val conversationId: String) : Route()
+    @Serializable data class ChatMessages(val conversationId: String)  : Route()
 }
 
 /** Deep link configuration */
