@@ -54,8 +54,8 @@ data class UploadFileRequest(
     val driveId: Uuid,
     val instructions: UploadInstructionSet,
     val metadata: UploadFileMetadata,
-    val payloads: List<PayloadFile>? = null,
-    val thumbnails: List<ThumbnailFile>? = null,
+    val payloads: List<PayloadFile> = emptyList(),
+    val thumbnails: List<ThumbnailFile> = emptyList(),
     val fileSystemType: FileSystemType? = null
 )
 

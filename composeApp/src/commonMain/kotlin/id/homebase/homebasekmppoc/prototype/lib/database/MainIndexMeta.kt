@@ -40,9 +40,9 @@ object MainIndexMetaHelpers {
     }
 
     fun upsertDriveMainIndex(
-        db : OdinDatabase,
+        db: OdinDatabase,
         driveMainIndexRecord: DriveMainIndex
-    ) : Long {
+    ): Long {
         return db.driveMainIndexQueries.upsertDriveMainIndex(
             identityId = driveMainIndexRecord.identityId,
             driveId = driveMainIndexRecord.driveId,
@@ -152,7 +152,7 @@ object MainIndexMetaHelpers {
             fileHeaders: List<HomebaseFile>,
             cursor: QueryBatchCursor?
         ) {
-                performBaseUpsert(identityId, driveId, fileHeaders, cursor)
+            performBaseUpsert(identityId, driveId, fileHeaders, cursor)
         }
 
         /**
@@ -170,58 +170,58 @@ object MainIndexMetaHelpers {
 
                 fileHeaders.forEach { fileHeader ->
                     // Convert SharedSecretEncryptedFileHeader to extract DriveMainIndex fields and tag records
-                    val driveMainIndexRecord = convertFileHeaderToDriveMainIndexRecord(identityId, driveId, fileHeader)
+                    val driveMainIndexRecord =
+                        convertFileHeaderToDriveMainIndexRecord(identityId, driveId, fileHeader)
 
                     var n = upsertDriveMainIndex(db, driveMainIndexRecord)
 
-                    if (n != 1L)
-                        throw IllegalStateException("Unable to write row")
-
-                    db.driveTagIndexQueries.deleteByFile(
-                        identityId = identityId,
-                        driveId = driveId,
-                        fileId = driveMainIndexRecord.fileId
-                    )
-                    db.driveLocalTagIndexQueries.deleteByFile(
-                        identityId = identityId,
-                        driveId = driveId,
-                        fileId = driveMainIndexRecord.fileId
-                    )
-
-                    n = 0L
-                    var l = 0L
-                    fileHeader.fileMetadata.appData.tags?.forEach { tagRecord ->
-                        // println("Insert Tag ${driveMainIndexRecord.fileId}: $tagRecord")
-                        n += db.driveTagIndexQueries.insertTag(
+                    if (n < 1L) {
+                        db.driveTagIndexQueries.deleteByFile(
                             identityId = identityId,
                             driveId = driveId,
-                            fileId = driveMainIndexRecord.fileId,
-                            tagId = tagRecord
-                        ).value
-                        l++;
-                    }
-                    if (n != l)
-                        throw IllegalStateException("Unable to write TAGs")
-
-                    n = 0L
-                    l = 0L
-                    fileHeader.fileMetadata.localAppData?.tags?.forEach { tagRecord ->
-                        // println("Insert Local Tag ${driveMainIndexRecord.fileId}: $tagRecord")
-                        n += db.driveLocalTagIndexQueries.insertLocalTag(
+                            fileId = driveMainIndexRecord.fileId
+                        )
+                        db.driveLocalTagIndexQueries.deleteByFile(
                             identityId = identityId,
                             driveId = driveId,
-                            fileId = driveMainIndexRecord.fileId,
-                            tagId = tagRecord
-                        ).value
-                        l++;
-                    }
+                            fileId = driveMainIndexRecord.fileId
+                        )
 
-                    if (n != l)
-                        throw IllegalStateException("Unable to write TAGs")
+                        n = 0L
+                        var l = 0L
+                        fileHeader.fileMetadata.appData.tags?.forEach { tagRecord ->
+                            // println("Insert Tag ${driveMainIndexRecord.fileId}: $tagRecord")
+                            n += db.driveTagIndexQueries.insertTag(
+                                identityId = identityId,
+                                driveId = driveId,
+                                fileId = driveMainIndexRecord.fileId,
+                                tagId = tagRecord
+                            ).value
+                            l++;
+                        }
+                        if (n != l)
+                            throw IllegalStateException("Unable to write TAGs")
 
-                    if (cursor != null) {
-                        val cursorStorage = CursorStorage(databaseManager, driveId)
-                        cursorStorage.saveCursor(db, cursor)
+                        n = 0L
+                        l = 0L
+                        fileHeader.fileMetadata.localAppData?.tags?.forEach { tagRecord ->
+                            // println("Insert Local Tag ${driveMainIndexRecord.fileId}: $tagRecord")
+                            n += db.driveLocalTagIndexQueries.insertLocalTag(
+                                identityId = identityId,
+                                driveId = driveId,
+                                fileId = driveMainIndexRecord.fileId,
+                                tagId = tagRecord
+                            ).value
+                            l++;
+                        }
+
+                        if (n != l)
+                            throw IllegalStateException("Unable to write TAGs")
+
+                        if (cursor != null) {
+                            val cursorStorage = CursorStorage(databaseManager, driveId)
+                            cursorStorage.saveCursor(db, cursor)
+                        }
                     }
                 }
             }

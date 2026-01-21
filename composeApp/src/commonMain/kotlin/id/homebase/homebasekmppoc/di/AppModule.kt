@@ -5,7 +5,7 @@ import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthProvider
 import id.homebase.homebasekmppoc.prototype.lib.drives.files.DriveFileProvider
 import id.homebase.homebasekmppoc.lib.youauth.SecurityContextProvider
-import id.homebase.homebasekmppoc.prototype.lib.base.AuthRepository
+import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthConnectionCoordinator
 import id.homebase.homebasekmppoc.prototype.lib.base.CredentialsManager
 import id.homebase.homebasekmppoc.prototype.lib.base.HttpClientProvider
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
@@ -41,10 +41,11 @@ val appModule = module {
 
     single { HttpClientProvider.create() }
     singleOf(::CredentialsManager)
-    singleOf(::AuthRepository)
 
     // Main auth flow manager
     singleOf(::YouAuthFlowManager)
+
+    singleOf(::AuthConnectionCoordinator)
 
     /* ───────────────────────────
      * Drive Providers
@@ -93,12 +94,15 @@ val appModule = module {
     // ChatMessageDetailViewModel with parameters
     viewModel { (driveId: Uuid, fileId: Uuid) ->
         ChatMessageDetailViewModel(
-                driveId = driveId,
-                fileId = fileId,
-                driveFileProvider = getOrNull<DriveFileProvider>()
+            driveId = driveId,
+            fileId = fileId,
+            driveFileProvider = getOrNull<DriveFileProvider>()
         )
     }
 }
 
 /** All Koin modules for the application. */
-val allModules = listOf(appModule)
+val allModules = listOf(
+    appModule,
+    commonModule,
+)

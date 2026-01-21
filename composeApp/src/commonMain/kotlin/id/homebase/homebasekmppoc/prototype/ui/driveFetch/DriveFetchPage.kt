@@ -192,11 +192,11 @@ fun DriveFetchPage(
                     }
                 }
 
-                is BackendEvent.GoingOnline -> {
+                is BackendEvent.ConnectionOnline -> {
                     isOnline = true
                 }
 
-                is BackendEvent.GoingOffline -> {
+                is BackendEvent.ConnectionOffline -> {
                     isOnline = false
                 }
 

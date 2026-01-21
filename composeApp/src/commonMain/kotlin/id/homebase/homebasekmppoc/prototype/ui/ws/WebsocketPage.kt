@@ -96,10 +96,10 @@ fun WebsocketPage(authenticationManager: AuthenticationManager) {
         Spacer(modifier = Modifier.height(32.dp))
 
         // Always show the authenticated websocket card
-        AuthenticatedWebsocketCard(
-            authenticatedState = if (authState is AuthState.Authenticated) authState as AuthState.Authenticated else null,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
+//        AuthenticatedWebsocketCard(
+//            authenticatedState = if (authState is AuthState.Authenticated) authState as AuthState.Authenticated else null,
+//            modifier = Modifier.padding(horizontal = 16.dp)
+//        )
 
         Spacer(modifier = Modifier.height(16.dp))
 

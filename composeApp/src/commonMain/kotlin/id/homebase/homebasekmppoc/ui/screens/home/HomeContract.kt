@@ -1,12 +1,23 @@
 package id.homebase.homebasekmppoc.ui.screens.home
 
 /** Single immutable state for Home screen. */
+
+enum class ConnectionStatus {
+    Connecting,
+    Online,
+    Offline
+}
+
 data class HomeUiState(
-        val isLoading: Boolean = false,
-        val showPermissionDialog: Boolean = false,
-        val permissionExtensionUrl: String? = null,
-        val appName: String = "Homebase KMP"
+    val identity: String? = null,
+    val connectionStatus: ConnectionStatus = ConnectionStatus.Offline,
+    val showPermissionDialog: Boolean = false,
+    val permissionExtensionUrl: String? = null,
+    val appName: String = ""
 )
+
+
+
 
 /** All possible user actions on Home screen. */
 sealed interface HomeUiAction {

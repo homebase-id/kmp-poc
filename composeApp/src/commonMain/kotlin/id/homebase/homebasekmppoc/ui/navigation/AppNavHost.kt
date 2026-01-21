@@ -115,7 +115,8 @@ fun AppNavHost(
                             navController.navigate(Route.DriveUpload)
 
                         is HomeUiEvent.NavigateToFFmpegTest ->
-                                navController.navigate(Route.FFmpegTest)
+                            navController.navigate(Route.FFmpegTest)
+
                         is HomeUiEvent.NavigateToChatList -> navController.navigate(Route.ChatList)
 
                         is HomeUiEvent.NavigateToLogin -> {
@@ -129,7 +130,10 @@ fun AppNavHost(
                     }
                 }
 
-                HomeScreen(state = state, onAction = viewModel::onAction)
+                HomeScreen(
+                    state = state,
+                    onAction = viewModel::onAction
+                )
             }
         }
 
@@ -245,17 +249,17 @@ fun AppNavHost(
         // Protected ChatList route (shows conversations)
         composable<Route.ChatList> {
             AuthenticatedRouteWithFlowManager(
-                    authState = youAuthFlowManager.authState,
-                    onUnauthenticated = {
-                        navController.navigate(Route.Login) { popUpTo(0) { inclusive = true } }
-                    }
+                authState = youAuthFlowManager.authState,
+                onUnauthenticated = {
+                    navController.navigate(Route.Login) { popUpTo(0) { inclusive = true } }
+                }
             ) {
                 ChatListPage(
-                        youAuthFlowManager = youAuthFlowManager,
-                        onNavigateBack = { navController.popBackStack() },
-                        onNavigateToMessages = { conversationId ->
-                            navController.navigate(Route.ChatMessages(conversationId))
-                        }
+                    youAuthFlowManager = youAuthFlowManager,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToMessages = { conversationId ->
+                        navController.navigate(Route.ChatMessages(conversationId))
+                    }
                 )
             }
         }
@@ -263,22 +267,22 @@ fun AppNavHost(
         // ChatMessages route (shows messages for a conversation)
         composable<Route.ChatMessages> { backStackEntry ->
             val conversationId =
-                    backStackEntry.arguments?.read { getString("conversationId") }
-                            ?: error("conversationId missing")
+                backStackEntry.arguments?.read { getString("conversationId") }
+                    ?: error("conversationId missing")
 
             AuthenticatedRouteWithFlowManager(
-                    authState = youAuthFlowManager.authState,
-                    onUnauthenticated = {
-                        navController.navigate(Route.Login) { popUpTo(0) { inclusive = true } }
-                    }
+                authState = youAuthFlowManager.authState,
+                onUnauthenticated = {
+                    navController.navigate(Route.Login) { popUpTo(0) { inclusive = true } }
+                }
             ) {
                 ChatMessagesPage(
-                        conversationId = conversationId,
-                        youAuthFlowManager = youAuthFlowManager,
-                        onNavigateBack = { navController.popBackStack() },
-                        onNavigateToMessageDetail = { driveId, fileId ->
-                            navController.navigate(Route.ChatMessageDetail(driveId, fileId))
-                        }
+                    conversationId = conversationId,
+                    youAuthFlowManager = youAuthFlowManager,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToMessageDetail = { driveId, fileId ->
+                        navController.navigate(Route.ChatMessageDetail(driveId, fileId))
+                    }
                 )
             }
         }
@@ -286,21 +290,21 @@ fun AppNavHost(
         // ChatMessageDetail route
         composable<Route.ChatMessageDetail> { backStackEntry ->
             val driveId =
-                    backStackEntry.arguments?.read { getString("driveId") }
-                            ?: error("driveId missing")
+                backStackEntry.arguments?.read { getString("driveId") }
+                    ?: error("driveId missing")
 
             val fileId =
-                    backStackEntry.arguments?.read { getString("fileId") }
-                            ?: error("fileId missing")
+                backStackEntry.arguments?.read { getString("fileId") }
+                    ?: error("fileId missing")
 
             val viewModel =
-                    koinViewModel<ChatMessageDetailViewModel>(
-                            parameters = { parametersOf(Uuid.parse(driveId), Uuid.parse(fileId)) }
-                    )
+                koinViewModel<ChatMessageDetailViewModel>(
+                    parameters = { parametersOf(Uuid.parse(driveId), Uuid.parse(fileId)) }
+                )
 
             ChatMessageDetailPage(
-                    viewModel = viewModel,
-                    onNavigateBack = { navController.popBackStack() }
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
     }
