@@ -46,18 +46,11 @@ data class ConversationMetadata(
     val conversationId: String? = null,
 
     /** Timestamp when the conversation was last read (UnixTimeUtc in milliseconds) */
-    val lastReadTime: Long? = null
-) {
-    /** Get lastReadTime as UnixTimeUtc */
-    fun getLastReadTimeUtc(): UnixTimeUtc? = lastReadTime?.let { UnixTimeUtc(it) }
-}
+    val lastReadTime: Long? = null,
 
-// For ALL conversation items, single and groups, we need this data here or on the
-// conversationData to be able to render the overview item without doing additional
-// lookups:
-// TODO: localAppData: Latest message 40 chars String (the last received message 40 first chars)
-// TODO: localAppData: Latest message timestamp UnixTimeUtc (the last  received message was 8m ago)
-// TODO: localAppData: function that returns URL to profile picture to load in the background
+    val lastMessage: ConversationLastMessageContent? = null,
+    //TODO: Discuss how to generate unread count
+)
 
 /**
  * Complete conversation data model with all fields. This is the domain model returned by
@@ -102,7 +95,28 @@ data class ConversationData(
 
     /** List of payload descriptors with metadata */
     val payloads: List<PayloadDescriptor>?
-)
+) {
+    /** Returns true if this conversation is with yourself */
+    fun isConversationWithYourself(): Boolean {
+        val conversationId = conversationMeta?.conversationId ?: return false
+        return conversationId == ConversationWithYourselfId
+    }
+
+    fun getLastMessageContent(): ConversationLastMessageContent? {
+        return conversationMeta?.lastMessage
+    }
+
+        /** Get lastReadTime as UnixTimeUtc */
+
+        fun getLastReadTimeUtc(): UnixTimeUtc? = conversationMeta?.lastReadTime?.let { UnixTimeUtc(it) }
+
+    fun getProfilePictureUrl(): String? {
+        // For simplicity, use the first recipient's profile picture
+        val firstRecipient = content.recipients.firstOrNull() ?: return null
+        return "https://${firstRecipient}/pub/image"
+    }
+
+}
 
 /**
  * Provider class for fetching and decrypting conversations from the local database.
