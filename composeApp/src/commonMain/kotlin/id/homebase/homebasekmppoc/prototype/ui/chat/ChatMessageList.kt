@@ -101,9 +101,9 @@ fun ConversationCard(item: ConversationData, onClick: () -> Unit) {
                                         Text("Conversation Id: ${item.conversationMeta?.conversationId}")
                                         Text("Last-read time: ${item.conversationMeta?.lastReadTime}")
                                         Text("Unread count: BISHWA TODO ??? let's discuss how - loaded from localAppData probably?")
-                                        Text("Last-message-text: BISHWA TODO 40 CHARS STORED IN APPDATA")
-                                        Text("Last-message-timestamp: BISHWA TODO UNIXTIMEUTC STORED IN APPDATA")
-                                        Text("Last-message-delivery-status: BISHWA TODO DELIVERY STATUS STORED IN APPDATA")
+                                        Text("Last-message-text: ${item.getLastMessageContent()?.message}")
+                                        Text("Last-message-timestamp: ${item.getLastMessageContent()?.time}")
+                                        Text("Last-message-delivery-status: ${item.getLastMessageContent()?.deliveryStatus?.name}")
                                         Text("Reaction-summary: BISHWA ADD REACTION SUMMARY")
                                 }
                         }
@@ -188,8 +188,8 @@ fun ChatMessageCard(item: ChatMessageData, onClick: () -> Unit) {
                                         item.sender?.let { Text("Sender: $it") }
                                         Text("tiny Thumb: ${item.previewThumbnail?.content}")
 
-                                        Text("Reply-preview: BISHWA-TODO output the reply preview from AppData (no load)")
-                                        Text("URL-preview: BISHWA-TODO output the URL preview from local contentDescriptor (no load)")
+                                        Text("Reply-preview: ${item.content.replyPreview}")
+                                        Text("URL-preview: ${item.getLinkPreview()}")
                                 }
                         }
 
