@@ -110,7 +110,7 @@ class OdinWebSocketClient(
 ) {
 
     private var reconnectDelayMs = 1_000L
-    private val MAX_RECONNECT_DELAY_MS = 30_000L
+    private val MAX_RECONNECT_DELAY_MS = 5_000L
 
     private val client = HttpClient {
         install(WebSockets)
@@ -266,7 +266,7 @@ class OdinWebSocketClient(
             }
 
             ClientNotificationType.authenticationError -> {
-                handleAuthError()
+                handleAuthError(notification)
             }
 
             ClientNotificationType.fileAdded -> {
@@ -390,8 +390,9 @@ class OdinWebSocketClient(
         )
     }
 
-    private suspend fun handleAuthError() {
-        Logger.e("Authentication Error was sent from web socket")
+    private suspend fun handleAuthError(notification: ClientNotificationPayload) {
+        var message = notification.data
+        Logger.e("Authentication Error was sent from web socket. [$message]")
         eventBus.emit(BackendEvent.ConnectionOffline)
     }
 

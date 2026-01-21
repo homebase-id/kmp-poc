@@ -14,7 +14,7 @@ class DriveSyncManager(
     private val databaseManager: DatabaseManager,
     private val eventBus: EventBus,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO),
-    private val debounceWindow: Duration = 5.seconds
+    private val debounceWindow: Duration = 1.seconds
 ) {
 
     private val activeSyncs = mutableMapOf<Uuid, Job>()

@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.time.Clock
 
 /**
  * ViewModel for Home screen following strict MVI pattern.
@@ -22,9 +23,10 @@ import kotlinx.coroutines.launch
  * - Single entry point via onAction()
  * - One-off events via Channel
  */
-class HomeViewModel(private val youAuthFlowManager: YouAuthFlowManager,
-                    private val securityContextProvider: SecurityContextProvider,
-                    private val credentialsManager: CredentialsManager
+class HomeViewModel(
+    private val youAuthFlowManager: YouAuthFlowManager,
+    private val securityContextProvider: SecurityContextProvider,
+    private val credentialsManager: CredentialsManager
 ) : ViewModel() {
 
     companion object {
@@ -60,16 +62,66 @@ class HomeViewModel(private val youAuthFlowManager: YouAuthFlowManager,
                             it.copy(connectionStatus = ConnectionStatus.Connecting)
                         }
                     }
+
                     is BackendEvent.ConnectionOnline -> {
                         _uiState.update {
                             it.copy(connectionStatus = ConnectionStatus.Online)
                         }
                     }
+
                     is BackendEvent.ConnectionOffline -> {
                         _uiState.update {
                             it.copy(connectionStatus = ConnectionStatus.Offline)
                         }
                     }
+
+                    is BackendEvent.DriveEvent.Started -> {
+                        _uiState.update { state ->
+                            state.copy(
+                                syncingDrives = state.syncingDrives
+                                    .filterNot { it.driveId == event.driveId } +
+                                        DriveSyncItem(
+                                            driveId = event.driveId,
+                                            status = DriveSyncStatus.Syncing
+                                        )
+                            )
+                        }
+                    }
+
+                    is BackendEvent.DriveEvent.Completed -> {
+                        val now = Clock.System.now()
+                        _uiState.update { state ->
+                            state.copy(
+                                syncingDrives = state.syncingDrives.map {
+                                    if (it.driveId == event.driveId) {
+                                        it.copy(
+                                            status = DriveSyncStatus.Completed,
+                                            totalCount = event.totalCount,
+                                            lastSyncAt = now
+                                        )
+                                    } else it
+                                }
+                            )
+                        }
+                    }
+
+                    is BackendEvent.DriveEvent.Failed -> {
+                        val now = Clock.System.now()
+                        _uiState.update { state ->
+                            state.copy(
+                                syncingDrives = state.syncingDrives.map {
+                                    if (it.driveId == event.driveId) {
+                                        it.copy(
+                                            status = DriveSyncStatus.Failed,
+                                            errorMessage = event.errorMessage,
+                                            lastSyncAt = now
+                                        )
+                                    } else it
+                                }
+                            )
+                        }
+                    }
+
                     else -> Unit
                 }
             }
@@ -126,33 +178,43 @@ class HomeViewModel(private val youAuthFlowManager: YouAuthFlowManager,
             is HomeUiAction.DriveFetchClicked -> {
                 sendEvent(HomeUiEvent.NavigateToDriveFetch)
             }
+
             is HomeUiAction.DatabaseClicked -> {
                 sendEvent(HomeUiEvent.NavigateToDatabase)
             }
+
             is HomeUiAction.WebSocketClicked -> {
                 sendEvent(HomeUiEvent.NavigateToWebSocket)
             }
+
             is HomeUiAction.VideoClicked -> {
                 sendEvent(HomeUiEvent.NavigateToVideo)
             }
+
             is HomeUiAction.CdnTestClicked -> {
                 sendEvent(HomeUiEvent.NavigateToCdnTest)
             }
+
             is HomeUiAction.DriveUploadClicked -> {
                 sendEvent(HomeUiEvent.NavigateToDriveUpload)
             }
+
             is HomeUiAction.FFmpegTestClicked -> {
                 sendEvent(HomeUiEvent.NavigateToFFmpegTest)
             }
+
             is HomeUiAction.ChatListClicked -> {
                 sendEvent(HomeUiEvent.NavigateToChatList)
             }
+
             is HomeUiAction.LogoutClicked -> {
                 performLogout()
             }
+
             is HomeUiAction.ExtendPermissionsClicked -> {
                 handleExtendPermissions()
             }
+
             is HomeUiAction.DismissPermissionDialog -> {
                 _uiState.update { it.copy(showPermissionDialog = false) }
             }
