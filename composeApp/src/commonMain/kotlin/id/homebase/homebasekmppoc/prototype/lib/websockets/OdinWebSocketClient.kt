@@ -31,7 +31,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlin.io.encoding.Base64
-import kotlin.uuid.Uuid
 
 
 /**
@@ -104,7 +103,10 @@ class OdinWebSocketClient(
     private val credentialsManager: CredentialsManager,
     private val scope: CoroutineScope,
     private val eventBus: EventBus,
-    private val databaseManager: DatabaseManager
+    private val databaseManager: DatabaseManager,
+    private val drives: List<TargetDrive>,
+    private val onConnected: () -> Unit = {},
+    private val onDisconnected: () -> Unit = {}
 ) {
 
     private var reconnectDelayMs = 1_000L
@@ -130,11 +132,12 @@ class OdinWebSocketClient(
         sessionProvider = { session },
         encrypt = { encryptData(it) },
         onOnline = { handleGoingOnline() },
-        onOffline = { handleGoingOffline() }
+        onOffline = { handleDisconnected() }
     )
 
-    private suspend fun handleGoingOffline() {
+    private suspend fun handleDisconnected() {
         eventBus.emit(BackendEvent.ConnectionOffline)
+        onDisconnected()
     }
 
     private suspend fun handleGoingOnline() {
@@ -217,7 +220,6 @@ class OdinWebSocketClient(
                         else -> {
                             // no op
                             Logger.d { "Received other frame type: ${frame.frameType}" }
-
                         }
                     }
                 }
@@ -226,6 +228,7 @@ class OdinWebSocketClient(
                 if (_connectionState.value != WebSocketState.Error("Unknown error")) {
                     _connectionState.value = WebSocketState.Disconnected
                 }
+                handleDisconnected()
                 Logger.i { "WebSocket connection ended" }
             }
         }
@@ -233,12 +236,12 @@ class OdinWebSocketClient(
         session = null
         pingSupervisor.stop()
         _connectionState.value = WebSocketState.Disconnected
+        handleDisconnected()
     }
 
     private suspend fun handleTextFrame(frame: Frame.Text) {
         try {
             val text = frame.readText()
-//            Logger.d { "Received WebSocket message: $text" }
 
             val decryptedJson = decryptData(text)
             val notification =
@@ -354,9 +357,9 @@ class OdinWebSocketClient(
         val theFile = theFileNotification.header!!
         val lastModified = theFile.fileMetadata.updated
 
-        val identityId =
-            Uuid.parse("7b1be23b-48bb-4304-bc7b-db5910c09a92") // TODO: <- get the real identityId
         val files = listOf(theFile.asHomebaseFile(SecureByteArray(sharedSecret)))
+
+        val identityId = credentialsManager.getActiveCredentials()!!.getIdentityId()
 
         try {
             fileHeaderProcessor.baseUpsertEntryZapZap(
@@ -396,8 +399,13 @@ class OdinWebSocketClient(
         Logger.i { "Device handshake successful" }
         pingSupervisor.notifySessionReconnected()
         pingSupervisor.start()
+
+        onConnected()
+
         eventBus.emit(BackendEvent.ConnectionOnline)
+
     }
+
 
     /**
      *
@@ -453,7 +461,7 @@ class OdinWebSocketClient(
         notify(
             command = "establishConnectionRequest",
             payload = EstablishConnectionRequest(
-                drives = listOf(chatTargetDrive)
+                drives = drives
             )
         )
     }

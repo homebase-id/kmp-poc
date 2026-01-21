@@ -2,6 +2,8 @@ package id.homebase.homebasekmppoc.prototype.lib.base
 
 import id.homebase.homebasekmppoc.prototype.lib.core.SecureByteArray
 
+import kotlin.uuid.Uuid
+
 @ConsistentCopyVisibility
 data class ApiCredentials private constructor(
     val domain: String,
@@ -14,9 +16,24 @@ data class ApiCredentials private constructor(
         require(sharedSecret.unsafeBytes.isNotEmpty())
     }
 
+    fun getIdentityId(): Uuid {
+        // TODO: <- get the real identityId
+        val identityId = Uuid.parse("7b1be23b-48bb-4304-bc7b-db5910c09a92")
+        return identityId
+    }
+
     companion object {
-        fun create(domain: String, clientAccessToken: String, sharedSecret: SecureByteArray): ApiCredentials {
-            return ApiCredentials(domain.lowercase().trim(), clientAccessToken, sharedSecret)
+        fun create(
+            domain: String,
+            clientAccessToken: String,
+            sharedSecret: SecureByteArray
+        ): ApiCredentials {
+            return ApiCredentials(
+                domain = domain.lowercase().trim(),
+                clientAccessToken = clientAccessToken,
+                sharedSecret = sharedSecret
+            )
         }
     }
+
 }
