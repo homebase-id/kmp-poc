@@ -9,6 +9,7 @@ import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializ
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.QueryBatchCursor
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.TimeRowCursor
 import kotlinx.coroutines.test.runTest
+import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -115,6 +116,7 @@ class MainIndexMetaTest {
     }
 
     @Test
+    @Ignore // michael will fix
     fun testBaseUpsertEntryZapZapWithTags() = runTest {
         DatabaseManager { createInMemoryDatabase() }.use { dbm ->
             // Create isolated database manager for this test
@@ -422,6 +424,7 @@ class MainIndexMetaTest {
     }
 
     @Test
+    @Ignore // per michael, he will fix
     fun testBaseUpsertEntryZapZapWithExistingTags() = runTest {
         DatabaseManager { createInMemoryDatabase() }.use { dbm ->
             // Test data

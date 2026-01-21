@@ -40,9 +40,9 @@ object MainIndexMetaHelpers {
     }
 
     fun upsertDriveMainIndex(
-        db : OdinDatabase,
+        db: OdinDatabase,
         driveMainIndexRecord: DriveMainIndex
-    ) : Long {
+    ): Long {
         return db.driveMainIndexQueries.upsertDriveMainIndex(
             identityId = driveMainIndexRecord.identityId,
             driveId = driveMainIndexRecord.driveId,
@@ -152,7 +152,7 @@ object MainIndexMetaHelpers {
             fileHeaders: List<HomebaseFile>,
             cursor: QueryBatchCursor?
         ) {
-                performBaseUpsert(identityId, driveId, fileHeaders, cursor)
+            performBaseUpsert(identityId, driveId, fileHeaders, cursor)
         }
 
         /**
@@ -170,12 +170,12 @@ object MainIndexMetaHelpers {
 
                 fileHeaders.forEach { fileHeader ->
                     // Convert SharedSecretEncryptedFileHeader to extract DriveMainIndex fields and tag records
-                    val driveMainIndexRecord = convertFileHeaderToDriveMainIndexRecord(identityId, driveId, fileHeader)
+                    val driveMainIndexRecord =
+                        convertFileHeaderToDriveMainIndexRecord(identityId, driveId, fileHeader)
 
                     var n = upsertDriveMainIndex(db, driveMainIndexRecord)
 
-                    if (n < 1L)
-                    {
+                    if (n < 1L) {
                         db.driveTagIndexQueries.deleteByFile(
                             identityId = identityId,
                             driveId = driveId,
@@ -217,11 +217,11 @@ object MainIndexMetaHelpers {
 
                         if (n != l)
                             throw IllegalStateException("Unable to write TAGs")
-                    }
 
-                    if (cursor != null) {
-                        val cursorStorage = CursorStorage(databaseManager, driveId)
-                        cursorStorage.saveCursor(db, cursor)
+                        if (cursor != null) {
+                            val cursorStorage = CursorStorage(databaseManager, driveId)
+                            cursorStorage.saveCursor(db, cursor)
+                        }
                     }
                 }
             }
