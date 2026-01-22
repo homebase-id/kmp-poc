@@ -27,7 +27,7 @@ fun MessageComposer(
             value = text,
             onValueChange = onTextChange,
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Hard coded to send to samwise.gamgee.demo.rocks...") },
+            placeholder = { Text("Hard coded to send to sam.dotyou.cloud...") },
             minLines = 2,
             maxLines = 4,
             enabled = enabled

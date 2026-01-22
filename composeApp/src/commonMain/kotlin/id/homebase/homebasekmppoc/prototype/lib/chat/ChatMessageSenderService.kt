@@ -11,7 +11,6 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.files.PayloadFile
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.DriveUploadProvider
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UploadAppFileMetaData
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UploadFileMetadata
-import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UploadInstructionSet
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.FileUpdateInstructionSet
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.PushNotificationOptions
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.TransitOptions
@@ -22,9 +21,7 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UpdateLocale
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UpdateManifest
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UploadFileRequest
 import id.homebase.homebasekmppoc.prototype.lib.serialization.OdinSystemSerializer
-import id.homebase.homebasekmppoc.prototype.toBase64
 import id.homebase.homebasekmppoc.prototype.writeTextToTempFile
-import io.ktor.utils.io.core.toByteArray
 import kotlinx.serialization.Serializable
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -57,13 +54,12 @@ class ChatMessageSenderService(
         const val MAX_HEADER_CONTENT_BYTES = 7000
         val CHAT_APP_ID = Uuid.parse("2d781401-3804-4b57-b4aa-d8e4e2ef39f4")
 
-
     }
 
     suspend fun sendMessage(message: SendChatMessageRequest): SendMessageResult {
 
         //todo: truncate, etc.
-        val messageText =  message.messageText
+        val messageText = message.messageText
 
         val driveId = chatTargetDrive.alias
         val keyHeader = KeyHeader.newRandom16()
@@ -73,9 +69,6 @@ class ChatMessageSenderService(
             message = messageText,
             deliveryStatus = ChatDeliveryStatus.Sent.value
         )
-
-        val contentJson = OdinSystemSerializer.serialize(content)
-        val encryptedBytes = keyHeader.encryptDataAes(contentJson.toByteArray())
 
         val uniqueId = Uuid.random()
         val metadata =
@@ -88,8 +81,8 @@ class ChatMessageSenderService(
                         groupId = message.conversationId.toString(),
                         fileType = CHAT_MESSAGE_FILE_TYPE,
                         userDate = UnixTimeUtc.now().milliseconds,
-                        content = encryptedBytes.toBase64(),
-                        tags = TODO(),
+                        content = OdinSystemSerializer.serialize(content),
+                        tags = null,
                         dataType = null,
                         archivalStatus = null,
                         previewThumbnail = null

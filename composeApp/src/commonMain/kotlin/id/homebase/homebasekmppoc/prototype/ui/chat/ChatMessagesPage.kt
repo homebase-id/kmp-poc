@@ -121,10 +121,10 @@ fun ChatMessagesPage(
         val request = SendChatMessageRequest(
             conversationId = conversationUuid,
             messageText = text,
-            recipients = listOf("samwise.gamgee.demo.rocks")
+            recipients = listOf("sam.dotyou.cloud")
         )
 
-        chatSenderService.sendMessage(request) // throws on failure
+        chatSenderService.sendMessage(request)
         return true
     }
 

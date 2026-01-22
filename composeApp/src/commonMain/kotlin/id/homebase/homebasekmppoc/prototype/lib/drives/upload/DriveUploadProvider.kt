@@ -116,7 +116,8 @@ class DriveUploadProvider(
             manifest = UploadManifest.build(
                 request.payloads,
                 request.thumbnails,
-                generatePayloadIv = request.metadata.isEncrypted)
+                generatePayloadIv = request.metadata.isEncrypted),
+            transitOptions = request.transitOptions
         )
 
         val data =
