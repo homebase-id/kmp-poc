@@ -175,7 +175,10 @@ object MainIndexMetaHelpers {
 
                     var n = upsertDriveMainIndex(db, driveMainIndexRecord)
 
-                    if (n < 1L) {
+                    // if n < 1 then the record wasn't written (because its modified timestamp was
+                    // less or equal to the existing modified timestamp), we only want to update the
+                    // TAGs if the record is "new"
+                    if (n > 0L) {
                         db.driveTagIndexQueries.deleteByFile(
                             identityId = identityId,
                             driveId = driveId,
@@ -216,12 +219,14 @@ object MainIndexMetaHelpers {
                         }
 
                         if (n != l)
-                            throw IllegalStateException("Unable to write TAGs")
+                            throw IllegalStateException("Unable to write local TAGs")
 
-                        if (cursor != null) {
-                            val cursorStorage = CursorStorage(databaseManager, driveId)
-                            cursorStorage.saveCursor(db, cursor)
-                        }
+                    }
+
+                    // Even if we didn't update the record we advance the cursor
+                    if (cursor != null) {
+                        val cursorStorage = CursorStorage(databaseManager, driveId)
+                        cursorStorage.saveCursor(db, cursor)
                     }
                 }
             }
