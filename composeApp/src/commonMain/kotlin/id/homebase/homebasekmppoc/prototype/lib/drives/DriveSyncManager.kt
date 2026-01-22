@@ -13,13 +13,9 @@ class DriveSyncManager(
     private val driveQueryProvider: DriveQueryProvider,
     private val databaseManager: DatabaseManager,
     private val eventBus: EventBus,
-    private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO),
-    private val debounceWindow: Duration = 1.seconds
-) {
-
-    private val activeSyncs = mutableMapOf<Uuid, Job>()
-    private var debounceJob: Job? = null
-
+    private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO)
+)
+{
     /**
      * Called when websocket reports "connected"
      * Fire-and-forget safe.
@@ -28,12 +24,7 @@ class DriveSyncManager(
         identityId: Uuid,
         drives: List<TargetDrive>
     ) {
-        // Debounce reconnect storms
-        debounceJob?.cancel()
-        debounceJob = scope.launch {
-            delay(debounceWindow)
-            syncAll(identityId, drives)
-        }
+        syncAll(identityId, drives)
     }
 
     private fun syncAll(
@@ -41,31 +32,22 @@ class DriveSyncManager(
         drives: List<TargetDrive>
     ) {
         for (drive in drives) {
-            val driveId = drive.alias
-            // Prevent overlapping syncs per drive
-            if (activeSyncs[driveId]?.isActive == true) continue
+            val job = DriveSync(
+                identityId = identityId,
+                driveId = drive.alias,
+                driveQueryProvider = driveQueryProvider,
+                databaseManager = databaseManager,
+                eventBus = eventBus
+            ).sync()
 
-            val job = scope.launch {
-                try {
-                    DriveSync(
-                        identityId = identityId,
-                        driveId = driveId,
-                        driveQueryProvider = driveQueryProvider,
-                        databaseManager = databaseManager,
-                        eventBus = eventBus
-                    ).sync()
-                } finally {
-                    activeSyncs.remove(driveId)
-                }
-            }
-
-            activeSyncs[driveId] = job
+            // Later, if we want to keep track of running jobs, we should
+            // push job onto a (thread safe?) stack if job is not null.
         }
     }
 
     fun cancelAll() {
-        debounceJob?.cancel()
-        activeSyncs.values.forEach { it.cancel() }
-        activeSyncs.clear()
+        // If at a later time we want to cancel running syncs then
+        // we need a thread safe stack of running jobs, and we need to
+        // somehow pop jobs when they are completed.
     }
 }

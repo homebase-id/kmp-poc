@@ -20,6 +20,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 
 
@@ -63,18 +64,17 @@ class DriveSync(
     // when it acquires the lock. Then sync() should return true
     // if it begins syncing, and false if another thread is already
     // syncing. Then the call immediately knows what is going on.
-    fun sync(): Boolean {
+    fun sync(): Job? {
         if (!mutex.tryLock()) {
-            return false
+            return null
         }
-        scope.launch {
+        return scope.launch {
             try {
                 performSync()
             } finally {
                 mutex.unlock()
             }
         }
-        return true
     }
 
     private suspend fun performSync() {

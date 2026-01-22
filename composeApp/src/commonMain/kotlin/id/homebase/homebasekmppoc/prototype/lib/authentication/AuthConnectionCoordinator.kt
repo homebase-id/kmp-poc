@@ -63,7 +63,9 @@ class AuthConnectionCoordinator(
     }
 
     private fun handleWsConnect() {
+        // TODO: Todd - Remove this launch() - onConnected returns pretty instantly
         ioScope.launch {
+            // TODO: Todd - driveSyncManager must run, it's not an option to "return" prematurely.
             val creds = credentialsManager.getActiveCredentials() ?: return@launch
 
             driveSyncManager.onConnected(

@@ -115,7 +115,9 @@ fun DriveFetchPage(
         errorMessage = null
 
         // TODO: Where does the identityId live? Need to get it instead of random.
-        if (driveSynchronizer.sync()) {
+        if (driveSynchronizer.sync() != null) {
+            // TODO: I'm not sure this is right, shouldn't the UI here react on the emitted event,
+            // and not on the result of sync()
             isLoading = true
             if (withProgress) {
                 syncProgress = null
