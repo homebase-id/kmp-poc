@@ -82,7 +82,6 @@ object MainIndexMetaHelpers {
             }
         }
 
-
         /**
          * Converts SharedSecretEncryptedFileHeader to ParsedHeaderResult
          *
