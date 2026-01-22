@@ -56,6 +56,7 @@ data class ConversationMetadata(
  * Complete conversation data model with all fields. This is the domain model returned by
  * ConversationProvider with decrypted content.
  */
+@Serializable
 data class ConversationData(
     /** FileType of conversation (8888) */
     val fileType: Int = CHAT_CONVERSATION_FILE_TYPE,

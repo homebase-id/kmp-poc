@@ -8,6 +8,7 @@ import id.homebase.homebasekmppoc.lib.youauth.SecurityContextProvider
 import id.homebase.homebasekmppoc.prototype.lib.authentication.AuthConnectionCoordinator
 import id.homebase.homebasekmppoc.prototype.lib.base.CredentialsManager
 import id.homebase.homebasekmppoc.prototype.lib.base.HttpClientProvider
+import id.homebase.homebasekmppoc.prototype.lib.chat.ChatMessageSenderService
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.DriveUploadProvider
 import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
@@ -66,6 +67,8 @@ val appModule = module {
     single { OdinClientFactory }
 
     factoryOf(::DriveUploadService)
+
+    factoryOf(::ChatMessageSenderService)
 
     /* ───────────────────────────
      * ViewModels

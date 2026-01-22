@@ -36,14 +36,21 @@ import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthState
 import id.homebase.homebasekmppoc.prototype.lib.chat.ChatMessageData
 import id.homebase.homebasekmppoc.prototype.lib.chat.ChatMessageProvider
+import id.homebase.homebasekmppoc.prototype.lib.chat.ChatMessageSenderService
+import id.homebase.homebasekmppoc.prototype.lib.chat.ConversationData
+import id.homebase.homebasekmppoc.prototype.lib.chat.ConversationProvider
+import id.homebase.homebasekmppoc.prototype.lib.chat.SendChatMessageRequest
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.prototype.lib.eventbus.BackendEvent
 import id.homebase.homebasekmppoc.prototype.lib.eventbus.appEventBus
 import id.homebase.homebasekmppoc.prototype.lib.http.OdinClient
 import id.homebase.homebasekmppoc.prototype.ui.driveFetch.DriveSync
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
 /**
@@ -53,16 +60,20 @@ import org.koin.compose.koinInject
 @OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ChatMessagesPage(
-        conversationId: String,
-        youAuthFlowManager: YouAuthFlowManager,
-        onNavigateBack: () -> Unit,
-        onNavigateToMessageDetail: (String, String) -> Unit
+    conversationId: String,
+    youAuthFlowManager: YouAuthFlowManager,
+    onNavigateBack: () -> Unit,
+    onNavigateToMessageDetail: (String, String) -> Unit,
 ) {
     val authState by youAuthFlowManager.authState.collectAsState()
     val localQueryResults = remember {
         mutableStateListOf<ChatMessageData>()
     }
 
+    val scope = CoroutineScope(Dispatchers.Main)
+    val chatSenderService: ChatMessageSenderService? = koinInject()
+
+    var composerText by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var isRefreshing by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -77,15 +88,15 @@ fun ChatMessagesPage(
     val odinClient: OdinClient? = koinInject()
 
     val driveSynchronizer =
-            remember(driveQueryProvider) {
-                driveQueryProvider?.let {
-                    DriveSync(identityId, driveId, it, DatabaseManager.appDb, appEventBus)
-                }
+        remember(driveQueryProvider) {
+            driveQueryProvider?.let {
+                DriveSync(identityId, driveId, it, DatabaseManager.appDb, appEventBus)
             }
+        }
 
     // Create ChatMessageProvider with OdinClient for decryption
     val chatMessageProvider =
-            remember(odinClient) { odinClient?.let { ChatMessageProvider(identityId, it) } }
+        remember(odinClient) { odinClient?.let { ChatMessageProvider(identityId, it) } }
 
     fun triggerFetch(withProgress: Boolean) {
         if (driveSynchronizer == null) {
@@ -102,16 +113,31 @@ fun ChatMessagesPage(
         }
     }
 
+    suspend fun tiggerSend(text: String): Boolean {
+        if (chatSenderService == null) {
+            throw Exception("missing services")
+        }
+
+        val request = SendChatMessageRequest(
+            conversationId = conversationUuid,
+            messageText = text,
+            recipients = listOf("sam.dotyou.cloud")
+        )
+
+        chatSenderService.sendMessage(request)
+        return true
+    }
+
     val pullRefreshState =
-            rememberPullRefreshState(
-                    isRefreshing,
-                    {
-                        if (authState is YouAuthState.Authenticated) {
-                            isRefreshing = true
-                            triggerFetch(false)
-                        }
-                    }
-            )
+        rememberPullRefreshState(
+            isRefreshing,
+            {
+                if (authState is YouAuthState.Authenticated) {
+                    isRefreshing = true
+                    triggerFetch(false)
+                }
+            }
+        )
 
     // Reset state when auth changes
     LaunchedEffect(authState) {
@@ -131,17 +157,18 @@ fun ChatMessagesPage(
                         syncProgress = event
                     }
                 }
+
                 is BackendEvent.DriveEvent.Completed -> {
                     if (event.driveId == driveId) {
                         syncProgress = event
                         // Load messages using ChatMessageProvider
                         chatMessageProvider?.let { provider ->
                             val result =
-                                    provider.fetchMessages(
-                                            dbm = DatabaseManager.appDb,
-                                            driveId = driveId,
-                                            conversationId = conversationUuid
-                                    )
+                                provider.fetchMessages(
+                                    dbm = DatabaseManager.appDb,
+                                    driveId = driveId,
+                                    conversationId = conversationUuid
+                                )
                             localQueryResults.clear()
                             localQueryResults.addAll(result.records)
                         }
@@ -149,6 +176,7 @@ fun ChatMessagesPage(
                         isRefreshing = false
                     }
                 }
+
                 is BackendEvent.DriveEvent.Failed -> {
                     if (event.driveId == driveId) {
                         errorMessage = event.errorMessage
@@ -156,18 +184,22 @@ fun ChatMessagesPage(
                         isRefreshing = false
                     }
                 }
+
                 is BackendEvent.DriveEvent.Started -> {
                     if (event.driveId == driveId) {
                         isLoading = true
                         syncProgress = null
                     }
                 }
+
                 is BackendEvent.ConnectionOnline -> {
                     isOnline = true
                 }
+
                 is BackendEvent.ConnectionOffline -> {
                     isOnline = false
                 }
+
                 else -> {
                     // Some other event
                 }
@@ -176,55 +208,55 @@ fun ChatMessagesPage(
     }
 
     Scaffold(
-            topBar = {
-                TopAppBar(
-                        title = { Text("Messages") },
-                        navigationIcon = {
-                            IconButton(onClick = onNavigateBack) {
-                                Text("←", style = MaterialTheme.typography.headlineMedium)
-                            }
-                        },
-                        actions = {
-                            // Spinner when loading
-                            if (isLoading) {
-                                CircularProgressIndicator(
-                                        modifier = Modifier.padding(end = 8.dp),
-                                        strokeWidth = 2.dp
-                                )
-                            }
-                            // Numerical progress
-                            if (syncProgress is BackendEvent.DriveEvent.BatchReceived) {
-                                val progress = syncProgress as BackendEvent.DriveEvent.BatchReceived
-                                Text(
-                                        text = "${progress.totalCount}",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        modifier = Modifier.padding(end = 8.dp)
-                                )
-                            }
-                            // Online/offline indicator
-                            Text(
-                                    text = if (isOnline) "🟢" else "🔴",
-                                    style = MaterialTheme.typography.headlineSmall
-                            )
-                        }
-                )
-            }
+        topBar = {
+            TopAppBar(
+                title = { Text("Messages") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Text("←", style = MaterialTheme.typography.headlineMedium)
+                    }
+                },
+                actions = {
+                    // Spinner when loading
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.padding(end = 8.dp),
+                            strokeWidth = 2.dp
+                        )
+                    }
+                    // Numerical progress
+                    if (syncProgress is BackendEvent.DriveEvent.BatchReceived) {
+                        val progress = syncProgress as BackendEvent.DriveEvent.BatchReceived
+                        Text(
+                            text = "${progress.totalCount}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                    }
+                    // Online/offline indicator
+                    Text(
+                        text = if (isOnline) "🟢" else "🔴",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                }
+            )
+        }
     ) { paddingValues ->
         Box(
-                modifier =
-                        Modifier.fillMaxSize().padding(paddingValues).pullRefresh(pullRefreshState)
+            modifier =
+                Modifier.fillMaxSize().padding(paddingValues).pullRefresh(pullRefreshState)
         ) {
             Column(
-                    modifier = Modifier.fillMaxSize().padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                modifier = Modifier.fillMaxSize().padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 when (authState) {
                     is YouAuthState.Authenticated -> {
                         // Show conversation ID
                         Text(
-                                text = "Conversation: ${conversationId.take(16)}...",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = "Conversation: ${conversationId.take(16)}...",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -233,12 +265,30 @@ fun ChatMessagesPage(
                             Text(if (isLoading) "Fetching..." else "Fetch Messages")
                         }
 
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        MessageComposer(
+                            text = composerText,
+                            enabled = !isLoading && isOnline,
+                            onTextChange = { composerText = it },
+                            onSendMessage = {
+                                scope.launch {
+                                    try {
+                                        tiggerSend(composerText)
+                                        composerText = ""
+                                    } catch (e: Exception) {
+                                        errorMessage = e.message
+                                    }
+                                }
+                            }
+                        )
+
                         Spacer(modifier = Modifier.height(16.dp))
 
                         if (errorMessage != null) {
                             Text(
-                                    text = "Error: $errorMessage",
-                                    color = MaterialTheme.colorScheme.error
+                                text = "Error: $errorMessage",
+                                color = MaterialTheme.colorScheme.error
                             )
                         } else {
                             // Content is already decrypted by ChatMessageProvider
@@ -253,19 +303,20 @@ fun ChatMessagesPage(
 
                         }
                     }
+
                     else -> {
                         Text(
-                                text = "Please authenticate in the App tab first.",
-                                style = MaterialTheme.typography.bodyLarge,
-                                textAlign = TextAlign.Center
+                            text = "Please authenticate in the App tab first.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
             }
             PullRefreshIndicator(
-                    refreshing = isRefreshing,
-                    state = pullRefreshState,
-                    modifier = Modifier.align(Alignment.TopCenter)
+                refreshing = isRefreshing,
+                state = pullRefreshState,
+                modifier = Modifier.align(Alignment.TopCenter)
             )
         }
     }

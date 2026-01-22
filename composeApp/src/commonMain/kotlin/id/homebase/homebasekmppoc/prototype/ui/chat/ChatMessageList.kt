@@ -45,7 +45,7 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 fun ConversationList(
         items: List<ConversationData>,
         modifier: Modifier = Modifier,
-        onConversationClicked: (conversationId: String) -> Unit
+        onConversationClicked: (conversationData: ConversationData) -> Unit
 ) {
         LazyColumn(
                 modifier = modifier.fillMaxWidth(),
@@ -54,7 +54,7 @@ fun ConversationList(
                 items(items, key = { it.fileId.toString()}) { item ->
                         ConversationCard(
                                 item = item,
-                                onClick = { onConversationClicked(item.uniqueId.toString()) }
+                                onClick = { onConversationClicked(item) }
                         )
                 }
         }
