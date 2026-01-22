@@ -2,6 +2,7 @@ package id.homebase.homebasekmppoc.prototype.lib.chat
 
 import id.homebase.homebasekmppoc.lib.config.chatTargetDrive
 import id.homebase.homebasekmppoc.prototype.lib.base.CredentialsManager
+import id.homebase.homebasekmppoc.prototype.lib.core.time.UnixTimeUtc
 import id.homebase.homebasekmppoc.prototype.lib.crypto.ByteArrayUtil
 import id.homebase.homebasekmppoc.prototype.lib.crypto.KeyHeader
 import id.homebase.homebasekmppoc.prototype.lib.drives.HomebaseFile
@@ -12,6 +13,7 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UploadAppFileMetaD
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UploadFileMetadata
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UploadInstructionSet
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.FileUpdateInstructionSet
+import id.homebase.homebasekmppoc.prototype.lib.drives.upload.PushNotificationOptions
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.TransitOptions
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UpdateFileByFileIdRequest
 import id.homebase.homebasekmppoc.prototype.lib.drives.upload.UpdateFileByUniqueIdRequest
@@ -33,6 +35,7 @@ data class ImageUploadResult(val fileId: String?, val versionTag: String?)
 
 @Serializable
 data class SendChatMessageRequest(
+    val conversationId: Uuid,
     val messageText: String,
     val recipients: List<String>
 )
@@ -50,16 +53,28 @@ class ChatMessageSenderService(
         const val CHAT_MESSAGE_FILE_TYPE = 7878
         const val CHAT_MESSAGE_PAYLOAD_KEY = "chat_mbl"
         const val CHAT_LINKS_PAYLOAD_KEY = "chat_links"
+
+        const val MAX_HEADER_CONTENT_BYTES = 7000
+        val CHAT_APP_ID = Uuid.parse("2d781401-3804-4b57-b4aa-d8e4e2ef39f4")
+
+
     }
 
     suspend fun sendMessage(message: SendChatMessageRequest): SendMessageResult {
 
+        //todo: truncate, etc.
+        val messageText =  message.messageText
+
         val driveId = chatTargetDrive.alias
-
-        // do the encryption
         val keyHeader = KeyHeader.newRandom16()
+        val content = ChatMessageContent(
+            replyId = null,
+            replyPreview = null,
+            message = messageText,
+            deliveryStatus = ChatDeliveryStatus.Sent.value
+        )
 
-        val contentJson = OdinSystemSerializer.serialize(message)
+        val contentJson = OdinSystemSerializer.serialize(content)
         val encryptedBytes = keyHeader.encryptDataAes(contentJson.toByteArray())
 
         val uniqueId = Uuid.random()
@@ -70,8 +85,14 @@ class ChatMessageSenderService(
                 appData =
                     UploadAppFileMetaData(
                         uniqueId = uniqueId.toString(),
+                        groupId = message.conversationId.toString(),
                         fileType = CHAT_MESSAGE_FILE_TYPE,
-                        content = encryptedBytes.toBase64()
+                        userDate = UnixTimeUtc.now().milliseconds,
+                        content = encryptedBytes.toBase64(),
+                        tags = TODO(),
+                        dataType = null,
+                        archivalStatus = null,
+                        previewThumbnail = null
                     )
             )
 
@@ -82,8 +103,14 @@ class ChatMessageSenderService(
             metadata = metadata.encryptContent(keyHeader),
             transitOptions = TransitOptions(
                 recipients = message.recipients,
-                useAppNotification = null,
-                appNotificationOptions = null
+                useAppNotification = true,
+                appNotificationOptions = PushNotificationOptions(
+                    appId = CHAT_APP_ID.toString(),
+                    typeId = metadata.appData.groupId ?: Uuid.random().toString(),
+                    tagId = metadata.appData.uniqueId ?: Uuid.random().toString(),
+                    silent = false,
+                    unEncryptedMessage = "You have a new message"
+                )
             ),
         )
 

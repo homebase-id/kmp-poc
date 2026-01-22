@@ -119,6 +119,7 @@ fun ChatMessagesPage(
         }
 
         val request = SendChatMessageRequest(
+            conversationId = conversationUuid,
             messageText = text,
             recipients = listOf("samwise.gamgee.demo.rocks")
         )

@@ -32,10 +32,8 @@ import androidx.compose.ui.unit.dp
 import id.homebase.homebasekmppoc.lib.config.chatTargetDrive
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthState
-import id.homebase.homebasekmppoc.prototype.lib.chat.ChatMessageSenderService
 import id.homebase.homebasekmppoc.prototype.lib.chat.ConversationData
 import id.homebase.homebasekmppoc.prototype.lib.chat.ConversationProvider
-import id.homebase.homebasekmppoc.prototype.lib.chat.SendChatMessageRequest
 import id.homebase.homebasekmppoc.prototype.lib.database.DatabaseManager
 import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.prototype.lib.eventbus.BackendEvent
