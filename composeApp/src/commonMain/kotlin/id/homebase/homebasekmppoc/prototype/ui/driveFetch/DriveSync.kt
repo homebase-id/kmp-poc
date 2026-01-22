@@ -38,16 +38,24 @@ class DriveSync(
     private val mutex = Mutex()
     private var batchSize = 50 // We begin with the smallest batch
     private var fileHeaderProcessor = MainIndexMetaHelpers.HomebaseFileProcessor(databaseManager)
+    private var job: Job? = null
 
     //TODO: Consider having a (readable) "last modified" which holds the largest timestamp of last-modified
 
     init {
+        drives.
         // Load cursor from database
         val cursorStorage = CursorStorage(databaseManager, driveId)
         cursor = cursorStorage.loadCursor()
     }
 
-    // Call this to clear everything if you want to run a test and re-sync
+    // TODO: Create companion object that prevents the creation of duplicate drives
+    // AI job for when I land - List<> doesn't have .add() :rolling eyes: WTF
+    public companion object {
+        public var drives: List<Uuid> = emptyList()
+    }
+
+    // Call this to clear everything on the drive.
     suspend fun clearStorage()
     {
         // Temp hack, remove soon.
@@ -60,21 +68,33 @@ class DriveSync(
         cursor = null
     }
 
-    // I remain tempted to let the sync() function spawn a thread
-    // when it acquires the lock. Then sync() should return true
-    // if it begins syncing, and false if another thread is already
-    // syncing. Then the call immediately knows what is going on.
+    fun isJobRunning(): Boolean {
+        return job != null
+    }
+
+    fun cancel() {
+        // If we really really want to cancel in the future... Something like:
+        // job?.cancel()?
+        // we probably want child jobs to be allowed to complete (write to DB)
+    }
+
+    // sync() spawn a thread unless it's already working. Returns a pointer to the
+    // Job created, or null if another job was already running. You can check if a
+    // job is running by calling isJobRunning()
     fun sync(): Job? {
         if (!mutex.tryLock()) {
             return null
         }
-        return scope.launch {
+        job = scope.launch {
             try {
                 performSync()
             } finally {
+                job = null
                 mutex.unlock()
             }
         }
+
+        return job
     }
 
     private suspend fun performSync() {
