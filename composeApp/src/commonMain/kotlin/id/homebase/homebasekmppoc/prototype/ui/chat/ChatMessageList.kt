@@ -104,7 +104,7 @@ fun ConversationCard(item: ConversationData, onClick: () -> Unit) {
                                         Text("Last-message-text: ${item.getLastMessageContent()?.message}")
                                         Text("Last-message-timestamp: ${item.getLastMessageContent()?.time}")
                                         Text("Last-message-delivery-status: ${item.getLastMessageContent()?.deliveryStatus?.name}")
-                                        Text("Reaction-summary: BISHWA ADD REACTION SUMMARY")
+                                        Text("Reaction-summary: ${item.getLastMessageContent()?.reactionSummary}")
                                 }
                         }
 
