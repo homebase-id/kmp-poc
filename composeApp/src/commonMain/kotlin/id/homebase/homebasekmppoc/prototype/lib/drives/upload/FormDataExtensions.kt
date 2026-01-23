@@ -76,7 +76,7 @@ private data class ProcessedThumbnail(
  * @return MultiPartFormDataContent ready for HTTP upload
  */
 suspend fun buildUploadFormData(
-    instructionSet: SerializableUploadInstructionSet,
+    instructionSet: UploadInstructionSet,
     sharedSecretEncryptedDescriptor: ByteArray? = null,
     payloads: List<PayloadFile>? = null,
     thumbnails: List<ThumbnailFile>? = null

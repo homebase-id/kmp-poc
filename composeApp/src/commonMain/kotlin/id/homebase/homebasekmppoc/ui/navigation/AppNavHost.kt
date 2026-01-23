@@ -9,6 +9,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import androidx.savedstate.read
 import id.homebase.homebasekmppoc.lib.browser.BrowserLauncher
 import id.homebase.homebasekmppoc.lib.youauth.YouAuthFlowManager
@@ -41,7 +42,6 @@ import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.openFilePicker
 import io.github.vinceglb.filekit.name
 import io.github.vinceglb.filekit.path
-import io.github.vinceglb.filekit.readBytes
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
@@ -257,8 +257,8 @@ fun AppNavHost(
                 ChatListPage(
                     youAuthFlowManager = youAuthFlowManager,
                     onNavigateBack = { navController.popBackStack() },
-                    onNavigateToMessages = { conversationId ->
-                        navController.navigate(Route.ChatMessages(conversationId))
+                    onNavigateToMessages = { conversation ->
+                        navController.navigate(Route.ChatMessages(conversation.uniqueId.toString()))
                     }
                 )
             }
@@ -266,9 +266,12 @@ fun AppNavHost(
 
         // ChatMessages route (shows messages for a conversation)
         composable<Route.ChatMessages> { backStackEntry ->
-            val conversationId =
-                backStackEntry.arguments?.read { getString("conversationId") }
-                    ?: error("conversationId missing")
+//            val conversationId =
+//                backStackEntry.arguments?.read { getString("conversationId") }
+//                    ?: error("conversationId missing")
+
+            val route = backStackEntry.toRoute<Route.ChatMessages>()
+            val conversationId = route.conversationId
 
             AuthenticatedRouteWithFlowManager(
                 authState = youAuthFlowManager.authState,

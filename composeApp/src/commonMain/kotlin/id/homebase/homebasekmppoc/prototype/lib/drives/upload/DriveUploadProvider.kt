@@ -52,10 +52,12 @@ private data class UpdateLocalMetadataContentRequest(
 
 data class UploadFileRequest(
     val driveId: Uuid,
-    val instructions: UploadInstructionSet,
+    /// The KeyHeader used to encrypt content and payloads
+    val keyHeader: KeyHeader,
     val metadata: UploadFileMetadata,
     val payloads: List<PayloadFile> = emptyList(),
     val thumbnails: List<ThumbnailFile> = emptyList(),
+    val transitOptions: TransitOptions? = null,
     val fileSystemType: FileSystemType? = null
 )
 
@@ -80,7 +82,6 @@ data class UpdateFileByUniqueIdRequest(
 )
 
 
-/** Provider for drive upload and update operations. Ported from JS/TS odin-js UploadProvider. */
 @OptIn(ExperimentalEncodingApi::class)
 class DriveUploadProvider(
     httpClient: HttpClient,
@@ -98,43 +99,36 @@ class DriveUploadProvider(
         onVersionConflict: (suspend () -> CreateFileResult?)? = null
     ): CreateFileResult? {
 
-        val isEncrypted = request.metadata.isEncrypted
-
-        val baseMetadata = request.metadata
-
-        val keyHeader = KeyHeader.newRandom16()
-
-        val encryptedMetadata = baseMetadata.encryptContent(keyHeader)
-
-        val manifest = UploadManifest.build(request.payloads, request.thumbnails, isEncrypted)
-
-        val serializableInstructions = request.instructions.toSerializable(manifest)
-
         val creds = requireCreds()
 
         val sharedSecret = creds.secret.unsafeBytes
 
+        val transferIv = ByteArrayUtil.getRndByteArray(16)
         val sharedSecretEncryptedDescriptor = buildEncryptedUploadDescriptor(
-            keyHeader,
-            encryptedMetadata,
+            request.keyHeader,
+            request.metadata,
             sharedSecret,
-            serializableInstructions.transferIv
+            transferIv = transferIv
+        )
+
+        val instructions = UploadInstructionSet(
+            transferIv = transferIv,
+            manifest = UploadManifest.build(
+                request.payloads,
+                request.thumbnails,
+                generatePayloadIv = request.metadata.isEncrypted),
+            transitOptions = request.transitOptions
         )
 
         val data =
             buildUploadFormData(
-                instructionSet = serializableInstructions,
+                instructionSet = instructions,
                 sharedSecretEncryptedDescriptor = sharedSecretEncryptedDescriptor,
                 payloads = request.payloads,
                 thumbnails = request.thumbnails
             )
 
         val result = pureUpload(request.driveId, data, request.fileSystemType, onVersionConflict)
-
-        if (result != null) {
-            result.keyHeader = keyHeader
-        }
-
         return result
     }
 

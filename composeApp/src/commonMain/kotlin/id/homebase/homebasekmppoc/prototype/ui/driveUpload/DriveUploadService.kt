@@ -94,9 +94,6 @@ class DriveUploadService(
 
         val contentJson = OdinSystemSerializer.serialize(postContent)
 
-        val instructions =
-            UploadInstructionSet(storageOptions = StorageOptions(driveId = driveId))
-
         val metadata =
             UploadFileMetadata(
                 allowDistribution = true,
@@ -112,7 +109,7 @@ class DriveUploadService(
 
         val request = UploadFileRequest(
             driveId = driveId,
-            instructions = instructions,
+            keyHeader = KeyHeader.empty(),
             metadata = metadata
         )
 
@@ -152,19 +149,6 @@ class DriveUploadService(
             "Uploading image with uniqueId: $actualUniqueId, file: ${filePath}"
         }
 
-        val instructions =
-            UploadInstructionSet(
-                storageOptions = StorageOptions(driveId = driveId),
-                transitOptions = TransitOptions.withoutNotifications(
-                    recipients = emptyList(),
-                    isTransient = false,
-                    schedule = ScheduleOptions.SendNowAwaitResponse,
-                    priority = PriorityOptions.Medium,
-                    sendContents = SendContents.All,
-                )
-            )
-
-
         val post = createSamplePostContent();
         val contentJson = OdinSystemSerializer.serialize(post)
         val imageBytes = readFileBytes(filePath)
@@ -203,10 +187,17 @@ class DriveUploadService(
 
         val request = UploadFileRequest(
             driveId = driveId,
-            instructions = instructions,
+            keyHeader = KeyHeader.empty(),
             metadata = metadata,
             payloads = payloads,
-            thumbnails,
+            transitOptions = TransitOptions.withoutNotifications(
+                recipients = emptyList(),
+                isTransient = false,
+                schedule = ScheduleOptions.SendNowAwaitResponse,
+                priority = PriorityOptions.Medium,
+                sendContents = SendContents.All,
+            ),
+            thumbnails = thumbnails
         )
 
 //        if (encrypt) {
@@ -244,15 +235,13 @@ class DriveUploadService(
         encrypt: Boolean = true,
         onVersionConflict: (suspend () -> CreateFileResult?)? = null
     ): CreateFileResult? {
-        val instructions = UploadInstructionSet(storageOptions = StorageOptions(driveId = driveId))
-
         if (encrypt) {
             throw NotImplementedError("need to handle encryption")
         }
 
         val request = UploadFileRequest(
             driveId = driveId,
-            instructions = instructions,
+            keyHeader = KeyHeader.empty(),
             metadata = metadata,
             payloads = payloads,
             thumbnails = thumbnails,
