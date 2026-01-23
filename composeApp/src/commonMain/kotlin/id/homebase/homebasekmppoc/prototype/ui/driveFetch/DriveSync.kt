@@ -37,7 +37,7 @@ class DriveSync(
     private val scope = scope ?: CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var cursor: QueryBatchCursor?
     private val mutex = Mutex()
-    private var batchSize = 50 // We begin with the smallest batch
+    private var batchSize = 500 // Balanced starting point
     private var fileHeaderProcessor = MainIndexMetaHelpers.HomebaseFileProcessor(databaseManager)
     private var job: Job? = null
     // Create companion object that prevents the creation of duplicate drives
@@ -144,7 +144,7 @@ class DriveSync(
                                         cursor = cursor
                                     )
                                 }
-                                Logger.i("DB insert time $dbMs for ${searchResults.size} rows")
+                                // Logger.i("DB insert time $dbMs for ${searchResults.size} rows")
                             } catch (e: Exception) {
                                 Logger.e("DB upsert failed for batch: ${e.message}")
                             }
@@ -172,13 +172,11 @@ class DriveSync(
 
             if (recordsRead > 0) {
                 val batchWas = batchSize
-                val targetMs = 700L
-                if (durationMs.duration.inWholeMilliseconds > 0) {
-                    batchSize =
-                        (batchSize.toLong() * targetMs / durationMs.duration.inWholeMilliseconds)
-                            .toInt()
-                            .coerceIn(50, 1000)
-                }
+                if (durationMs.duration.inWholeMilliseconds > 2000)
+                    batchSize = ((batchSize * 3) / 4).coerceIn(50, 1000)
+                else
+                    batchSize = (batchSize * 2).coerceIn(50,1000)
+
                 Logger.d("Batch size: $batchWas, took ${durationMs.duration.inWholeMilliseconds}ms, now adjusted to: $batchSize")
             }
         }
