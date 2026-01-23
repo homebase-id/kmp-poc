@@ -22,6 +22,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlin.collections.mutableListOf
 
 
 class DriveSync(
@@ -39,19 +40,22 @@ class DriveSync(
     private var batchSize = 50 // We begin with the smallest batch
     private var fileHeaderProcessor = MainIndexMetaHelpers.HomebaseFileProcessor(databaseManager)
     private var job: Job? = null
+    // Create companion object that prevents the creation of duplicate drives
+    companion object {
+        val drives = mutableListOf<Uuid>()
+    }
 
     //TODO: Consider having a (readable) "last modified" which holds the largest timestamp of last-modified
 
     init {
+        if (drives.contains(driveId)) {
+            throw IllegalStateException("Another instance with the same driveId is already connected.")
+        }
+        drives.add(driveId);
+        //XXX DETECT but battery!!!
         // Load cursor from database
         val cursorStorage = CursorStorage(databaseManager, driveId)
         cursor = cursorStorage.loadCursor()
-    }
-
-    // TODO: Create companion object that prevents the creation of duplicate drives
-    // AI job for when I land - List<> doesn't have .add() :rolling eyes: WTF
-    public companion object {
-        public var drives: List<Uuid> = emptyList()
     }
 
     // Call this to clear everything on the drive.
