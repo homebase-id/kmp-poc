@@ -105,7 +105,8 @@ fun ChatMessagesPage(
         }
         errorMessage = null
 
-        if (driveSynchronizer.sync()) {
+        if (driveSynchronizer.sync() != null) {
+            // TODO: I'm not sure this is right, shouldn't the UI here react on the emitted event,
             isLoading = true
             if (withProgress) {
                 syncProgress = null

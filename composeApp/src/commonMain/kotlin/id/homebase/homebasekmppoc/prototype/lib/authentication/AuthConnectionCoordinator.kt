@@ -9,28 +9,41 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.prototype.lib.eventbus.appEventBus
 import id.homebase.homebasekmppoc.prototype.lib.websockets.NetworkMonitor
 import id.homebase.homebasekmppoc.prototype.lib.websockets.OdinWebSocketClient
+import id.homebase.homebasekmppoc.prototype.ui.driveFetch.DriveSync
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
-import kotlinx.coroutines.launch
+import kotlin.uuid.Uuid
 
 class AuthConnectionCoordinator(
     val credentialsManager: CredentialsManager,
     val networkMonitor: NetworkMonitor,
     val driveQueryProvider: DriveQueryProvider
 ) {
+    private val identityId = Uuid.parse("7b1be23b-48bb-4304-bc7b-db5910c09a92") // TODO: Todd <- Had to do this, identityId shouldn't be in a suspend function. It should be globally easily available anytime someone is logged in
     private var wsClient: OdinWebSocketClient? = null
-    private val drives = listOf(chatTargetDrive)
-
     private val ioScope = CoroutineScope(Dispatchers.IO)
 
+    private val targetDriveDrives = listOf(chatTargetDrive)  // TODO: <-- two drive lists of different types
+
+    private val driveSyncDrives = listOf(  // TODO: Todd <- this is somewhat ugly. Also the two lists. But these must be singletons, I don't think they should be created here
+        DriveSync(
+            identityId = identityId,
+            driveId = chatTargetDrive.alias,
+            driveQueryProvider = driveQueryProvider,
+            databaseManager = DatabaseManager.appDb,
+            eventBus = appEventBus,
+            scope = ioScope))
+
+    // There should be only one singleton instance of each DriveSync(), the list can't be with
+    // duplicates for the same driveId
     private val driveSyncManager = DriveSyncManager(
+        drives = driveSyncDrives,
         driveQueryProvider = driveQueryProvider,
         databaseManager = DatabaseManager.appDb,
         scope = ioScope,
         eventBus = appEventBus
     )
-
 
     suspend fun onAuthStateChanged(state: YouAuthState) {
         when (state) {
@@ -52,25 +65,21 @@ class AuthConnectionCoordinator(
             ioScope,
             appEventBus,
             DatabaseManager.appDb,
-            drives,
+            targetDriveDrives,
             onConnected = {
                 handleWsConnect()
             },
             onDisconnected = {
-                driveSyncManager.cancelAll()
+                driveSyncManager.cancelAll(driveSyncDrives)
             }
         ).also { it.start() }
     }
 
     private fun handleWsConnect() {
-        ioScope.launch {
-            val creds = credentialsManager.getActiveCredentials() ?: return@launch
-
-            driveSyncManager.onConnected(
-                identityId = creds.getIdentityId(),
-                drives = drives
-            )
-        }
+        driveSyncManager.onConnected(
+            identityId = identityId,
+            drives = driveSyncDrives
+        )
     }
 
 

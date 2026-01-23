@@ -5,67 +5,40 @@ import id.homebase.homebasekmppoc.prototype.lib.drives.query.DriveQueryProvider
 import id.homebase.homebasekmppoc.prototype.lib.eventbus.EventBus
 import id.homebase.homebasekmppoc.prototype.ui.driveFetch.DriveSync
 import kotlinx.coroutines.*
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.Uuid
 
 class DriveSyncManager(
+    private val drives: List<DriveSync>,  // TODO: Todd <- or is this list a global singleton and not a parameter?
     private val driveQueryProvider: DriveQueryProvider,
     private val databaseManager: DatabaseManager,
     private val eventBus: EventBus,
-    private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO),
-    private val debounceWindow: Duration = 1.seconds
-) {
-
-    private val activeSyncs = mutableMapOf<Uuid, Job>()
-    private var debounceJob: Job? = null
-
+    private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO)
+)
+{
     /**
      * Called when websocket reports "connected"
      * Fire-and-forget safe.
      */
     fun onConnected(
         identityId: Uuid,
-        drives: List<TargetDrive>
+        drives: List<DriveSync>
     ) {
-        // Debounce reconnect storms
-        debounceJob?.cancel()
-        debounceJob = scope.launch {
-            delay(debounceWindow)
-            syncAll(identityId, drives)
-        }
+        syncAll(identityId, drives)
     }
 
     private fun syncAll(
         identityId: Uuid,
-        drives: List<TargetDrive>
+        drives: List<DriveSync>
     ) {
+        // Any sync jobs created will be F&F
         for (drive in drives) {
-            val driveId = drive.alias
-            // Prevent overlapping syncs per drive
-            if (activeSyncs[driveId]?.isActive == true) continue
-
-            val job = scope.launch {
-                try {
-                    DriveSync(
-                        identityId = identityId,
-                        driveId = driveId,
-                        driveQueryProvider = driveQueryProvider,
-                        databaseManager = databaseManager,
-                        eventBus = eventBus
-                    ).sync()
-                } finally {
-                    activeSyncs.remove(driveId)
-                }
-            }
-
-            activeSyncs[driveId] = job
+            val job = drive.sync()
         }
     }
 
-    fun cancelAll() {
-        debounceJob?.cancel()
-        activeSyncs.values.forEach { it.cancel() }
-        activeSyncs.clear()
+    fun cancelAll(drives: List<DriveSync>) {
+        for (drive in drives) {
+             drive.cancel() // Not active, see function
+        }
     }
 }

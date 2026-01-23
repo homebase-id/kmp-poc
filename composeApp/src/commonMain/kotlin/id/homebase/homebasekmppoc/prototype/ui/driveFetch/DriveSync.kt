@@ -20,7 +20,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlin.collections.mutableListOf
 
 
 class DriveSync(
@@ -35,16 +37,27 @@ class DriveSync(
     private val scope = scope ?: CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var cursor: QueryBatchCursor?
     private val mutex = Mutex()
-    private var batchSize = 50 // We begin with the smallest batch
+    private var batchSize = 500 // Balanced starting point
     private var fileHeaderProcessor = MainIndexMetaHelpers.HomebaseFileProcessor(databaseManager)
+    private var job: Job? = null
+    // Create companion object that prevents the creation of duplicate drives
+    companion object {
+        val drives = mutableListOf<Uuid>()
+    }
 
     //TODO: Consider having a (readable) "last modified" which holds the largest timestamp of last-modified
 
     init {
+        if (drives.contains(driveId)) {
+            throw IllegalStateException("Another instance with the same driveId is already connected.")
+        }
+        drives.add(driveId);
+        //XXX DETECT but battery!!!
         // Load cursor from database
         val cursorStorage = CursorStorage(databaseManager, driveId)
         cursor = cursorStorage.loadCursor()
     }
+
 
     // Call this to clear everything if you want to run a test and re-sync
     suspend fun clearStorage() {
@@ -58,22 +71,33 @@ class DriveSync(
         cursor = null
     }
 
-    // I remain tempted to let the sync() function spawn a thread
-    // when it acquires the lock. Then sync() should return true
-    // if it begins syncing, and false if another thread is already
-    // syncing. Then the call immediately knows what is going on.
-    fun sync(): Boolean {
+    fun isJobRunning(): Boolean {
+        return job != null
+    }
+
+    fun cancel() {
+        // If we really really want to cancel in the future... Something like:
+        // job?.cancel()?
+        // we probably want child jobs to be allowed to complete (write to DB)
+    }
+
+    // sync() spawn a thread unless it's already working. Returns a pointer to the
+    // Job created, or null if another job was already running. You can check if a
+    // job is running by calling isJobRunning()
+    fun sync(): Job? {
         if (!mutex.tryLock()) {
-            return false
+            return null
         }
-        scope.launch {
+        job = scope.launch {
             try {
                 performSync()
             } finally {
+                job = null
                 mutex.unlock()
             }
         }
-        return true
+
+        return job
     }
 
     private suspend fun performSync() {
@@ -120,7 +144,7 @@ class DriveSync(
                                         cursor = cursor
                                     )
                                 }
-                                Logger.i("DB insert time $dbMs for ${searchResults.size} rows")
+                                // Logger.i("DB insert time $dbMs for ${searchResults.size} rows")
                             } catch (e: Exception) {
                                 Logger.e("DB upsert failed for batch: ${e.message}")
                             }
@@ -154,13 +178,11 @@ class DriveSync(
 
             if (recordsRead > 0) {
                 val batchWas = batchSize
-                val targetMs = 700L
-                if (durationMs.duration.inWholeMilliseconds > 0) {
-                    batchSize =
-                        (batchSize.toLong() * targetMs / durationMs.duration.inWholeMilliseconds)
-                            .toInt()
-                            .coerceIn(50, 1000)
-                }
+                if (durationMs.duration.inWholeMilliseconds > 2000)
+                    batchSize = ((batchSize * 3) / 4).coerceIn(50, 1000)
+                else
+                    batchSize = (batchSize * 2).coerceIn(50,1000)
+
                 Logger.d("Batch size: $batchWas, took ${durationMs.duration.inWholeMilliseconds}ms, now adjusted to: $batchSize")
             }
         }

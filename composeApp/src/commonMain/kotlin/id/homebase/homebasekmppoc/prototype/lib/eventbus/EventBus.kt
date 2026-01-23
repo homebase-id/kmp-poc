@@ -14,4 +14,4 @@ class EventBus(
     suspend fun emit(event: BackendEvent) = _events.emit(event)
 }
 
-val appEventBus = EventBus()  // Global singleton for production code
+val appEventBus = EventBus()  // TODO: Make into global singleton for production code
