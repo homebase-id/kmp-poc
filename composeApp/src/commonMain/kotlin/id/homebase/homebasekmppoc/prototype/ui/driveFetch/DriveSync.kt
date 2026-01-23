@@ -31,8 +31,8 @@ class DriveSync(
     private val driveQueryProvider: DriveQueryProvider, // TODO: <- can we get rid of this?
     private val databaseManager: DatabaseManager,
     private val eventBus: EventBus,
-    scope: CoroutineScope? = null)
-{
+    scope: CoroutineScope? = null
+) {
     // Background work is Network and DB bound, so using IO
     private val scope = scope ?: CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var cursor: QueryBatchCursor?
@@ -58,9 +58,9 @@ class DriveSync(
         cursor = cursorStorage.loadCursor()
     }
 
-    // Call this to clear everything on the drive.
-    suspend fun clearStorage()
-    {
+
+    // Call this to clear everything if you want to run a test and re-sync
+    suspend fun clearStorage() {
         // Temp hack, remove soon.
         databaseManager.driveMainIndex.deleteAll() // TODO: <-- don't delete all! :-)
         databaseManager.driveTagIndex.deleteAll() // TODO: <-- don't delete all! :-)
@@ -154,18 +154,24 @@ class DriveSync(
 
                         eventBus.emit(
                             BackendEvent.DriveEvent.BatchReceived(
-                            driveId = driveId,
-                            totalCount = totalCount,
-                            batchCount = recordsRead,
-                            latestModified = latestModified,
-                            batchData = searchResults
-                        ))
+                                driveId = driveId,
+                                totalCount = totalCount,
+                                batchCount = recordsRead,
+                                latestModified = latestModified,
+                                batchData = searchResults
+                            )
+                        )
                     }
 
-                    // TODO: The BE should return the moreRows boolean from QueryBatch.
-                    keepGoing = searchResults.size >= batchSize
+                    keepGoing = queryBatchResponse.hasMoreRows
+
                 } catch (e: Exception) {
-                    eventBus.emit(BackendEvent.DriveEvent.Failed(driveId, "Sync failed: ${e.message}"))
+                    eventBus.emit(
+                        BackendEvent.DriveEvent.Failed(
+                            driveId,
+                            "Sync failed: ${e.message}"
+                        )
+                    )
                     keepGoing = false
                 }
             }

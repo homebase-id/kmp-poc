@@ -29,7 +29,9 @@ data class QueryBatchResponse(
 
     val cursorState: String? = null,
 
-    val searchResults: List<HomebaseFile> = emptyList()
+    val searchResults: List<HomebaseFile> = emptyList(),
+
+    val hasMoreRows: Boolean = false
 ) {
 
     companion object {
