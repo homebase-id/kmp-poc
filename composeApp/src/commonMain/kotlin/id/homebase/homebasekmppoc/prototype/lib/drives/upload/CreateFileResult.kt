@@ -7,9 +7,6 @@ import kotlin.uuid.Uuid
 
 @Serializable
 data class CreateFileResult(
-
-    /** Key header used for encryption (not serialized, set after upload). */
-    @Transient var keyHeader: KeyHeader? = null,
     val fileId: Uuid,
     val driveId: Uuid,
     var globalTransitId: Uuid? = null,
