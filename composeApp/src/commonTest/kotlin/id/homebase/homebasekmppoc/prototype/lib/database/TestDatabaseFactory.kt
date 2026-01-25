@@ -2,6 +2,7 @@ package id.homebase.homebasekmppoc.prototype.lib.database
 
 import app.cash.sqldelight.db.SqlDriver
 import id.homebase.homebasekmppoc.lib.database.AppNotifications
+import id.homebase.homebasekmppoc.lib.database.ChatReadCount
 import id.homebase.homebasekmppoc.lib.database.DriveLocalTagIndex
 import id.homebase.homebasekmppoc.lib.database.DriveMainIndex
 import id.homebase.homebasekmppoc.lib.database.DriveTagIndex
@@ -55,6 +56,10 @@ object TestDatabaseFactory {
         notificationIdAdapter = UuidAdapter
     )
 
+    private val chatReadCountAdapter = ChatReadCount.Adapter(
+        groupIdAdapter = UuidAdapter
+    )
+
     /**
      * Creates a test database with all adapters pre-configured.
      * Uses the platform-specific in-memory driver.
@@ -68,6 +73,7 @@ object TestDatabaseFactory {
         return OdinDatabase.Companion(
             sqlDriver,
             appNotificationsAdapter,
+            chatReadCountAdapter,
             driveLocalTagIndexAdapter,
             driveMainIndexAdapter,
             driveTagIndexAdapter,

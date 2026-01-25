@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import id.homebase.homebasekmppoc.lib.database.AppNotificationsWrapper
+import id.homebase.homebasekmppoc.lib.database.ChatReadCount
 import id.homebase.homebasekmppoc.lib.database.DriveMainIndexWrapper
 import id.homebase.homebasekmppoc.lib.database.DriveTagIndexWrapper
 import id.homebase.homebasekmppoc.lib.database.DriveLocalTagIndexWrapper
@@ -26,6 +27,9 @@ import id.homebase.homebasekmppoc.lib.database.OutboxWrapper
 private val appNotificationsAdapter = AppNotifications.Adapter(
     identityIdAdapter = UuidAdapter,
     notificationIdAdapter = UuidAdapter
+)
+private val chatReadCountAdapter = ChatReadCount.Adapter(
+    groupIdAdapter = UuidAdapter
 )
 private val driveMainIndexAdapter = DriveMainIndex.Adapter(
     identityIdAdapter = UuidAdapter,
@@ -69,6 +73,7 @@ class DatabaseManager(driverProvider: () -> SqlDriver) : AutoCloseable
         database = OdinDatabase(
             driver,
             appNotificationsAdapter,
+            chatReadCountAdapter,
             driveLocalTagIndexAdapter,
             driveMainIndexAdapter,
             driveTagIndexAdapter,
